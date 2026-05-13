@@ -1,6 +1,6 @@
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Bell, TrendingUp, TrendingDown } from 'lucide-react-native'
+import { TrendingUp, TrendingDown } from 'lucide-react-native'
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { useAuthStore } from '@/lib/auth-store'
@@ -51,9 +51,6 @@ export default function DashboardScreen() {
                             Hi, {firstName}
                         </Text>
                     </View>
-                    <TouchableOpacity className="w-10 h-10 rounded-full bg-brand-surface border border-brand-border items-center justify-center">
-                        <Bell size={18} color="#6B7280" strokeWidth={1.8} />
-                    </TouchableOpacity>
                 </View>
 
                 <View className="px-6 gap-y-4 pb-8">
