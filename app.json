@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "Affida",
+    "slug": "affida",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "affida",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#09090F"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.affida.app",
+      "buildNumber": "1"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#09090F"
+      },
+      "package": "com.affida.app",
+      "versionCode": 1
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#09090F",
+          "image": "./assets/splash.png",
+          "resizeMode": "contain"
+        }
+      ],
+      "expo-asset"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e9585754-a837-42e8-86de-3e9e83d28f72"
+      }
+    }
+  }
+}
