@@ -15,7 +15,10 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.affida.app",
-      "buildNumber": "1"
+      "buildNumber": "3",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +26,7 @@
         "backgroundColor": "#09090F"
       },
       "package": "com.affida.app",
-      "versionCode": 1
+      "versionCode": 3
     },
     "plugins": [
       "expo-router",
@@ -46,6 +49,7 @@
       "eas": {
         "projectId": "e9585754-a837-42e8-86de-3e9e83d28f72"
       }
-    }
+    },
+    "privacyPolicyUrl": "https://affida.money/privacy"
   }
 }

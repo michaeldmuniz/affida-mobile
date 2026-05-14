@@ -10,6 +10,7 @@ import {
     ScrollView,
     ActivityIndicator,
     Alert,
+    Linking,
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -195,8 +196,17 @@ export default function LoginScreen() {
                         </View>
 
                         <Text className="text-brand-muted text-xs text-center mt-8 leading-relaxed">
-                            Don't have an account? Sign up at{'\n'}affida.app
+                            Don't have an account? Sign up at{'\n'}affida.money
                         </Text>
+
+                        <View className="flex-row justify-center gap-x-4 mt-4">
+                            <TouchableOpacity onPress={() => Linking.openURL('https://affida.money/privacy')}>
+                                <Text className="text-brand-muted text-xs underline">Privacy Policy</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => Linking.openURL('https://affida.money/terms')}>
+                                <Text className="text-brand-muted text-xs underline">Terms of Service</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>

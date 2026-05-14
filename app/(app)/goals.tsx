@@ -1,6 +1,6 @@
-import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-native'
+import { View, Text, ScrollView, RefreshControl } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Plus, Target } from 'lucide-react-native'
+import { Target } from 'lucide-react-native'
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { Card } from '@/components/ui/Card'
@@ -48,11 +48,8 @@ export default function GoalsScreen() {
                 }
             >
                 {/* Header */}
-                <View className="flex-row items-center justify-between px-6 pt-4 pb-2">
+                <View className="px-6 pt-4 pb-2">
                     <Text className="text-brand-text text-2xl font-bold">Goals</Text>
-                    <TouchableOpacity className="w-9 h-9 rounded-full bg-brand-surface border border-brand-border items-center justify-center">
-                        <Plus size={18} color="#5B7BF8" strokeWidth={2} />
-                    </TouchableOpacity>
                 </View>
 
                 <View className="px-6 gap-y-3 pb-8 pt-4">
@@ -76,7 +73,7 @@ function GoalCard({ goal }: { goal: Goal }) {
     const deadline = daysUntil(goal.deadline)
 
     return (
-        <TouchableOpacity activeOpacity={0.8}>
+        <View>
             <Card className="p-5">
                 <View className="flex-row items-start justify-between mb-1">
                     <Text className="text-brand-text font-semibold text-base flex-1 pr-3" numberOfLines={1}>
@@ -112,7 +109,7 @@ function GoalCard({ goal }: { goal: Goal }) {
                     {pct.toFixed(0)}% complete
                 </Text>
             </Card>
-        </TouchableOpacity>
+        </View>
     )
 }
 

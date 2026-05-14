@@ -1,8 +1,8 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native'
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
-import { LogOut, User, Shield, CreditCard, ChevronRight, Mail, Smartphone, Zap } from 'lucide-react-native'
+import { LogOut, User, Shield, CreditCard, ChevronRight, Mail, Smartphone, Zap, FileText, ScrollText } from 'lucide-react-native'
 import { apiClient } from '@/lib/api-client'
 import { useAuthStore } from '@/lib/auth-store'
 
@@ -193,6 +193,22 @@ export default function SettingsScreen() {
                         label="Categorization Rules"
                         value={undefined}
                         onPress={() => router.push('/(app)/rules')}
+                    />
+                </View>
+
+                {/* Legal */}
+                <SectionHeader title="Legal" />
+                <View className="mx-4 rounded-2xl overflow-hidden border border-brand-border">
+                    <SettingsRow
+                        icon={FileText}
+                        label="Privacy Policy"
+                        onPress={() => Linking.openURL('https://affida.money/privacy')}
+                    />
+                    <Divider />
+                    <SettingsRow
+                        icon={ScrollText}
+                        label="Terms of Service"
+                        onPress={() => Linking.openURL('https://affida.money/terms')}
                     />
                 </View>
 
