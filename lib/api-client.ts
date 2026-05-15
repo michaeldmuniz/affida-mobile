@@ -17,12 +17,50 @@ apiClient.interceptors.request.use((config) => {
     return config
 })
 
+let isRefreshing = false
+let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: unknown) => void }> = []
+
+function processQueue(error: unknown, token: string | null = null) {
+    failedQueue.forEach((p) => (error ? p.reject(error) : p.resolve(token!)))
+    failedQueue = []
+}
+
 apiClient.interceptors.response.use(
     (response) => response,
-    (error) => {
-        if (error.response?.status === 401) {
-            useAuthStore.getState().clearAuth()
+    async (error) => {
+        const originalRequest = error.config
+        const is401 = error.response?.status === 401
+        const isRefreshEndpoint = originalRequest?.url?.includes('/auth/refresh')
+
+        if (is401 && !originalRequest._retry && !isRefreshEndpoint) {
+            if (isRefreshing) {
+                return new Promise<string>((resolve, reject) => {
+                    failedQueue.push({ resolve, reject })
+                }).then((token) => {
+                    originalRequest.headers.Authorization = `Bearer ${token}`
+                    return apiClient(originalRequest)
+                })
+            }
+
+            originalRequest._retry = true
+            isRefreshing = true
+
+            try {
+                const res = await authApi.refresh()
+                const { token, user, expiresAt } = res.data
+                useAuthStore.getState().setAuth(token, user, expiresAt)
+                processQueue(null, token)
+                originalRequest.headers.Authorization = `Bearer ${token}`
+                return apiClient(originalRequest)
+            } catch (refreshErr) {
+                processQueue(refreshErr, null)
+                useAuthStore.getState().clearAuth()
+                return Promise.reject(refreshErr)
+            } finally {
+                isRefreshing = false
+            }
         }
+
         return Promise.reject(error)
     }
 )

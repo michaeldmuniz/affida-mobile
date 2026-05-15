@@ -1,5 +1,7 @@
 import { Redirect, Tabs } from 'expo-router'
 import { View } from 'react-native'
+
+export { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Home, CreditCard, ArrowLeftRight, PieChart, Target, Settings } from 'lucide-react-native'
 import { useAuthStore } from '@/lib/auth-store'
 

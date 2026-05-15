@@ -39,7 +39,24 @@
           "resizeMode": "contain"
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "privacyManifests": {
+              "NSPrivacyTracking": false,
+              "NSPrivacyCollectedDataTypes": [],
+              "NSPrivacyAccessedAPITypes": [
+                {
+                  "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+                  "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+                }
+              ]
+            }
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
@@ -50,6 +67,7 @@
         "projectId": "e9585754-a837-42e8-86de-3e9e83d28f72"
       }
     },
-    "privacyPolicyUrl": "https://affida.money/privacy"
+    "privacyPolicyUrl": "https://affida.money/privacy",
+    "termsOfServiceUrl": "https://affida.money/terms"
   }
 }

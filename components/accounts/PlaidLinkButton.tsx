@@ -129,6 +129,10 @@ export function PlaidLinkButton({ onSuccess }: Props) {
                         source={{ uri: 'https://cdn.plaid.com/link/v2/stable/link.html' }}
                         onLoadEnd={handleLoadEnd}
                         onMessage={handleWebViewMessage}
+                        onError={() => {
+                            setLinkToken(null)
+                            Alert.alert('Error', 'Unable to load bank connection. Please try again.')
+                        }}
                         javaScriptEnabled
                         domStorageEnabled
                         originWhitelist={['*']}

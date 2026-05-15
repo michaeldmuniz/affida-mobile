@@ -6,6 +6,9 @@ import '../global.css'
 import { queryClient } from '@/lib/query-client'
 import { useAuthStore } from '@/lib/auth-store'
 import { LoadingScreen } from '@/components/LoadingScreen'
+import { OfflineBanner } from '@/components/OfflineBanner'
+
+export { ErrorBoundary } from '@/components/ErrorBoundary'
 
 export default function RootLayout() {
     const { _hasHydrated } = useAuthStore()
@@ -18,6 +21,7 @@ export default function RootLayout() {
         <GestureHandlerRootView className="flex-1">
             <QueryClientProvider client={queryClient}>
                 <StatusBar style="light" />
+                <OfflineBanner />
                 <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
             </QueryClientProvider>
         </GestureHandlerRootView>

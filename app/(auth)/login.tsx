@@ -196,7 +196,13 @@ export default function LoginScreen() {
                         </View>
 
                         <Text className="text-brand-muted text-xs text-center mt-8 leading-relaxed">
-                            Don't have an account? Sign up at{'\n'}affida.money
+                            Don't have an account?{' '}
+                            <Text
+                                className="text-brand-accent underline"
+                                onPress={() => Linking.openURL('https://affida.money/register')}
+                            >
+                                Sign up at affida.money
+                            </Text>
                         </Text>
 
                         <View className="flex-row justify-center gap-x-4 mt-4">
