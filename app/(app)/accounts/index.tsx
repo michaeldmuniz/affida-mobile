@@ -1,13 +1,19 @@
 import { useState } from 'react'
-import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-native'
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Plus, Landmark, CreditCard, TrendingUp, Wallet } from 'lucide-react-native'
+import { Plus, Landmark, CreditCard, TrendingUp, Wallet, ExternalLink } from 'lucide-react-native'
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
 import { AddAccountSheet } from '@/components/accounts/AddSheet'
+import { getPaymentUrl } from '@/lib/payment-links'
 import type { Account } from '@/lib/types'
+
+const DEBT_TYPES = new Set([
+    'CREDIT_CARD', 'LINE_OF_CREDIT', 'MORTGAGE',
+    'AUTO_LOAN', 'STUDENT_LOAN', 'PERSONAL_LOAN', 'LOAN',
+])
 
 const ACCOUNT_ICONS: Record<string, any> = {
     CHECKING: Landmark,
@@ -46,8 +52,8 @@ export default function AccountsScreen() {
         return sum + a.balance
     }, 0) ?? 0
 
-    const assets = accounts?.filter((a) => a.balance >= 0) ?? []
-    const liabilities = accounts?.filter((a) => a.balance < 0) ?? []
+    const assets = accounts?.filter((a) => !DEBT_TYPES.has(a.type) && a.balance > 0) ?? []
+    const liabilities = accounts?.filter((a) => DEBT_TYPES.has(a.type) || a.balance < 0) ?? []
 
     return (
         <SafeAreaView className="flex-1 bg-brand-bg" edges={['top']}>
@@ -119,19 +125,32 @@ export default function AccountsScreen() {
 }
 
 function AccountRow({ account }: { account: Account }) {
+    const payUrl = DEBT_TYPES.has(account.type) ? getPaymentUrl(account.institutionName) : null
+
     return (
-        <TouchableOpacity activeOpacity={0.8}>
-            <Card className="flex-row items-center gap-x-3 p-4">
-                <AccountIcon type={account.type} />
-                <View className="flex-1">
-                    <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>
-                        {account.name}
-                    </Text>
-                    <Text className="text-brand-muted text-xs mt-0.5">{formatType(account.type)}</Text>
-                </View>
+        <Card className="flex-row items-center gap-x-3 p-4">
+            <AccountIcon type={account.type} />
+            <View className="flex-1">
+                <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>
+                    {account.name}
+                </Text>
+                <Text className="text-brand-muted text-xs mt-0.5">{formatType(account.type)}</Text>
+            </View>
+            <View className="items-end gap-y-1">
                 <AmountText amount={account.balance} size="sm" neutral />
-            </Card>
-        </TouchableOpacity>
+                {payUrl && (
+                    <TouchableOpacity
+                        className="flex-row items-center gap-x-1 px-2 py-0.5 rounded-full bg-blue-500/15"
+                        onPress={() => Linking.openURL(payUrl)}
+                        activeOpacity={0.7}
+                        hitSlop={8}
+                    >
+                        <Text className="text-blue-400 text-xs font-semibold">Pay Now</Text>
+                        <ExternalLink size={10} color="#60A5FA" />
+                    </TouchableOpacity>
+                )}
+            </View>
+        </Card>
     )
 }
 
