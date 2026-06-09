@@ -126,6 +126,7 @@ export default function AppLayout() {
             />
             {/* Stack-style screens reached from Home and Settings — hidden from the tab bar */}
             <Tabs.Screen name="accounts/index" options={HIDDEN_SCREEN_OPTIONS} />
+            <Tabs.Screen name="accounts/[id]" options={HIDDEN_SCREEN_OPTIONS} />
             <Tabs.Screen name="settings" options={HIDDEN_SCREEN_OPTIONS} />
             <Tabs.Screen name="assistant" options={HIDDEN_SCREEN_OPTIONS} />
             <Tabs.Screen name="subscriptions" options={HIDDEN_SCREEN_OPTIONS} />

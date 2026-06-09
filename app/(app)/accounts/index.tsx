@@ -132,9 +132,14 @@ export default function AccountsScreen() {
 }
 
 function AccountRow({ account }: { account: Account }) {
+    const router = useRouter()
     const payUrl = DEBT_TYPES.has(account.type) ? getPaymentUrl(account.institutionName) : null
 
     return (
+        <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => router.push(`/accounts/${account.id}`)}
+        >
         <Card className="flex-row items-center gap-x-3 p-4">
             <AccountIcon type={account.type} />
             <View className="flex-1">
@@ -158,6 +163,7 @@ function AccountRow({ account }: { account: Account }) {
                 )}
             </View>
         </Card>
+        </TouchableOpacity>
     )
 }
 
