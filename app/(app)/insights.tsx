@@ -209,9 +209,12 @@ export default function InsightsScreen() {
                             </View>
                         </View>
                         {data?.trend?.length ? (
-                            <View className="mt-4">
-                                <TrendBars data={data.trend} />
-                            </View>
+                            <>
+                                <SavingsRateLine trend={data.trend} />
+                                <View className="mt-4">
+                                    <TrendBars data={data.trend} />
+                                </View>
+                            </>
                         ) : (
                             <ChartSkeleton />
                         )}
@@ -287,6 +290,18 @@ export default function InsightsScreen() {
                 </View>
             </ScrollView>
         </SafeAreaView>
+    )
+}
+
+function SavingsRateLine({ trend }: { trend: Array<{ month: string; income: number; savingsRate: number }> }) {
+    const current = trend[trend.length - 1]
+    if (!current || current.income <= 0) return null
+    const rate = current.savingsRate
+    const color = rate >= 20 ? 'text-brand-positive' : rate >= 0 ? 'text-brand-text' : 'text-brand-negative'
+    return (
+        <Text className="text-brand-muted text-xs mt-1">
+            You're saving <Text className={`font-semibold ${color}`}>{rate.toFixed(0)}%</Text> of your income this month
+        </Text>
     )
 }
 

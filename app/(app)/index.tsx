@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
 import { LineChart } from '@/components/charts/LineChart'
 import { haptics } from '@/lib/haptics'
-import type { DashboardStats, Insights, SubscriptionsResponse, Budget, Goal } from '@/lib/types'
+import type { DashboardStats, Insights, SubscriptionsResponse, Budget, Goal, Account } from '@/lib/types'
 
 function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -59,7 +59,14 @@ export default function DashboardScreen() {
         staleTime: 5 * 60 * 1000,
     })
 
+    const { data: accounts } = useQuery<Account[]>({
+        queryKey: ['accounts'],
+        queryFn: async () => (await apiClient.get('/accounts')).data.data,
+        staleTime: 5 * 60 * 1000,
+    })
+
     const firstName = user?.name?.split(' ')[0] ?? 'there'
+    const isFirstRun = accounts !== undefined && accounts.length === 0
 
     const upcomingBills = [...(subs?.items ?? [])]
         .sort((a, b) => new Date(a.nextDate).getTime() - new Date(b.nextDate).getTime())
@@ -112,6 +119,26 @@ export default function DashboardScreen() {
                 </View>
 
                 <View className="px-6 gap-y-4 pb-8">
+                    {/* First-run hero */}
+                    {isFirstRun && (
+                        <Card className="p-6 border-brand-accent/40">
+                            <Text className="text-brand-text text-lg font-bold mb-1.5">
+                                Let's set up your money
+                            </Text>
+                            <Text className="text-brand-muted text-sm leading-relaxed mb-4">
+                                Connect your bank to import transactions automatically, or add an
+                                account manually — your net worth, budgets, and insights start here.
+                            </Text>
+                            <TouchableOpacity
+                                className="bg-brand-accent rounded-xl h-12 items-center justify-center"
+                                onPress={() => { haptics.medium(); router.push('/accounts') }}
+                                activeOpacity={0.85}
+                            >
+                                <Text className="text-white font-semibold text-sm">Add your first account</Text>
+                            </TouchableOpacity>
+                        </Card>
+                    )}
+
                     {/* Net Worth Card */}
                     <TouchableOpacity
                         activeOpacity={0.85}
