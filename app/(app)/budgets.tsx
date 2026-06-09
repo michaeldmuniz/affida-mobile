@@ -1,11 +1,13 @@
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { ChevronLeft, ChevronRight } from 'lucide-react-native'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react-native'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { apiClient } from '@/lib/api-client'
 import { Card } from '@/components/ui/Card'
 import { BudgetEditSheet } from '@/components/budgets/EditSheet'
+import { BudgetAddSheet } from '@/components/budgets/AddSheet'
+import { haptics } from '@/lib/haptics'
 import type { Budget } from '@/lib/types'
 
 function formatMonth(date: Date) {
@@ -32,6 +34,7 @@ function BudgetBar({ spent, total }: { spent: number; total: number }) {
 export default function BudgetsScreen() {
     const [offset, setOffset] = useState(0)
     const [editing, setEditing] = useState<Budget | null>(null)
+    const [showAdd, setShowAdd] = useState(false)
     const activeDate = new Date()
     activeDate.setMonth(activeDate.getMonth() + offset)
     const month = toMonthKey(activeDate)
@@ -51,24 +54,34 @@ export default function BudgetsScreen() {
     return (
         <SafeAreaView className="flex-1 bg-brand-bg" edges={['top']}>
             {/* Month Picker */}
-            <View className="flex-row items-center justify-between px-6 pt-4 pb-2">
+            <View className="flex-row items-center px-6 pt-4 pb-2">
+                <View className="w-9" />
+                <View className="flex-1 flex-row items-center justify-center gap-x-2">
+                    <TouchableOpacity
+                        className="w-8 h-8 items-center justify-center"
+                        onPress={() => { haptics.light(); setOffset((o) => o - 1) }}
+                        hitSlop={8}
+                    >
+                        <ChevronLeft size={20} color="#6B7280" strokeWidth={2} />
+                    </TouchableOpacity>
+                    <Text className="text-brand-text font-semibold text-base min-w-[140px] text-center">
+                        {formatMonth(activeDate)}
+                    </Text>
+                    <TouchableOpacity
+                        className="w-8 h-8 items-center justify-center"
+                        onPress={() => { haptics.light(); setOffset((o) => o + 1) }}
+                        hitSlop={8}
+                        disabled={offset >= 0}
+                    >
+                        <ChevronRight size={20} color={offset >= 0 ? '#2A2A38' : '#6B7280'} strokeWidth={2} />
+                    </TouchableOpacity>
+                </View>
                 <TouchableOpacity
-                    className="w-8 h-8 items-center justify-center"
-                    onPress={() => setOffset((o) => o - 1)}
-                    hitSlop={8}
+                    className="w-9 h-9 rounded-full bg-brand-accent/15 items-center justify-center"
+                    onPress={() => { haptics.medium(); setShowAdd(true) }}
+                    hitSlop={6}
                 >
-                    <ChevronLeft size={20} color="#6B7280" strokeWidth={2} />
-                </TouchableOpacity>
-                <Text className="text-brand-text font-semibold text-base">
-                    {formatMonth(activeDate)}
-                </Text>
-                <TouchableOpacity
-                    className="w-8 h-8 items-center justify-center"
-                    onPress={() => setOffset((o) => o + 1)}
-                    hitSlop={8}
-                    disabled={offset >= 0}
-                >
-                    <ChevronRight size={20} color={offset >= 0 ? '#2A2A38' : '#6B7280'} strokeWidth={2} />
+                    <Plus size={18} color="#5B7BF8" strokeWidth={2.2} />
                 </TouchableOpacity>
             </View>
 
@@ -104,16 +117,22 @@ export default function BudgetsScreen() {
                     ) : budgets?.length ? (
                         <View className="gap-y-2">
                             {budgets.map((b) => (
-                                <BudgetRow key={b.id} budget={b} onEdit={() => setEditing(b)} />
+                                <BudgetRow key={b.id} budget={b} onEdit={() => { haptics.light(); setEditing(b) }} />
                             ))}
                         </View>
                     ) : (
-                        <EmptyState />
+                        <EmptyState onCreate={() => { haptics.medium(); setShowAdd(true) }} />
                     )}
                 </View>
             </ScrollView>
 
             <BudgetEditSheet budget={editing} month={month} onClose={() => setEditing(null)} />
+            <BudgetAddSheet
+                visible={showAdd}
+                month={month}
+                existingBudgets={budgets ?? []}
+                onClose={() => setShowAdd(false)}
+            />
         </SafeAreaView>
     )
 }
@@ -160,13 +179,20 @@ function BudgetRowSkeleton() {
     )
 }
 
-function EmptyState() {
+function EmptyState({ onCreate }: { onCreate: () => void }) {
     return (
         <View className="items-center py-16">
-            <Text className="text-brand-text font-semibold mb-1">No budgets</Text>
-            <Text className="text-brand-muted text-sm text-center leading-relaxed px-8">
-                Set up budgets on the web app and they'll appear here.
+            <Text className="text-brand-text font-semibold mb-1">No budgets this month</Text>
+            <Text className="text-brand-muted text-sm text-center leading-relaxed px-8 mb-4">
+                Give every category a monthly limit and we'll track your spending against it.
             </Text>
+            <TouchableOpacity
+                className="bg-brand-accent px-6 py-3 rounded-xl"
+                onPress={onCreate}
+                activeOpacity={0.85}
+            >
+                <Text className="text-white font-semibold text-sm">Create a budget</Text>
+            </TouchableOpacity>
         </View>
     )
 }
