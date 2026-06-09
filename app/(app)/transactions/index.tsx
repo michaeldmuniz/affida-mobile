@@ -1,13 +1,15 @@
 import { useState, useMemo } from 'react'
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Search, Flag, SlidersHorizontal } from 'lucide-react-native'
+import { Search, Flag, SlidersHorizontal, Plus } from 'lucide-react-native'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
 import { EditSheet } from '@/components/transactions/EditSheet'
+import { TransactionAddSheet } from '@/components/transactions/AddSheet'
 import { FilterSheet, DEFAULT_FILTERS, activeFilterCount, filtersToParams } from '@/components/transactions/FilterSheet'
+import { haptics } from '@/lib/haptics'
 import type { Transaction, PaginatedResponse } from '@/lib/types'
 import type { TransactionFilters } from '@/components/transactions/FilterSheet'
 
@@ -17,6 +19,7 @@ export default function TransactionsScreen() {
     const [search, setSearch] = useState('')
     const [editing, setEditing] = useState<Transaction | null>(null)
     const [showFilters, setShowFilters] = useState(false)
+    const [showAdd, setShowAdd] = useState(false)
     const [filters, setFilters] = useState<TransactionFilters>(DEFAULT_FILTERS)
 
     const filterCount = activeFilterCount(filters)
@@ -70,15 +73,23 @@ export default function TransactionsScreen() {
             <View className="px-6 pt-4 pb-3">
                 <View className="flex-row items-center justify-between mb-4">
                     <Text className="text-brand-text text-2xl font-bold">Transactions</Text>
-                    <TouchableOpacity
-                        className={`w-9 h-9 rounded-full items-center justify-center border ${filterCount > 0 ? 'bg-brand-accent border-brand-accent' : 'bg-brand-surface border-brand-border'}`}
-                        onPress={() => setShowFilters(true)}
-                    >
-                        {filterCount > 0
-                            ? <Text className="text-white text-xs font-bold">{filterCount}</Text>
-                            : <SlidersHorizontal size={16} color="#6B7280" strokeWidth={1.8} />
-                        }
-                    </TouchableOpacity>
+                    <View className="flex-row gap-x-2">
+                        <TouchableOpacity
+                            className={`w-9 h-9 rounded-full items-center justify-center border ${filterCount > 0 ? 'bg-brand-accent border-brand-accent' : 'bg-brand-surface border-brand-border'}`}
+                            onPress={() => { haptics.light(); setShowFilters(true) }}
+                        >
+                            {filterCount > 0
+                                ? <Text className="text-white text-xs font-bold">{filterCount}</Text>
+                                : <SlidersHorizontal size={16} color="#6B7280" strokeWidth={1.8} />
+                            }
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            className="w-9 h-9 rounded-full bg-brand-accent/15 items-center justify-center"
+                            onPress={() => { haptics.medium(); setShowAdd(true) }}
+                        >
+                            <Plus size={18} color="#5B7BF8" strokeWidth={2.2} />
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {/* Active filter pills */}
@@ -203,6 +214,8 @@ export default function TransactionsScreen() {
             </ScrollView>
 
             <EditSheet transaction={editing} onClose={() => setEditing(null)} />
+
+            <TransactionAddSheet visible={showAdd} onClose={() => setShowAdd(false)} />
 
             <FilterSheet
                 visible={showFilters}

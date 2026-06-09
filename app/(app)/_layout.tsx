@@ -1,9 +1,14 @@
+import { useEffect, useRef, useState } from 'react'
 import { Redirect, Tabs } from 'expo-router'
-import { View } from 'react-native'
+import { View, AppState } from 'react-native'
 
 export { ErrorBoundary } from '@/components/ErrorBoundary'
-import { Home, CreditCard, ArrowLeftRight, PieChart, Target, Settings } from 'lucide-react-native'
+import { Home, ArrowLeftRight, PieChart, Target, LineChart } from 'lucide-react-native'
 import { useAuthStore } from '@/lib/auth-store'
+import { useSettingsStore } from '@/lib/settings-store'
+import { LockScreen } from '@/components/LockScreen'
+import { LoadingScreen } from '@/components/LoadingScreen'
+import { haptics } from '@/lib/haptics'
 
 function TabIcon({ Icon, focused }: { Icon: any; focused: boolean }) {
     return (
@@ -13,11 +18,50 @@ function TabIcon({ Icon, focused }: { Icon: any; focused: boolean }) {
     )
 }
 
+const HIDDEN_SCREEN_OPTIONS = {
+    tabBarButton: () => null,
+    tabBarItemStyle: { display: 'none' as const, width: 0 },
+    tabBarStyle: { display: 'none' as const },
+}
+
 export default function AppLayout() {
     const { token } = useAuthStore()
+    const { appLockEnabled, _hasHydrated } = useSettingsStore()
+    const [locked, setLocked] = useState<boolean | null>(null)
+    const appStateRef = useRef(AppState.currentState)
+
+    // Initialize lock state once settings have hydrated
+    useEffect(() => {
+        if (_hasHydrated && locked === null) {
+            setLocked(appLockEnabled)
+        }
+    }, [_hasHydrated, locked, appLockEnabled])
+
+    // Re-lock when the app goes to background
+    useEffect(() => {
+        const sub = AppState.addEventListener('change', (next) => {
+            if (
+                appLockEnabled &&
+                appStateRef.current === 'active' &&
+                (next === 'background' || next === 'inactive')
+            ) {
+                setLocked(true)
+            }
+            appStateRef.current = next
+        })
+        return () => sub.remove()
+    }, [appLockEnabled])
 
     if (!token) {
         return <Redirect href="/(auth)/login" />
+    }
+
+    if (!_hasHydrated || locked === null) {
+        return <LoadingScreen />
+    }
+
+    if (locked && appLockEnabled) {
+        return <LockScreen onUnlock={() => setLocked(false)} />
     }
 
     return (
@@ -41,6 +85,9 @@ export default function AppLayout() {
                 tabBarActiveTintColor: '#5B7BF8',
                 tabBarInactiveTintColor: '#6B7280',
             }}
+            screenListeners={{
+                tabPress: () => haptics.light(),
+            }}
         >
             <Tabs.Screen
                 name="index"
@@ -50,17 +97,17 @@ export default function AppLayout() {
                 }}
             />
             <Tabs.Screen
-                name="accounts/index"
-                options={{
-                    title: 'Accounts',
-                    tabBarIcon: ({ focused }) => <TabIcon Icon={CreditCard} focused={focused} />,
-                }}
-            />
-            <Tabs.Screen
                 name="transactions/index"
                 options={{
                     title: 'Transactions',
                     tabBarIcon: ({ focused }) => <TabIcon Icon={ArrowLeftRight} focused={focused} />,
+                }}
+            />
+            <Tabs.Screen
+                name="insights"
+                options={{
+                    title: 'Insights',
+                    tabBarIcon: ({ focused }) => <TabIcon Icon={LineChart} focused={focused} />,
                 }}
             />
             <Tabs.Screen
@@ -77,21 +124,12 @@ export default function AppLayout() {
                     tabBarIcon: ({ focused }) => <TabIcon Icon={Target} focused={focused} />,
                 }}
             />
-            <Tabs.Screen
-                name="settings"
-                options={{
-                    title: 'Settings',
-                    tabBarIcon: ({ focused }) => <TabIcon Icon={Settings} focused={focused} />,
-                }}
-            />
-            <Tabs.Screen
-                name="rules"
-                options={{
-                    tabBarButton: () => null,
-                    tabBarItemStyle: { display: 'none', width: 0 },
-                    tabBarStyle: { display: 'none' },
-                }}
-            />
+            {/* Stack-style screens reached from Home and Settings — hidden from the tab bar */}
+            <Tabs.Screen name="accounts/index" options={HIDDEN_SCREEN_OPTIONS} />
+            <Tabs.Screen name="settings" options={HIDDEN_SCREEN_OPTIONS} />
+            <Tabs.Screen name="assistant" options={HIDDEN_SCREEN_OPTIONS} />
+            <Tabs.Screen name="subscriptions" options={HIDDEN_SCREEN_OPTIONS} />
+            <Tabs.Screen name="rules" options={HIDDEN_SCREEN_OPTIONS} />
         </Tabs>
     )
 }

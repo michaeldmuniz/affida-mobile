@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Plus, Landmark, CreditCard, TrendingUp, Wallet, ExternalLink } from 'lucide-react-native'
+import { Plus, Landmark, CreditCard, TrendingUp, Wallet, ExternalLink, ChevronLeft } from 'lucide-react-native'
+import { useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { Card } from '@/components/ui/Card'
@@ -36,6 +37,7 @@ function formatType(type: string) {
 }
 
 export default function AccountsScreen() {
+    const router = useRouter()
     const [showAdd, setShowAdd] = useState(false)
 
     const { data: accounts, isLoading, refetch, isRefetching } = useQuery<Account[]>({
@@ -66,7 +68,12 @@ export default function AccountsScreen() {
             >
                 {/* Header */}
                 <View className="flex-row items-center justify-between px-6 pt-4 pb-2">
-                    <Text className="text-brand-text text-2xl font-bold">Accounts</Text>
+                    <View className="flex-row items-center gap-x-2">
+                        <TouchableOpacity onPress={() => router.back()} hitSlop={8} className="-ml-2">
+                            <ChevronLeft size={24} color="#6B7280" />
+                        </TouchableOpacity>
+                        <Text className="text-brand-text text-2xl font-bold">Accounts</Text>
+                    </View>
                     <TouchableOpacity
                         className="w-9 h-9 rounded-full bg-brand-surface border border-brand-border items-center justify-center"
                         onPress={() => setShowAdd(true)}
