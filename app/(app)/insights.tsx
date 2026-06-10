@@ -43,9 +43,25 @@ export default function InsightsScreen() {
     const topSlices = breakdown.slice(0, 7)
     const otherTotal = breakdown.slice(7).reduce((s, c) => s + c.value, 0)
     const slices = [
-        ...topSlices.map((c, i) => ({ label: c.name, value: c.value, color: colorForIndex(i) })),
-        ...(otherTotal > 0 ? [{ label: 'Other', value: otherTotal, color: '#3F3F50' }] : []),
+        ...topSlices.map((c, i) => ({
+            label: c.name,
+            value: c.value,
+            color: colorForIndex(i),
+            categoryId: c.categoryId ?? (c.name === 'Uncategorized' ? 'uncategorized' : null),
+        })),
+        ...(otherTotal > 0 ? [{ label: 'Other', value: otherTotal, color: '#3F3F50', categoryId: null }] : []),
     ]
+
+    // Drill-down target period: the transactions list supports this/last month presets
+    const drillDateRange = offset === 0 ? 'thisMonth' : offset === -1 ? 'lastMonth' : 'all'
+
+    const drillToCategory = (categoryId: string, categoryName: string) => {
+        haptics.light()
+        router.push({
+            pathname: '/transactions',
+            params: { categoryId, categoryName, dateRange: drillDateRange },
+        })
+    }
 
     return (
         <SafeAreaView className="flex-1 bg-brand-bg" edges={['top']}>
@@ -127,11 +143,17 @@ export default function InsightsScreen() {
                                         </Text>
                                     </DonutChart>
                                 </View>
-                                <View className="gap-y-2.5">
+                                <View className="gap-y-1">
                                     {slices.map((s) => {
                                         const pct = data && data.expenses > 0 ? (s.value / data.expenses) * 100 : 0
                                         return (
-                                            <View key={s.label} className="flex-row items-center">
+                                            <TouchableOpacity
+                                                key={s.label}
+                                                className="flex-row items-center py-1.5"
+                                                disabled={!s.categoryId}
+                                                onPress={() => s.categoryId && drillToCategory(s.categoryId, s.label)}
+                                                activeOpacity={0.6}
+                                            >
                                                 <View className="w-2.5 h-2.5 rounded-full mr-3" style={{ backgroundColor: s.color }} />
                                                 <Text className="text-brand-text text-sm flex-1" numberOfLines={1}>
                                                     {s.label}
@@ -140,7 +162,12 @@ export default function InsightsScreen() {
                                                 <Text className="text-brand-text text-sm font-mono font-medium">
                                                     {compactUsd(s.value)}
                                                 </Text>
-                                            </View>
+                                                {s.categoryId && (
+                                                    <View className="ml-1">
+                                                        <Chevron size={14} color="#3F3F50" strokeWidth={2} />
+                                                    </View>
+                                                )}
+                                            </TouchableOpacity>
                                         )
                                     })}
                                 </View>
