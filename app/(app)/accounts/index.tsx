@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Plus, Landmark, CreditCard, TrendingUp, Wallet, ExternalLink, ChevronLeft } from 'lucide-react-native'
-import { useRouter } from 'expo-router'
+import { Plus, Landmark, CreditCard, TrendingUp, Wallet, ExternalLink, ChevronRight } from 'lucide-react-native'
 import { useQuery } from '@tanstack/react-query'
+import { useRouter } from 'expo-router'
 import { apiClient } from '@/lib/api-client'
 import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
@@ -92,7 +92,7 @@ export default function AccountsScreen() {
                                 {isLoading
                                     ? [1, 2, 3].map((i) => <AccountRowSkeleton key={i} />)
                                     : assets.map((account) => (
-                                        <AccountRow key={account.id} account={account} />
+                                        <AccountRow key={account.id} account={account} onPress={() => router.push(`/(app)/accounts/${account.id}`)} />
                                     ))
                                 }
                             </View>
@@ -107,7 +107,7 @@ export default function AccountsScreen() {
                             </Text>
                             <View className="gap-y-2">
                                 {liabilities.map((account) => (
-                                    <AccountRow key={account.id} account={account} />
+                                    <AccountRow key={account.id} account={account} onPress={() => router.push(`/(app)/accounts/${account.id}`)} />
                                 ))}
                             </View>
                         </View>
@@ -124,38 +124,35 @@ export default function AccountsScreen() {
     )
 }
 
-function AccountRow({ account }: { account: Account }) {
-    const router = useRouter()
+function AccountRow({ account, onPress }: { account: Account; onPress: () => void }) {
     const payUrl = DEBT_TYPES.has(account.type) ? getPaymentUrl(account.institutionName) : null
 
     return (
-        <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => router.push(`/accounts/${account.id}`)}
-        >
-        <Card className="flex-row items-center gap-x-3 p-4">
-            <AccountIcon type={account.type} />
-            <View className="flex-1">
-                <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>
-                    {account.name}
-                </Text>
-                <Text className="text-brand-muted text-xs mt-0.5">{formatAccountType(account.type)}</Text>
-            </View>
-            <View className="items-end gap-y-1">
-                <AmountText amount={account.balance} size="sm" neutral />
-                {payUrl && (
-                    <TouchableOpacity
-                        className="flex-row items-center gap-x-1 px-2 py-0.5 rounded-full bg-blue-500/15"
-                        onPress={() => Linking.openURL(payUrl)}
-                        activeOpacity={0.7}
-                        hitSlop={8}
-                    >
-                        <Text className="text-blue-400 text-xs font-semibold">Pay Now</Text>
-                        <ExternalLink size={10} color="#60A5FA" />
-                    </TouchableOpacity>
-                )}
-            </View>
-        </Card>
+        <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+            <Card className="flex-row items-center gap-x-3 p-4">
+                <AccountIcon type={account.type} />
+                <View className="flex-1">
+                    <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>
+                        {account.name}
+                    </Text>
+                    <Text className="text-brand-muted text-xs mt-0.5">{formatType(account.type)}</Text>
+                </View>
+                <View className="items-end gap-y-1">
+                    <AmountText amount={account.balance} size="sm" neutral />
+                    {payUrl && (
+                        <TouchableOpacity
+                            className="flex-row items-center gap-x-1 px-2 py-0.5 rounded-full bg-blue-500/15"
+                            onPress={(e) => { e.stopPropagation?.(); Linking.openURL(payUrl) }}
+                            activeOpacity={0.7}
+                            hitSlop={8}
+                        >
+                            <Text className="text-blue-400 text-xs font-semibold">Pay Now</Text>
+                            <ExternalLink size={10} color="#60A5FA" />
+                        </TouchableOpacity>
+                    )}
+                </View>
+                <ChevronRight size={14} color="#2A2A38" style={{ marginLeft: 4 }} />
+            </Card>
         </TouchableOpacity>
     )
 }

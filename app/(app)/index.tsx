@@ -1,18 +1,31 @@
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { TrendingUp, TrendingDown, Sparkles, Settings, ChevronRight, CalendarClock, Wallet } from 'lucide-react-native'
+import { TrendingUp, TrendingDown, BarChart3, ChevronRight, AlertTriangle, AlertCircle } from 'lucide-react-native'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { apiClient } from '@/lib/api-client'
 import { useAuthStore } from '@/lib/auth-store'
 import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
-import { LineChart } from '@/components/charts/LineChart'
-import { formatShortDate, formatMonth, toMonthKey } from '@/lib/format'
-import { haptics } from '@/lib/haptics'
-import type { DashboardStats, Insights, SubscriptionsResponse, Budget, Goal, Account } from '@/lib/types'
+import type { DashboardStats } from '@/lib/types'
+
+interface Alert {
+    id: string
+    type: 'OVERSPEND' | 'LOW_BALANCE'
+    message: string
+    severity: 'warning' | 'destructive'
+}
+
+function formatDate(dateStr: string) {
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+function currentMonthLabel() {
+    return new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+}
 
 export default function DashboardScreen() {
+    const router = useRouter()
     const { user } = useAuthStore()
     const router = useRouter()
     const month = toMonthKey(new Date())
@@ -23,34 +36,13 @@ export default function DashboardScreen() {
         retry: 1,
     })
 
-    const { data: insights } = useQuery<Insights>({
-        queryKey: ['insights', month],
-        queryFn: async () => (await apiClient.get('/insights', { params: { month } })).data.data,
-        staleTime: 5 * 60 * 1000,
-    })
-
-    const { data: subs } = useQuery<SubscriptionsResponse>({
-        queryKey: ['subscriptions'],
-        queryFn: async () => (await apiClient.get('/subscriptions')).data.data,
-        staleTime: 10 * 60 * 1000,
-    })
-
-    const { data: budgets } = useQuery<Budget[]>({
-        queryKey: ['budgets', month],
-        queryFn: async () => (await apiClient.get('/budgets', { params: { month } })).data.data,
-        staleTime: 2 * 60 * 1000,
-    })
-
-    const { data: goals } = useQuery<Goal[]>({
-        queryKey: ['goals'],
-        queryFn: async () => (await apiClient.get('/goals')).data.data,
-        staleTime: 5 * 60 * 1000,
-    })
-
-    const { data: accounts } = useQuery<Account[]>({
-        queryKey: ['accounts'],
-        queryFn: async () => (await apiClient.get('/accounts')).data.data,
-        staleTime: 5 * 60 * 1000,
+    const { data: alerts = [] } = useQuery<Alert[]>({
+        queryKey: ['alerts'],
+        queryFn: async () => {
+            const res = await apiClient.get('/alerts')
+            return res.data.data ?? []
+        },
+        retry: 0,
     })
 
     const firstName = user?.name?.split(' ')[0] ?? 'there'
@@ -107,25 +99,21 @@ export default function DashboardScreen() {
                 </View>
 
                 <View className="px-6 gap-y-4 pb-8">
-                    {/* First-run hero */}
-                    {isFirstRun && (
-                        <Card className="p-6 border-brand-accent/40">
-                            <Text className="text-brand-text text-lg font-bold mb-1.5">
-                                Let's set up your money
+                    {/* Alerts */}
+                    {alerts.map(alert => (
+                        <View
+                            key={alert.id}
+                            className={`flex-row items-start gap-x-3 rounded-2xl p-4 ${alert.severity === 'destructive' ? 'bg-brand-negative/10 border border-brand-negative/20' : 'bg-amber-500/10 border border-amber-500/20'}`}
+                        >
+                            {alert.severity === 'destructive'
+                                ? <AlertCircle size={16} color="#EF4444" style={{ marginTop: 1 }} />
+                                : <AlertTriangle size={16} color="#F59E0B" style={{ marginTop: 1 }} />
+                            }
+                            <Text className={`flex-1 text-sm leading-relaxed ${alert.severity === 'destructive' ? 'text-brand-negative' : 'text-amber-400'}`}>
+                                {alert.message}
                             </Text>
-                            <Text className="text-brand-muted text-sm leading-relaxed mb-4">
-                                Connect your bank to import transactions automatically, or add an
-                                account manually — your net worth, budgets, and insights start here.
-                            </Text>
-                            <TouchableOpacity
-                                className="bg-brand-accent rounded-xl h-12 items-center justify-center"
-                                onPress={() => { haptics.medium(); router.push('/accounts') }}
-                                activeOpacity={0.85}
-                            >
-                                <Text className="text-white font-semibold text-sm">Add your first account</Text>
-                            </TouchableOpacity>
-                        </Card>
-                    )}
+                        </View>
+                    ))}
 
                     {/* Net Worth Card */}
                     <TouchableOpacity
@@ -197,112 +185,16 @@ export default function DashboardScreen() {
                         </Card>
                     </View>
 
-                    {/* Budget Pulse */}
-                    {budgets && budgets.length > 0 && (
-                        <TouchableOpacity
-                            activeOpacity={0.85}
-                            onPress={() => { haptics.light(); router.push('/budgets') }}
-                        >
-                            <Card className="p-5">
-                                <View className="flex-row items-center justify-between mb-3">
-                                    <View className="flex-row items-center gap-x-2">
-                                        <Wallet size={14} color="#5B7BF8" strokeWidth={2} />
-                                        <Text className="text-brand-muted text-xs uppercase tracking-widest">
-                                            Budget This Month
-                                        </Text>
-                                    </View>
-                                    <ChevronRight size={16} color="#6B7280" strokeWidth={2} />
-                                </View>
-                                <View className="flex-row items-baseline gap-x-1.5 mb-3">
-                                    <Text className="text-brand-text text-xl font-bold font-mono">
-                                        ${totalSpent.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                                    </Text>
-                                    <Text className="text-brand-muted text-sm">
-                                        of ${totalBudgeted.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                                    </Text>
-                                </View>
-                                <View className="h-2 bg-brand-elevated rounded-full overflow-hidden">
-                                    <View
-                                        className={`h-full rounded-full ${totalSpent > totalBudgeted ? 'bg-brand-negative' : 'bg-brand-accent'}`}
-                                        style={{ width: `${Math.max(2, budgetPct)}%` }}
-                                    />
-                                </View>
-                                {overBudgetCount > 0 && (
-                                    <Text className="text-brand-negative text-xs mt-2.5 font-medium">
-                                        {overBudgetCount} categor{overBudgetCount === 1 ? 'y is' : 'ies are'} over budget
-                                    </Text>
-                                )}
-                            </Card>
-                        </TouchableOpacity>
-                    )}
-
-                    {/* Upcoming bills */}
-                    {upcomingBills.length > 0 && (
-                        <View>
-                            <View className="flex-row items-center justify-between mb-3">
-                                <Text className="text-brand-text font-semibold text-base">Upcoming Bills</Text>
-                                <TouchableOpacity onPress={() => { haptics.light(); router.push('/subscriptions') }} hitSlop={8}>
-                                    <Text className="text-brand-accent text-xs font-semibold">See all</Text>
-                                </TouchableOpacity>
+                    {/* Reports entry */}
+                    <TouchableOpacity onPress={() => router.push('/(app)/reports')} activeOpacity={0.7}>
+                        <Card className="flex-row items-center gap-x-3 p-4">
+                            <View className="w-10 h-10 rounded-xl bg-brand-accent/10 items-center justify-center">
+                                <BarChart3 size={18} color="#5B7BF8" strokeWidth={1.8} />
                             </View>
-                            <Card className="overflow-hidden p-0">
-                                {upcomingBills.map((bill, i) => (
-                                    <View
-                                        key={bill.merchantName}
-                                        className={`flex-row items-center px-4 py-3.5 ${i > 0 ? 'border-t border-brand-border' : ''}`}
-                                    >
-                                        <View className="w-8 h-8 rounded-lg bg-brand-accent/15 items-center justify-center mr-3">
-                                            <CalendarClock size={14} color="#5B7BF8" strokeWidth={2} />
-                                        </View>
-                                        <View className="flex-1 pr-3">
-                                            <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>
-                                                {bill.merchantName}
-                                            </Text>
-                                            <Text className="text-brand-muted text-xs mt-0.5">
-                                                {formatShortDate(bill.nextDate)}
-                                            </Text>
-                                        </View>
-                                        <AmountText amount={-bill.amount} size="sm" />
-                                    </View>
-                                ))}
-                            </Card>
-                        </View>
-                    )}
-
-                    {/* Goals preview */}
-                    {topGoals.length > 0 && (
-                        <View>
-                            <View className="flex-row items-center justify-between mb-3">
-                                <Text className="text-brand-text font-semibold text-base">Goals</Text>
-                                <TouchableOpacity onPress={() => { haptics.light(); router.push('/goals') }} hitSlop={8}>
-                                    <Text className="text-brand-accent text-xs font-semibold">See all</Text>
-                                </TouchableOpacity>
-                            </View>
-                            <Card className="p-5 gap-y-4">
-                                {topGoals.map((goal) => {
-                                    const pct = goal.targetAmount > 0
-                                        ? Math.min((goal.currentAmount / goal.targetAmount) * 100, 100)
-                                        : 0
-                                    return (
-                                        <View key={goal.id}>
-                                            <View className="flex-row items-center justify-between mb-1.5">
-                                                <Text className="text-brand-text text-sm font-medium flex-1 pr-3" numberOfLines={1}>
-                                                    {goal.name}
-                                                </Text>
-                                                <Text className="text-brand-muted text-xs">{pct.toFixed(0)}%</Text>
-                                            </View>
-                                            <View className="h-1.5 bg-brand-elevated rounded-full overflow-hidden">
-                                                <View
-                                                    className={`h-full rounded-full ${pct >= 100 ? 'bg-brand-positive' : 'bg-brand-accent'}`}
-                                                    style={{ width: `${Math.max(2, pct)}%` }}
-                                                />
-                                            </View>
-                                        </View>
-                                    )
-                                })}
-                            </Card>
-                        </View>
-                    )}
+                            <Text className="flex-1 text-brand-text font-medium text-sm">View Reports</Text>
+                            <ChevronRight size={16} color="#6B7280" />
+                        </Card>
+                    </TouchableOpacity>
 
                     {/* Recent Transactions */}
                     <View>

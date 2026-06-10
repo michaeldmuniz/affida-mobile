@@ -29,8 +29,11 @@ export function PlaidLinkButton({ onSuccess }: Props) {
             const token = res.data.data.link_token
             setLinkToken(token)
             create({ token })
-        } catch {
-            Alert.alert('Error', 'Unable to start bank connection. Please try again.')
+        } catch (err: any) {
+            const status = err?.response?.status
+            const detail = err?.response?.data?.error ?? err?.message ?? 'Unknown error'
+            console.error('[Plaid] link-token error', { status, detail })
+            Alert.alert('Error', `Unable to start bank connection. (${status ?? 'network'}: ${detail})`)
         } finally {
             setFetching(false)
         }

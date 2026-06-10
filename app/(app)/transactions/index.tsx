@@ -1,7 +1,7 @@
-import { useState, useMemo, useEffect } from 'react'
-import { View, Text, ScrollView, RefreshControl, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native'
+import { useState, useMemo } from 'react'
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity, TextInput, ActivityIndicator, Share, Alert } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Search, Flag, SlidersHorizontal, Plus } from 'lucide-react-native'
+import { Search, Flag, SlidersHorizontal, Download } from 'lucide-react-native'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { apiClient } from '@/lib/api-client'
@@ -43,6 +43,21 @@ export default function TransactionsScreen() {
     }, [params.categoryId, params.categoryName, params.dateRange])
 
     const filterCount = activeFilterCount(filters)
+    const [isExporting, setIsExporting] = useState(false)
+
+    const handleExport = async () => {
+        setIsExporting(true)
+        try {
+            const params = { ...filtersToParams(filters), search }
+            const res = await apiClient.get('/export', { params })
+            const csv: string = res.data.data?.csv ?? ''
+            await Share.share({ message: csv, title: 'transactions.csv' })
+        } catch {
+            Alert.alert('Error', 'Failed to export transactions.')
+        } finally {
+            setIsExporting(false)
+        }
+    }
 
     const {
         data,
@@ -93,21 +108,25 @@ export default function TransactionsScreen() {
             <View className="px-6 pt-4 pb-3">
                 <View className="flex-row items-center justify-between mb-4">
                     <Text className="text-brand-text text-2xl font-bold">Transactions</Text>
-                    <View className="flex-row gap-x-2">
+                    <View className="flex-row items-center gap-x-2">
+                        <TouchableOpacity
+                            className="w-9 h-9 rounded-full bg-brand-surface border border-brand-border items-center justify-center"
+                            onPress={handleExport}
+                            disabled={isExporting}
+                        >
+                            {isExporting
+                                ? <ActivityIndicator size="small" color="#6B7280" />
+                                : <Download size={16} color="#6B7280" strokeWidth={1.8} />
+                            }
+                        </TouchableOpacity>
                         <TouchableOpacity
                             className={`w-9 h-9 rounded-full items-center justify-center border ${filterCount > 0 ? 'bg-brand-accent border-brand-accent' : 'bg-brand-surface border-brand-border'}`}
-                            onPress={() => { haptics.light(); setShowFilters(true) }}
+                            onPress={() => setShowFilters(true)}
                         >
                             {filterCount > 0
                                 ? <Text className="text-white text-xs font-bold">{filterCount}</Text>
                                 : <SlidersHorizontal size={16} color="#6B7280" strokeWidth={1.8} />
                             }
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            className="w-9 h-9 rounded-full bg-brand-accent/15 items-center justify-center"
-                            onPress={() => { haptics.medium(); setShowAdd(true) }}
-                        >
-                            <Plus size={18} color="#5B7BF8" strokeWidth={2.2} />
                         </TouchableOpacity>
                     </View>
                 </View>

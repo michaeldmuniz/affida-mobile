@@ -1,14 +1,12 @@
-import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-native'
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity, Alert, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react-native'
-import { useQuery } from '@tanstack/react-query'
+import { ChevronLeft, ChevronRight, Plus, Copy } from 'lucide-react-native'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { apiClient } from '@/lib/api-client'
 import { Card } from '@/components/ui/Card'
 import { BudgetEditSheet } from '@/components/budgets/EditSheet'
-import { BudgetAddSheet } from '@/components/budgets/AddSheet'
-import { formatMonth, toMonthKey } from '@/lib/format'
-import { haptics } from '@/lib/haptics'
+import { AddBudgetSheet } from '@/components/budgets/AddSheet'
 import type { Budget } from '@/lib/types'
 
 function BudgetBar({ spent, total }: { spent: number; total: number }) {
@@ -25,12 +23,38 @@ function BudgetBar({ spent, total }: { spent: number; total: number }) {
 }
 
 export default function BudgetsScreen() {
+    const queryClient = useQueryClient()
     const [offset, setOffset] = useState(0)
     const [editing, setEditing] = useState<Budget | null>(null)
     const [showAdd, setShowAdd] = useState(false)
     const activeDate = new Date()
     activeDate.setMonth(activeDate.getMonth() + offset)
     const month = toMonthKey(activeDate)
+
+    const { mutate: copyPrevMonth, isPending: isCopying } = useMutation({
+        mutationFn: async () => {
+            const res = await apiClient.post('/budgets/copy', { targetMonth: month })
+            return res.data.data
+        },
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['budgets', month] })
+            if (data?.copied === 0) {
+                Alert.alert('Nothing to Copy', 'No budgets found in the previous month.')
+            }
+        },
+        onError: () => Alert.alert('Error', 'Failed to copy budgets.'),
+    })
+
+    const handleCopy = () => {
+        Alert.alert(
+            'Copy Previous Month',
+            'This will copy all budget amounts from last month into this month. Existing budgets will be overwritten.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Copy', onPress: () => copyPrevMonth() },
+            ]
+        )
+    }
 
     const { data: budgets, isLoading, refetch, isRefetching } = useQuery<Budget[]>({
         queryKey: ['budgets', month],
@@ -46,35 +70,47 @@ export default function BudgetsScreen() {
 
     return (
         <SafeAreaView className="flex-1 bg-brand-bg" edges={['top']}>
-            {/* Month Picker */}
-            <View className="flex-row items-center px-6 pt-4 pb-2">
-                <View className="w-9" />
-                <View className="flex-1 flex-row items-center justify-center gap-x-2">
-                    <TouchableOpacity
-                        className="w-8 h-8 items-center justify-center"
-                        onPress={() => { haptics.light(); setOffset((o) => o - 1) }}
-                        hitSlop={8}
-                    >
-                        <ChevronLeft size={20} color="#6B7280" strokeWidth={2} />
-                    </TouchableOpacity>
-                    <Text className="text-brand-text font-semibold text-base min-w-[140px] text-center">
-                        {formatMonth(activeDate)}
-                    </Text>
-                    <TouchableOpacity
-                        className="w-8 h-8 items-center justify-center"
-                        onPress={() => { haptics.light(); setOffset((o) => o + 1) }}
-                        hitSlop={8}
-                        disabled={offset >= 0}
-                    >
-                        <ChevronRight size={20} color={offset >= 0 ? '#2A2A38' : '#6B7280'} strokeWidth={2} />
-                    </TouchableOpacity>
-                </View>
+            {/* Month Picker + actions */}
+            <View className="flex-row items-center justify-between px-6 pt-4 pb-2">
+                <TouchableOpacity
+                    className="w-8 h-8 items-center justify-center"
+                    onPress={() => setOffset((o) => o - 1)}
+                    hitSlop={8}
+                >
+                    <ChevronLeft size={20} color="#6B7280" strokeWidth={2} />
+                </TouchableOpacity>
+                <Text className="text-brand-text font-semibold text-base">
+                    {formatMonth(activeDate)}
+                </Text>
                 <TouchableOpacity
                     className="w-9 h-9 rounded-full bg-brand-accent/15 items-center justify-center"
                     onPress={() => { haptics.medium(); setShowAdd(true) }}
                     hitSlop={6}
                 >
                     <Plus size={18} color="#5B7BF8" strokeWidth={2.2} />
+                </TouchableOpacity>
+            </View>
+            {/* Sub-actions */}
+            <View className="flex-row gap-x-2 px-6 pb-1">
+                <TouchableOpacity
+                    className="flex-row items-center gap-x-1.5 bg-brand-surface border border-brand-border rounded-xl px-3 h-8"
+                    onPress={() => setShowAdd(true)}
+                    activeOpacity={0.7}
+                >
+                    <Plus size={13} color="#5B7BF8" />
+                    <Text className="text-brand-accent text-xs font-medium">Add Budget</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    className="flex-row items-center gap-x-1.5 bg-brand-surface border border-brand-border rounded-xl px-3 h-8"
+                    onPress={handleCopy}
+                    disabled={isCopying}
+                    activeOpacity={0.7}
+                >
+                    {isCopying
+                        ? <ActivityIndicator size="small" color="#6B7280" />
+                        : <Copy size={13} color="#6B7280" />
+                    }
+                    <Text className="text-brand-muted text-xs font-medium">Copy Previous</Text>
                 </TouchableOpacity>
             </View>
 
@@ -120,12 +156,7 @@ export default function BudgetsScreen() {
             </ScrollView>
 
             <BudgetEditSheet budget={editing} month={month} onClose={() => setEditing(null)} />
-            <BudgetAddSheet
-                visible={showAdd}
-                month={month}
-                existingBudgets={budgets ?? []}
-                onClose={() => setShowAdd(false)}
-            />
+            <AddBudgetSheet visible={showAdd} month={month} existingBudgets={budgets ?? []} onClose={() => setShowAdd(false)} />
         </SafeAreaView>
     )
 }

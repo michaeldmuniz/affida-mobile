@@ -124,13 +124,37 @@ export default function AppLayout() {
                     tabBarIcon: ({ focused }) => <TabIcon Icon={Target} focused={focused} />,
                 }}
             />
-            {/* Stack-style screens reached from Home and Settings — hidden from the tab bar */}
-            <Tabs.Screen name="accounts/index" options={HIDDEN_SCREEN_OPTIONS} />
-            <Tabs.Screen name="accounts/[id]" options={HIDDEN_SCREEN_OPTIONS} />
-            <Tabs.Screen name="settings" options={HIDDEN_SCREEN_OPTIONS} />
-            <Tabs.Screen name="assistant" options={HIDDEN_SCREEN_OPTIONS} />
-            <Tabs.Screen name="subscriptions" options={HIDDEN_SCREEN_OPTIONS} />
-            <Tabs.Screen name="rules" options={HIDDEN_SCREEN_OPTIONS} />
+            <Tabs.Screen
+                name="settings"
+                options={{
+                    title: 'Settings',
+                    tabBarIcon: ({ focused }) => <TabIcon Icon={Settings} focused={focused} />,
+                }}
+            />
+            <Tabs.Screen
+                name="rules"
+                options={{
+                    tabBarButton: () => null,
+                    tabBarItemStyle: { display: 'none', width: 0 },
+                    tabBarStyle: { display: 'none' },
+                }}
+            />
+            <Tabs.Screen
+                name="reports"
+                options={{
+                    tabBarButton: () => null,
+                    tabBarItemStyle: { display: 'none', width: 0 },
+                    tabBarStyle: { display: 'none' },
+                }}
+            />
+            <Tabs.Screen
+                name="accounts/[id]"
+                options={{
+                    tabBarButton: () => null,
+                    tabBarItemStyle: { display: 'none', width: 0 },
+                    tabBarStyle: { display: 'none' },
+                }}
+            />
         </Tabs>
     )
 }
