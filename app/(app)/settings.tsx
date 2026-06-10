@@ -1,8 +1,9 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Linking } from 'react-native'
+import { useState } from 'react'
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Linking, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
-import { LogOut, User, Shield, CreditCard, ChevronRight, Mail, Smartphone, Zap, FileText, ScrollText } from 'lucide-react-native'
+import { LogOut, User, Shield, CreditCard, ChevronRight, Mail, Smartphone, Zap, FileText, ScrollText, Pencil, X } from 'lucide-react-native'
 import { apiClient } from '@/lib/api-client'
 import { useAuthStore } from '@/lib/auth-store'
 
@@ -37,12 +38,14 @@ function SettingsRow({
     value,
     onPress,
     destructive = false,
+    actionIcon: ActionIcon,
 }: {
     icon: any
     label: string
     value?: string
     onPress?: () => void
     destructive?: boolean
+    actionIcon?: any
 }) {
     return (
         <TouchableOpacity
@@ -60,7 +63,8 @@ function SettingsRow({
             {value && (
                 <Text className="text-brand-muted text-sm mr-2">{value}</Text>
             )}
-            {onPress && !destructive && (
+            {ActionIcon && <ActionIcon size={14} color="#6B7280" />}
+            {onPress && !destructive && !ActionIcon && (
                 <ChevronRight size={16} color="#6B7280" />
             )}
         </TouchableOpacity>
@@ -81,7 +85,25 @@ function Divider() {
 
 export default function SettingsScreen() {
     const router = useRouter()
-    const { clearAuth, user: authUser } = useAuthStore()
+    const queryClient = useQueryClient()
+    const { clearAuth, user: authUser, setAuth, token, expiresAt } = useAuthStore()
+    const [showEditName, setShowEditName] = useState(false)
+    const [newName, setNewName] = useState('')
+
+    const { mutate: saveName, isPending: isSavingName } = useMutation({
+        mutationFn: async (name: string) => {
+            const res = await apiClient.patch('/me', { name })
+            return res.data.data
+        },
+        onSuccess: (data) => {
+            if (token && authUser && expiresAt) {
+                setAuth(token, { ...authUser, name: data.name }, expiresAt)
+            }
+            queryClient.invalidateQueries({ queryKey: ['profile'] })
+            setShowEditName(false)
+        },
+        onError: () => Alert.alert('Error', 'Failed to update name.'),
+    })
 
     const { data: profile, isLoading } = useQuery<UserProfile>({
         queryKey: ['profile'],
@@ -136,6 +158,8 @@ export default function SettingsScreen() {
                         icon={User}
                         label="Name"
                         value={displayName ?? '—'}
+                        onPress={() => { setNewName(displayName ?? ''); setShowEditName(true) }}
+                        actionIcon={Pencil}
                     />
                     <Divider />
                     <SettingsRow
@@ -225,6 +249,53 @@ export default function SettingsScreen() {
 
                 <View className="h-8" />
             </ScrollView>
+
+            {/* Edit Name Modal */}
+            <Modal visible={showEditName} transparent animationType="fade" onRequestClose={() => setShowEditName(false)}>
+                <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+                    <View className="flex-1 bg-black/60 items-center justify-center px-6">
+                        <View className="bg-brand-surface border border-brand-border rounded-2xl p-6 w-full">
+                            <View className="flex-row items-center justify-between mb-4">
+                                <Text className="text-brand-text text-base font-bold">Edit Name</Text>
+                                <TouchableOpacity onPress={() => setShowEditName(false)} hitSlop={8}>
+                                    <X size={18} color="#6B7280" />
+                                </TouchableOpacity>
+                            </View>
+                            <View className="bg-brand-elevated border border-brand-border rounded-xl px-4 h-12 justify-center mb-4">
+                                <TextInput
+                                    className="text-brand-text text-base"
+                                    value={newName}
+                                    onChangeText={setNewName}
+                                    placeholder="Your name"
+                                    placeholderTextColor="#6B7280"
+                                    autoFocus
+                                    autoCorrect={false}
+                                />
+                            </View>
+                            <View className="flex-row gap-x-3">
+                                <TouchableOpacity
+                                    className="flex-1 h-11 rounded-xl border border-brand-border items-center justify-center"
+                                    onPress={() => setShowEditName(false)}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text className="text-brand-muted font-medium text-sm">Cancel</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    className="flex-1 h-11 rounded-xl bg-brand-accent items-center justify-center"
+                                    onPress={() => saveName(newName)}
+                                    disabled={isSavingName || !newName.trim()}
+                                    activeOpacity={0.85}
+                                >
+                                    {isSavingName
+                                        ? <ActivityIndicator color="#fff" />
+                                        : <Text className="text-white font-semibold text-sm">Save</Text>
+                                    }
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </KeyboardAvoidingView>
+            </Modal>
         </SafeAreaView>
     )
 }

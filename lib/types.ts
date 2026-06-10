@@ -80,6 +80,7 @@ export interface Budget {
     spent: number
     remaining: number
     rollover: boolean
+    rolloverAmount: number
     month: string
 }
 

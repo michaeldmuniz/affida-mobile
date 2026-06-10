@@ -92,6 +92,22 @@ export default function AppLayout() {
                     tabBarStyle: { display: 'none' },
                 }}
             />
+            <Tabs.Screen
+                name="reports"
+                options={{
+                    tabBarButton: () => null,
+                    tabBarItemStyle: { display: 'none', width: 0 },
+                    tabBarStyle: { display: 'none' },
+                }}
+            />
+            <Tabs.Screen
+                name="accounts/[id]"
+                options={{
+                    tabBarButton: () => null,
+                    tabBarItemStyle: { display: 'none', width: 0 },
+                    tabBarStyle: { display: 'none' },
+                }}
+            />
         </Tabs>
     )
 }

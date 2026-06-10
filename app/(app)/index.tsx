@@ -1,12 +1,20 @@
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { TrendingUp, TrendingDown } from 'lucide-react-native'
+import { TrendingUp, TrendingDown, BarChart3, ChevronRight, AlertTriangle, AlertCircle } from 'lucide-react-native'
 import { useQuery } from '@tanstack/react-query'
+import { useRouter } from 'expo-router'
 import { apiClient } from '@/lib/api-client'
 import { useAuthStore } from '@/lib/auth-store'
 import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
 import type { DashboardStats } from '@/lib/types'
+
+interface Alert {
+    id: string
+    type: 'OVERSPEND' | 'LOW_BALANCE'
+    message: string
+    severity: 'warning' | 'destructive'
+}
 
 function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -17,6 +25,7 @@ function currentMonthLabel() {
 }
 
 export default function DashboardScreen() {
+    const router = useRouter()
     const { user } = useAuthStore()
 
     const { data, isLoading, refetch, isRefetching } = useQuery<DashboardStats>({
@@ -26,6 +35,15 @@ export default function DashboardScreen() {
             return res.data.data
         },
         retry: 1,
+    })
+
+    const { data: alerts = [] } = useQuery<Alert[]>({
+        queryKey: ['alerts'],
+        queryFn: async () => {
+            const res = await apiClient.get('/alerts')
+            return res.data.data ?? []
+        },
+        retry: 0,
     })
 
     const firstName = user?.name?.split(' ')[0] ?? 'there'
@@ -54,6 +72,22 @@ export default function DashboardScreen() {
                 </View>
 
                 <View className="px-6 gap-y-4 pb-8">
+                    {/* Alerts */}
+                    {alerts.map(alert => (
+                        <View
+                            key={alert.id}
+                            className={`flex-row items-start gap-x-3 rounded-2xl p-4 ${alert.severity === 'destructive' ? 'bg-brand-negative/10 border border-brand-negative/20' : 'bg-amber-500/10 border border-amber-500/20'}`}
+                        >
+                            {alert.severity === 'destructive'
+                                ? <AlertCircle size={16} color="#EF4444" style={{ marginTop: 1 }} />
+                                : <AlertTriangle size={16} color="#F59E0B" style={{ marginTop: 1 }} />
+                            }
+                            <Text className={`flex-1 text-sm leading-relaxed ${alert.severity === 'destructive' ? 'text-brand-negative' : 'text-amber-400'}`}>
+                                {alert.message}
+                            </Text>
+                        </View>
+                    ))}
+
                     {/* Net Worth Card */}
                     <Card className="p-6">
                         <Text className="text-brand-muted text-xs font-medium uppercase tracking-widest mb-3">
@@ -106,6 +140,17 @@ export default function DashboardScreen() {
                             }
                         </Card>
                     </View>
+
+                    {/* Reports entry */}
+                    <TouchableOpacity onPress={() => router.push('/(app)/reports')} activeOpacity={0.7}>
+                        <Card className="flex-row items-center gap-x-3 p-4">
+                            <View className="w-10 h-10 rounded-xl bg-brand-accent/10 items-center justify-center">
+                                <BarChart3 size={18} color="#5B7BF8" strokeWidth={1.8} />
+                            </View>
+                            <Text className="flex-1 text-brand-text font-medium text-sm">View Reports</Text>
+                            <ChevronRight size={16} color="#6B7280" />
+                        </Card>
+                    </TouchableOpacity>
 
                     {/* Recent Transactions */}
                     <View>
