@@ -84,6 +84,14 @@ export interface Budget {
     month: string
 }
 
+export interface GoalContribution {
+    id: string
+    amount: number
+    note: string | null
+    date: string
+    type: string
+}
+
 export interface Goal {
     id: string
     name: string
@@ -91,7 +99,66 @@ export interface Goal {
     currentAmount: number
     deadline: string | null
     createdAt: string
+    type?: string
+    status?: string
+    notes?: string | null
     accounts: Array<{ id: string; name: string }>
+    contributions?: GoalContribution[]
+}
+
+export interface CategoryBreakdownItem {
+    name: string
+    value: number
+    categoryId: string | null
+}
+
+export interface TrendPoint {
+    month: string
+    income: number
+    expenses: number
+    savings: number
+    savingsRate: number
+}
+
+export interface NetWorthPoint {
+    month: string
+    netWorth: number
+}
+
+export interface MerchantSpend {
+    name: string
+    amount: number
+}
+
+export interface Insights {
+    month: string
+    income: number
+    expenses: number
+    net: number
+    categoryBreakdown: CategoryBreakdownItem[]
+    trend: TrendPoint[]
+    netWorthHistory: NetWorthPoint[]
+    topMerchants: MerchantSpend[]
+}
+
+export interface SubscriptionItem {
+    merchantName: string
+    amount: number
+    frequency: string
+    lastDate: string
+    nextDate: string
+    confidence: 'High' | 'Medium'
+}
+
+export interface SubscriptionsResponse {
+    monthlyTotal: number
+    items: SubscriptionItem[]
+}
+
+export interface ChatMessage {
+    id: string
+    role: 'user' | 'assistant'
+    content: string
 }
 
 export interface DashboardStats {

@@ -8,6 +8,7 @@ import { X, ChevronRight, Layers, Building2, PenLine } from 'lucide-react-native
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { OptionPicker } from '@/components/OptionPicker'
+import { DEBT_TYPES } from '@/lib/account-types'
 import { PlaidLinkButton } from './PlaidLinkButton'
 
 const ACCOUNT_TYPE_OPTIONS = [
@@ -27,11 +28,6 @@ const ACCOUNT_TYPE_OPTIONS = [
 const ACCOUNT_TYPE_LABELS: Record<string, string> = Object.fromEntries(
     ACCOUNT_TYPE_OPTIONS.map(o => [o.value, o.label])
 )
-
-const DEBT_TYPES = new Set([
-    'CREDIT_CARD', 'LINE_OF_CREDIT', 'MORTGAGE',
-    'AUTO_LOAN', 'STUDENT_LOAN', 'PERSONAL_LOAN', 'LOAN',
-])
 
 interface Props {
     visible: boolean

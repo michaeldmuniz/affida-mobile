@@ -9,12 +9,9 @@ import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
 import { AddAccountSheet } from '@/components/accounts/AddSheet'
 import { getPaymentUrl } from '@/lib/payment-links'
+import { DEBT_TYPES } from '@/lib/account-types'
+import { formatAccountType } from '@/lib/format'
 import type { Account } from '@/lib/types'
-
-const DEBT_TYPES = new Set([
-    'CREDIT_CARD', 'LINE_OF_CREDIT', 'MORTGAGE',
-    'AUTO_LOAN', 'STUDENT_LOAN', 'PERSONAL_LOAN', 'LOAN',
-])
 
 const ACCOUNT_ICONS: Record<string, any> = {
     CHECKING: Landmark,
@@ -30,10 +27,6 @@ function AccountIcon({ type }: { type: string }) {
             <Icon size={18} color="#5B7BF8" strokeWidth={1.8} />
         </View>
     )
-}
-
-function formatType(type: string) {
-    return type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
 }
 
 export default function AccountsScreen() {
@@ -68,7 +61,12 @@ export default function AccountsScreen() {
             >
                 {/* Header */}
                 <View className="flex-row items-center justify-between px-6 pt-4 pb-2">
-                    <Text className="text-brand-text text-2xl font-bold">Accounts</Text>
+                    <View className="flex-row items-center gap-x-2">
+                        <TouchableOpacity onPress={() => router.back()} hitSlop={8} className="-ml-2">
+                            <ChevronLeft size={24} color="#6B7280" />
+                        </TouchableOpacity>
+                        <Text className="text-brand-text text-2xl font-bold">Accounts</Text>
+                    </View>
                     <TouchableOpacity
                         className="w-9 h-9 rounded-full bg-brand-surface border border-brand-border items-center justify-center"
                         onPress={() => setShowAdd(true)}

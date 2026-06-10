@@ -17,7 +17,8 @@
       "bundleIdentifier": "com.affida.app",
       "buildNumber": "3",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSFaceIDUsageDescription": "Affida uses Face ID to unlock the app and keep your financial data private."
       }
     },
     "android": {
@@ -31,6 +32,12 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Affida uses Face ID to unlock the app and keep your financial data private."
+        }
+      ],
       [
         "expo-splash-screen",
         {

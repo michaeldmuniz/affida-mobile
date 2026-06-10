@@ -3,21 +3,44 @@ import { View, Text, ScrollView, RefreshControl, TouchableOpacity, TextInput, Ac
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Search, Flag, SlidersHorizontal, Download } from 'lucide-react-native'
 import { useInfiniteQuery } from '@tanstack/react-query'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { apiClient } from '@/lib/api-client'
 import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
 import { EditSheet } from '@/components/transactions/EditSheet'
+import { TransactionAddSheet } from '@/components/transactions/AddSheet'
 import { FilterSheet, DEFAULT_FILTERS, activeFilterCount, filtersToParams } from '@/components/transactions/FilterSheet'
+import { haptics } from '@/lib/haptics'
 import type { Transaction, PaginatedResponse } from '@/lib/types'
 import type { TransactionFilters } from '@/components/transactions/FilterSheet'
 
 const PAGE_SIZE = 50
 
 export default function TransactionsScreen() {
+    const router = useRouter()
+    const params = useLocalSearchParams<{ categoryId?: string; categoryName?: string; dateRange?: string }>()
     const [search, setSearch] = useState('')
     const [editing, setEditing] = useState<Transaction | null>(null)
     const [showFilters, setShowFilters] = useState(false)
+    const [showAdd, setShowAdd] = useState(false)
     const [filters, setFilters] = useState<TransactionFilters>(DEFAULT_FILTERS)
+
+    // Drill-down from Insights: arrive with a category pre-filtered, then clear
+    // the params so re-focusing the tab doesn't re-apply them.
+    useEffect(() => {
+        if (params.categoryId && params.categoryName) {
+            setFilters({
+                ...DEFAULT_FILTERS,
+                categoryId: params.categoryId,
+                categoryName: params.categoryName,
+                dateRange: (['thisMonth', 'lastMonth'].includes(params.dateRange ?? '')
+                    ? params.dateRange
+                    : 'all') as TransactionFilters['dateRange'],
+            })
+            setSearch('')
+            router.setParams({ categoryId: undefined, categoryName: undefined, dateRange: undefined })
+        }
+    }, [params.categoryId, params.categoryName, params.dateRange])
 
     const filterCount = activeFilterCount(filters)
     const [isExporting, setIsExporting] = useState(false)
@@ -230,6 +253,8 @@ export default function TransactionsScreen() {
             </ScrollView>
 
             <EditSheet transaction={editing} onClose={() => setEditing(null)} />
+
+            <TransactionAddSheet visible={showAdd} onClose={() => setShowAdd(false)} />
 
             <FilterSheet
                 visible={showFilters}

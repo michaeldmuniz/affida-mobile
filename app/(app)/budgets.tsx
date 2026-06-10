@@ -9,14 +9,6 @@ import { BudgetEditSheet } from '@/components/budgets/EditSheet'
 import { AddBudgetSheet } from '@/components/budgets/AddSheet'
 import type { Budget } from '@/lib/types'
 
-function formatMonth(date: Date) {
-    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-}
-
-function toMonthKey(date: Date) {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-}
-
 function BudgetBar({ spent, total }: { spent: number; total: number }) {
     const pct = total > 0 ? Math.min((spent / total) * 100, 100) : 0
     const over = spent > total
@@ -91,12 +83,11 @@ export default function BudgetsScreen() {
                     {formatMonth(activeDate)}
                 </Text>
                 <TouchableOpacity
-                    className="w-8 h-8 items-center justify-center"
-                    onPress={() => setOffset((o) => o + 1)}
-                    hitSlop={8}
-                    disabled={offset >= 0}
+                    className="w-9 h-9 rounded-full bg-brand-accent/15 items-center justify-center"
+                    onPress={() => { haptics.medium(); setShowAdd(true) }}
+                    hitSlop={6}
                 >
-                    <ChevronRight size={20} color={offset >= 0 ? '#2A2A38' : '#6B7280'} strokeWidth={2} />
+                    <Plus size={18} color="#5B7BF8" strokeWidth={2.2} />
                 </TouchableOpacity>
             </View>
             {/* Sub-actions */}
@@ -155,11 +146,11 @@ export default function BudgetsScreen() {
                     ) : budgets?.length ? (
                         <View className="gap-y-2">
                             {budgets.map((b) => (
-                                <BudgetRow key={b.id} budget={b} onEdit={() => setEditing(b)} />
+                                <BudgetRow key={b.id} budget={b} onEdit={() => { haptics.light(); setEditing(b) }} />
                             ))}
                         </View>
                     ) : (
-                        <EmptyState />
+                        <EmptyState onCreate={() => { haptics.medium(); setShowAdd(true) }} />
                     )}
                 </View>
             </ScrollView>
@@ -212,13 +203,20 @@ function BudgetRowSkeleton() {
     )
 }
 
-function EmptyState() {
+function EmptyState({ onCreate }: { onCreate: () => void }) {
     return (
         <View className="items-center py-16">
-            <Text className="text-brand-text font-semibold mb-1">No budgets</Text>
-            <Text className="text-brand-muted text-sm text-center leading-relaxed px-8">
-                Set up budgets on the web app and they'll appear here.
+            <Text className="text-brand-text font-semibold mb-1">No budgets this month</Text>
+            <Text className="text-brand-muted text-sm text-center leading-relaxed px-8 mb-4">
+                Give every category a monthly limit and we'll track your spending against it.
             </Text>
+            <TouchableOpacity
+                className="bg-brand-accent px-6 py-3 rounded-xl"
+                onPress={onCreate}
+                activeOpacity={0.85}
+            >
+                <Text className="text-white font-semibold text-sm">Create a budget</Text>
+            </TouchableOpacity>
         </View>
     )
 }

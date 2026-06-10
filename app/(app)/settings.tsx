@@ -6,6 +6,8 @@ import { useRouter } from 'expo-router'
 import { LogOut, User, Shield, CreditCard, ChevronRight, Mail, Smartphone, Zap, FileText, ScrollText, Pencil, X } from 'lucide-react-native'
 import { apiClient } from '@/lib/api-client'
 import { useAuthStore } from '@/lib/auth-store'
+import { useSettingsStore } from '@/lib/settings-store'
+import { haptics } from '@/lib/haptics'
 
 interface UserProfile {
     id: string
@@ -120,6 +122,26 @@ export default function SettingsScreen() {
         ])
     }
 
+    const handleToggleAppLock = async (enabled: boolean) => {
+        haptics.light()
+        if (!enabled) {
+            setAppLockEnabled(false)
+            return
+        }
+        // Confirm the user can actually authenticate before locking them in
+        try {
+            const result = await LocalAuthentication.authenticateAsync({
+                promptMessage: 'Confirm to enable App Lock',
+            })
+            if (result.success) {
+                haptics.success()
+                setAppLockEnabled(true)
+            }
+        } catch {
+            Alert.alert('Unavailable', 'Biometric authentication is not available on this device.')
+        }
+    }
+
     const displayEmail = profile?.email ?? authUser?.email ?? ''
     const displayName = profile?.name ?? authUser?.name ?? null
 
@@ -130,7 +152,10 @@ export default function SettingsScreen() {
         <SafeAreaView className="flex-1 bg-brand-bg">
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
                 {/* Header */}
-                <View className="px-6 pt-4 pb-6">
+                <View className="flex-row items-center px-6 pt-4 pb-6 gap-x-2">
+                    <TouchableOpacity onPress={() => router.back()} hitSlop={8} className="-ml-2">
+                        <ChevronLeft size={24} color="#6B7280" />
+                    </TouchableOpacity>
                     <Text className="text-brand-text text-2xl font-bold">Settings</Text>
                 </View>
 
@@ -192,6 +217,27 @@ export default function SettingsScreen() {
                 {/* Security */}
                 <SectionHeader title="Security" />
                 <View className="mx-4 rounded-2xl overflow-hidden border border-brand-border">
+                    <View className="flex-row items-center px-4 py-3.5 bg-brand-surface">
+                        <View className="w-8 h-8 rounded-lg items-center justify-center mr-3 bg-brand-accent/15">
+                            <ScanFace size={16} color="#5B7BF8" strokeWidth={2} />
+                        </View>
+                        <View className="flex-1">
+                            <Text className="text-sm font-medium text-brand-text">App Lock</Text>
+                            <Text className="text-brand-muted text-xs mt-0.5">
+                                {biometricsAvailable
+                                    ? 'Require Face ID when opening the app'
+                                    : 'No biometrics enrolled on this device'}
+                            </Text>
+                        </View>
+                        <Switch
+                            value={appLockEnabled}
+                            onValueChange={handleToggleAppLock}
+                            disabled={!biometricsAvailable && !appLockEnabled}
+                            trackColor={{ false: '#2A2A38', true: '#5B7BF8' }}
+                            thumbColor="#fff"
+                        />
+                    </View>
+                    <Divider />
                     <SettingsRow
                         icon={Shield}
                         label="Two-Factor Auth"
@@ -209,13 +255,18 @@ export default function SettingsScreen() {
                     )}
                 </View>
 
-                {/* Automation */}
-                <SectionHeader title="Automation" />
+                {/* Money */}
+                <SectionHeader title="Money" />
                 <View className="mx-4 rounded-2xl overflow-hidden border border-brand-border">
+                    <SettingsRow
+                        icon={Repeat}
+                        label="Recurring & Subscriptions"
+                        onPress={() => router.push('/(app)/subscriptions')}
+                    />
+                    <Divider />
                     <SettingsRow
                         icon={Zap}
                         label="Categorization Rules"
-                        value={undefined}
                         onPress={() => router.push('/(app)/rules')}
                     />
                 </View>

@@ -27,13 +27,12 @@ function currentMonthLabel() {
 export default function DashboardScreen() {
     const router = useRouter()
     const { user } = useAuthStore()
+    const router = useRouter()
+    const month = toMonthKey(new Date())
 
-    const { data, isLoading, refetch, isRefetching } = useQuery<DashboardStats>({
+    const { data, refetch, isRefetching } = useQuery<DashboardStats>({
         queryKey: ['dashboard'],
-        queryFn: async () => {
-            const res = await apiClient.get('/dashboard')
-            return res.data.data
-        },
+        queryFn: async () => (await apiClient.get('/dashboard')).data.data,
         retry: 1,
     })
 
@@ -47,6 +46,18 @@ export default function DashboardScreen() {
     })
 
     const firstName = user?.name?.split(' ')[0] ?? 'there'
+    const isFirstRun = accounts !== undefined && accounts.length === 0
+
+    const upcomingBills = [...(subs?.items ?? [])]
+        .sort((a, b) => new Date(a.nextDate).getTime() - new Date(b.nextDate).getTime())
+        .slice(0, 3)
+
+    const totalBudgeted = budgets?.reduce((s, b) => s + b.amount, 0) ?? 0
+    const totalSpent = budgets?.reduce((s, b) => s + b.spent, 0) ?? 0
+    const budgetPct = totalBudgeted > 0 ? Math.min((totalSpent / totalBudgeted) * 100, 100) : 0
+    const overBudgetCount = budgets?.filter((b) => b.spent > b.amount).length ?? 0
+
+    const topGoals = (goals ?? []).slice(0, 2)
 
     return (
         <SafeAreaView className="flex-1 bg-brand-bg" edges={['top']}>
@@ -64,10 +75,26 @@ export default function DashboardScreen() {
                 {/* Header */}
                 <View className="flex-row items-center justify-between px-6 pt-4 pb-6">
                     <View>
-                        <Text className="text-brand-muted text-sm">{currentMonthLabel()}</Text>
+                        <Text className="text-brand-muted text-sm">{formatMonth(new Date())}</Text>
                         <Text className="text-brand-text text-2xl font-bold mt-0.5">
                             Hi, {firstName}
                         </Text>
+                    </View>
+                    <View className="flex-row gap-x-2">
+                        <TouchableOpacity
+                            onPress={() => { haptics.medium(); router.push('/assistant') }}
+                            className="w-10 h-10 rounded-full bg-brand-accent/15 items-center justify-center"
+                            activeOpacity={0.7}
+                        >
+                            <Sparkles size={18} color="#5B7BF8" strokeWidth={2} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => { haptics.light(); router.push('/settings') }}
+                            className="w-10 h-10 rounded-full bg-brand-surface border border-brand-border items-center justify-center"
+                            activeOpacity={0.7}
+                        >
+                            <Settings size={18} color="#6B7280" strokeWidth={2} />
+                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -89,33 +116,50 @@ export default function DashboardScreen() {
                     ))}
 
                     {/* Net Worth Card */}
-                    <Card className="p-6">
-                        <Text className="text-brand-muted text-xs font-medium uppercase tracking-widest mb-3">
-                            Net Worth
-                        </Text>
-                        {data ? (
-                            <>
-                                <AmountText
-                                    amount={data.netWorth}
-                                    size="xl"
-                                    neutral
-                                    className="text-brand-text"
-                                />
-                                <View className="flex-row gap-x-6 mt-4">
-                                    <View>
-                                        <Text className="text-brand-muted text-xs mb-1">Assets</Text>
-                                        <AmountText amount={data.totalAssets} size="sm" neutral className="text-brand-positive" />
+                    <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={() => { haptics.light(); router.push('/accounts') }}
+                    >
+                        <Card className="p-6">
+                            <View className="flex-row items-center justify-between mb-3">
+                                <Text className="text-brand-muted text-xs font-medium uppercase tracking-widest">
+                                    Net Worth
+                                </Text>
+                                <ChevronRight size={16} color="#6B7280" strokeWidth={2} />
+                            </View>
+                            {data ? (
+                                <>
+                                    <AmountText
+                                        amount={data.netWorth}
+                                        size="xl"
+                                        neutral
+                                        className="text-brand-text"
+                                    />
+                                    {insights?.netWorthHistory && insights.netWorthHistory.length >= 2 && (
+                                        <View className="mt-4 -mb-1">
+                                            <LineChart
+                                                points={insights.netWorthHistory.map((p) => p.netWorth)}
+                                                height={48}
+                                                sparkline
+                                            />
+                                        </View>
+                                    )}
+                                    <View className="flex-row gap-x-6 mt-4">
+                                        <View>
+                                            <Text className="text-brand-muted text-xs mb-1">Assets</Text>
+                                            <AmountText amount={data.totalAssets} size="sm" neutral className="text-brand-positive" />
+                                        </View>
+                                        <View>
+                                            <Text className="text-brand-muted text-xs mb-1">Liabilities</Text>
+                                            <AmountText amount={-data.totalLiabilities} size="sm" />
+                                        </View>
                                     </View>
-                                    <View>
-                                        <Text className="text-brand-muted text-xs mb-1">Liabilities</Text>
-                                        <AmountText amount={-data.totalLiabilities} size="sm" />
-                                    </View>
-                                </View>
-                            </>
-                        ) : (
-                            <NetWorthPlaceholder />
-                        )}
-                    </Card>
+                                </>
+                            ) : (
+                                <NetWorthPlaceholder />
+                            )}
+                        </Card>
+                    </TouchableOpacity>
 
                     {/* Cash Flow */}
                     <View className="flex-row gap-x-3">
@@ -154,9 +198,12 @@ export default function DashboardScreen() {
 
                     {/* Recent Transactions */}
                     <View>
-                        <Text className="text-brand-text font-semibold text-base mb-3">
-                            Recent Activity
-                        </Text>
+                        <View className="flex-row items-center justify-between mb-3">
+                            <Text className="text-brand-text font-semibold text-base">Recent Activity</Text>
+                            <TouchableOpacity onPress={() => { haptics.light(); router.push('/transactions') }} hitSlop={8}>
+                                <Text className="text-brand-accent text-xs font-semibold">See all</Text>
+                            </TouchableOpacity>
+                        </View>
                         {data?.recentTransactions?.length ? (
                             <Card className="divide-y divide-brand-border overflow-hidden">
                                 {data.recentTransactions.map((tx, i) => (
@@ -166,7 +213,7 @@ export default function DashboardScreen() {
                                                 {tx.merchantName ?? tx.description}
                                             </Text>
                                             <Text className="text-brand-muted text-xs mt-0.5">
-                                                {tx.categoryName ?? 'Uncategorized'} · {formatDate(tx.date)}
+                                                {tx.categoryName ?? 'Uncategorized'} · {formatShortDate(tx.date)}
                                             </Text>
                                         </View>
                                         <AmountText
