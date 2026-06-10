@@ -9,21 +9,10 @@ import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
 import { AccountEditSheet } from '@/components/accounts/EditSheet'
 import { getPaymentUrl } from '@/lib/payment-links'
+import { DEBT_TYPES } from '@/lib/account-types'
+import { formatAccountType, formatShortDate } from '@/lib/format'
 import { haptics } from '@/lib/haptics'
 import type { Account, Transaction, PaginatedResponse } from '@/lib/types'
-
-const DEBT_TYPES = new Set([
-    'CREDIT_CARD', 'LINE_OF_CREDIT', 'MORTGAGE',
-    'AUTO_LOAN', 'STUDENT_LOAN', 'PERSONAL_LOAN', 'LOAN',
-])
-
-function formatType(type: string) {
-    return type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
-}
-
-function formatDate(dateStr: string) {
-    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
 
 export default function AccountDetailScreen() {
     const router = useRouter()
@@ -112,7 +101,7 @@ export default function AccountDetailScreen() {
                                     className={isDebt ? undefined : 'text-brand-text'}
                                 />
                                 <Text className="text-brand-muted text-sm mt-3">
-                                    {formatType(account.type)}
+                                    {formatAccountType(account.type)}
                                     {account.institutionName && account.institutionName !== 'Manual'
                                         ? ` · ${account.institutionName}`
                                         : ' · Manual account'}
@@ -175,7 +164,7 @@ export default function AccountDetailScreen() {
                                                 {tx.merchantName ?? tx.description}
                                             </Text>
                                             <Text className="text-brand-muted text-xs mt-0.5">
-                                                {tx.categoryName ?? 'Uncategorized'} · {formatDate(tx.date)}
+                                                {tx.categoryName ?? 'Uncategorized'} · {formatShortDate(tx.date)}
                                             </Text>
                                         </View>
                                         <AmountText amount={tx.amount} size="sm" showSign />

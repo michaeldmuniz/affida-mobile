@@ -9,12 +9,9 @@ import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
 import { AddAccountSheet } from '@/components/accounts/AddSheet'
 import { getPaymentUrl } from '@/lib/payment-links'
+import { DEBT_TYPES } from '@/lib/account-types'
+import { formatAccountType } from '@/lib/format'
 import type { Account } from '@/lib/types'
-
-const DEBT_TYPES = new Set([
-    'CREDIT_CARD', 'LINE_OF_CREDIT', 'MORTGAGE',
-    'AUTO_LOAN', 'STUDENT_LOAN', 'PERSONAL_LOAN', 'LOAN',
-])
 
 const ACCOUNT_ICONS: Record<string, any> = {
     CHECKING: Landmark,
@@ -30,10 +27,6 @@ function AccountIcon({ type }: { type: string }) {
             <Icon size={18} color="#5B7BF8" strokeWidth={1.8} />
         </View>
     )
-}
-
-function formatType(type: string) {
-    return type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
 }
 
 export default function AccountsScreen() {
@@ -146,7 +139,7 @@ function AccountRow({ account }: { account: Account }) {
                 <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>
                     {account.name}
                 </Text>
-                <Text className="text-brand-muted text-xs mt-0.5">{formatType(account.type)}</Text>
+                <Text className="text-brand-muted text-xs mt-0.5">{formatAccountType(account.type)}</Text>
             </View>
             <View className="items-end gap-y-1">
                 <AmountText amount={account.balance} size="sm" neutral />

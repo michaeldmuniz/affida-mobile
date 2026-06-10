@@ -8,26 +8,14 @@ import { useAuthStore } from '@/lib/auth-store'
 import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
 import { LineChart } from '@/components/charts/LineChart'
+import { formatShortDate, formatMonth, toMonthKey } from '@/lib/format'
 import { haptics } from '@/lib/haptics'
 import type { DashboardStats, Insights, SubscriptionsResponse, Budget, Goal, Account } from '@/lib/types'
-
-function formatDate(dateStr: string) {
-    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
-
-function currentMonthLabel() {
-    return new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-}
-
-function currentMonthKey() {
-    const d = new Date()
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-}
 
 export default function DashboardScreen() {
     const { user } = useAuthStore()
     const router = useRouter()
-    const month = currentMonthKey()
+    const month = toMonthKey(new Date())
 
     const { data, refetch, isRefetching } = useQuery<DashboardStats>({
         queryKey: ['dashboard'],
@@ -95,7 +83,7 @@ export default function DashboardScreen() {
                 {/* Header */}
                 <View className="flex-row items-center justify-between px-6 pt-4 pb-6">
                     <View>
-                        <Text className="text-brand-muted text-sm">{currentMonthLabel()}</Text>
+                        <Text className="text-brand-muted text-sm">{formatMonth(new Date())}</Text>
                         <Text className="text-brand-text text-2xl font-bold mt-0.5">
                             Hi, {firstName}
                         </Text>
@@ -271,7 +259,7 @@ export default function DashboardScreen() {
                                                 {bill.merchantName}
                                             </Text>
                                             <Text className="text-brand-muted text-xs mt-0.5">
-                                                {formatDate(bill.nextDate)}
+                                                {formatShortDate(bill.nextDate)}
                                             </Text>
                                         </View>
                                         <AmountText amount={-bill.amount} size="sm" />
@@ -333,7 +321,7 @@ export default function DashboardScreen() {
                                                 {tx.merchantName ?? tx.description}
                                             </Text>
                                             <Text className="text-brand-muted text-xs mt-0.5">
-                                                {tx.categoryName ?? 'Uncategorized'} · {formatDate(tx.date)}
+                                                {tx.categoryName ?? 'Uncategorized'} · {formatShortDate(tx.date)}
                                             </Text>
                                         </View>
                                         <AmountText

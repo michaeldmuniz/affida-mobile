@@ -29,9 +29,17 @@ export default function AssistantScreen() {
     const [input, setInput] = useState('')
     const [isStreaming, setIsStreaming] = useState(false)
     const scrollRef = useRef<ScrollView>(null)
+    const scrollPending = useRef(false)
 
+    // Coalesce bursts of scroll requests (one per streaming delta) into a single
+    // scroll per frame so the JS thread isn't flooded during fast streams.
     const scrollToEnd = useCallback(() => {
-        requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }))
+        if (scrollPending.current) return
+        scrollPending.current = true
+        requestAnimationFrame(() => {
+            scrollPending.current = false
+            scrollRef.current?.scrollToEnd({ animated: true })
+        })
     }, [])
 
     const send = useCallback(

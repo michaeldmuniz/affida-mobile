@@ -11,25 +11,9 @@ import { DonutChart } from '@/components/charts/DonutChart'
 import { TrendBars } from '@/components/charts/TrendBars'
 import { LineChart } from '@/components/charts/LineChart'
 import { colorForIndex } from '@/components/charts/palette'
+import { formatMonth, toMonthKey, compactUsd } from '@/lib/format'
 import { haptics } from '@/lib/haptics'
 import type { Insights, SubscriptionsResponse } from '@/lib/types'
-
-function formatMonth(date: Date) {
-    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-}
-
-function toMonthKey(date: Date) {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-}
-
-function compactUsd(n: number) {
-    const abs = Math.abs(n)
-    const formatted =
-        abs >= 1000
-            ? `$${(abs / 1000).toFixed(abs >= 10000 ? 0 : 1)}k`
-            : `$${abs.toFixed(0)}`
-    return n < 0 ? `-${formatted}` : formatted
-}
 
 export default function InsightsScreen() {
     const router = useRouter()

@@ -7,16 +7,9 @@ import { apiClient } from '@/lib/api-client'
 import { Card } from '@/components/ui/Card'
 import { BudgetEditSheet } from '@/components/budgets/EditSheet'
 import { BudgetAddSheet } from '@/components/budgets/AddSheet'
+import { formatMonth, toMonthKey } from '@/lib/format'
 import { haptics } from '@/lib/haptics'
 import type { Budget } from '@/lib/types'
-
-function formatMonth(date: Date) {
-    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-}
-
-function toMonthKey(date: Date) {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-}
 
 function BudgetBar({ spent, total }: { spent: number; total: number }) {
     const pct = total > 0 ? Math.min((spent / total) * 100, 100) : 0

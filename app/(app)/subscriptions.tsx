@@ -6,19 +6,16 @@ import { useRouter } from 'expo-router'
 import { apiClient } from '@/lib/api-client'
 import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
+import { formatShortDate } from '@/lib/format'
 import { haptics } from '@/lib/haptics'
 import type { SubscriptionsResponse, SubscriptionItem } from '@/lib/types'
-
-function formatDay(dateStr: string) {
-    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
 
 function daysUntil(dateStr: string) {
     const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     if (diff <= 0) return 'Due now'
     if (diff === 1) return 'Tomorrow'
     if (diff <= 7) return `In ${diff} days`
-    return formatDay(dateStr)
+    return formatShortDate(dateStr)
 }
 
 export default function SubscriptionsScreen() {
