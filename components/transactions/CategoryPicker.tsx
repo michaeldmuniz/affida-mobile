@@ -5,6 +5,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { X, Search, Check } from 'lucide-react-native'
 import type { Category } from '@/lib/types'
+import { colors } from '@/lib/colors'
 
 const GROUP_LABELS: Record<string, string> = {
     INCOME: 'Income',
@@ -46,18 +47,18 @@ export function CategoryPicker({ visible, categories, selectedId, onSelect, onCl
                 <View className="flex-row items-center px-4 py-3 border-b border-brand-border">
                     <Text className="flex-1 text-brand-text text-lg font-semibold">Category</Text>
                     <TouchableOpacity onPress={onClose} hitSlop={8}>
-                        <X size={20} color="#6B7280" />
+                        <X size={20} color={colors.muted} />
                     </TouchableOpacity>
                 </View>
 
                 {/* Search */}
                 <View className="px-4 py-3">
                     <View className="flex-row items-center bg-brand-surface border border-brand-border rounded-xl px-3 h-10 gap-x-2">
-                        <Search size={15} color="#6B7280" />
+                        <Search size={15} color={colors.muted} />
                         <TextInput
                             className="flex-1 text-brand-text text-sm"
                             placeholder="Search categories..."
-                            placeholderTextColor="#6B7280"
+                            placeholderTextColor={colors.muted}
                             value={search}
                             onChangeText={setSearch}
                             autoCorrect={false}
@@ -73,7 +74,7 @@ export function CategoryPicker({ visible, categories, selectedId, onSelect, onCl
                             onPress={() => { onSelect(null, null); onClose() }}
                         >
                             <Text className="flex-1 text-brand-muted text-sm">Uncategorized</Text>
-                            {selectedId === null && <Check size={16} color="#5B7BF8" />}
+                            {selectedId === null && <Check size={16} color={colors.accent} />}
                         </TouchableOpacity>
                     )}
 
@@ -89,7 +90,7 @@ export function CategoryPicker({ visible, categories, selectedId, onSelect, onCl
                                     onPress={() => { onSelect(cat.id, cat.name); onClose() }}
                                 >
                                     <Text className="flex-1 text-brand-text text-sm">{cat.name}</Text>
-                                    {selectedId === cat.id && <Check size={16} color="#5B7BF8" />}
+                                    {selectedId === cat.id && <Check size={16} color={colors.accent} />}
                                 </TouchableOpacity>
                             ))}
                         </View>

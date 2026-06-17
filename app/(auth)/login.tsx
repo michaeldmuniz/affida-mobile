@@ -19,6 +19,7 @@ import axios from 'axios'
 import { authApi } from '@/lib/api-client'
 import { useAuthStore } from '@/lib/auth-store'
 import type { AuthTokenResponse, MobileUser } from '@/lib/types'
+import { colors } from '@/lib/colors'
 
 export default function LoginScreen() {
     const router = useRouter()
@@ -134,7 +135,7 @@ export default function LoginScreen() {
                                 <TextInput
                                     className="bg-brand-surface border border-brand-border rounded-2xl px-4 h-14 text-brand-text text-base"
                                     placeholder="you@example.com"
-                                    placeholderTextColor="#6B7280"
+                                    placeholderTextColor={colors.muted}
                                     value={email}
                                     onChangeText={setEmail}
                                     keyboardType="email-address"
@@ -155,7 +156,7 @@ export default function LoginScreen() {
                                         ref={passwordRef}
                                         className="bg-brand-surface border border-brand-border rounded-2xl px-4 pr-14 h-14 text-brand-text text-base"
                                         placeholder="••••••••"
-                                        placeholderTextColor="#6B7280"
+                                        placeholderTextColor={colors.muted}
                                         value={password}
                                         onChangeText={setPassword}
                                         secureTextEntry={!showPassword}
@@ -169,8 +170,8 @@ export default function LoginScreen() {
                                         hitSlop={8}
                                     >
                                         {showPassword
-                                            ? <EyeOff size={20} color="#6B7280" />
-                                            : <Eye size={20} color="#6B7280" />
+                                            ? <EyeOff size={20} color={colors.muted} />
+                                            : <Eye size={20} color={colors.muted} />
                                         }
                                     </TouchableOpacity>
                                 </View>

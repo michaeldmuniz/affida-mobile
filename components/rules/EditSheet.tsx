@@ -10,6 +10,7 @@ import { apiClient } from '@/lib/api-client'
 import { CategoryPicker } from '@/components/transactions/CategoryPicker'
 import { OptionPicker } from '@/components/OptionPicker'
 import type { Rule, Category, Account } from '@/lib/types'
+import { colors } from '@/lib/colors'
 
 type AmountType = 'DEBIT' | 'CREDIT' | null
 
@@ -176,14 +177,14 @@ export function RuleEditSheet({ rule, onClose }: Props) {
                     {/* Header */}
                     <View className="flex-row items-center px-4 py-3 border-b border-brand-border">
                         <TouchableOpacity onPress={onClose} hitSlop={8} className="w-8">
-                            <X size={20} color="#6B7280" />
+                            <X size={20} color={colors.muted} />
                         </TouchableOpacity>
                         <Text className="flex-1 text-center text-brand-text text-base font-semibold">
                             {isNew ? 'New Rule' : 'Edit Rule'}
                         </Text>
                         <TouchableOpacity onPress={() => save()} disabled={isPending} className="items-end" hitSlop={8}>
                             {isPending
-                                ? <ActivityIndicator size="small" color="#5B7BF8" />
+                                ? <ActivityIndicator size="small" color={colors.accent} />
                                 : <Text className="text-brand-accent font-semibold text-sm">Save</Text>
                             }
                         </TouchableOpacity>
@@ -211,7 +212,7 @@ export function RuleEditSheet({ rule, onClose }: Props) {
                                         value={form.containsText}
                                         onChangeText={v => setForm(f => ({ ...f, containsText: v }))}
                                         placeholder="e.g. Starbucks, Amazon..."
-                                        placeholderTextColor="#6B7280"
+                                        placeholderTextColor={colors.muted}
                                         autoCorrect={false}
                                     />
                                 </View>
@@ -238,7 +239,7 @@ export function RuleEditSheet({ rule, onClose }: Props) {
                                             value={form.amountMin}
                                             onChangeText={v => setForm(f => ({ ...f, amountMin: v }))}
                                             placeholder="0"
-                                            placeholderTextColor="#6B7280"
+                                            placeholderTextColor={colors.muted}
                                             keyboardType="decimal-pad"
                                         />
                                     </View>
@@ -249,7 +250,7 @@ export function RuleEditSheet({ rule, onClose }: Props) {
                                             value={form.amountMax}
                                             onChangeText={v => setForm(f => ({ ...f, amountMax: v }))}
                                             placeholder="Any"
-                                            placeholderTextColor="#6B7280"
+                                            placeholderTextColor={colors.muted}
                                             keyboardType="decimal-pad"
                                         />
                                     </View>
@@ -264,11 +265,11 @@ export function RuleEditSheet({ rule, onClose }: Props) {
                                     onPress={() => setShowAccountTypePicker(true)}
                                     activeOpacity={0.7}
                                 >
-                                    <Layers size={15} color="#6B7280" style={{ marginRight: 8 }} />
+                                    <Layers size={15} color={colors.muted} style={{ marginRight: 8 }} />
                                     <Text className={`flex-1 text-sm ${form.accountType ? 'text-brand-text' : 'text-brand-muted'}`}>
                                         {form.accountType ? ACCOUNT_TYPE_LABELS[form.accountType] : 'Any account type'}
                                     </Text>
-                                    <ChevronRight size={16} color="#6B7280" />
+                                    <ChevronRight size={16} color={colors.muted} />
                                 </TouchableOpacity>
                             </View>
 
@@ -280,11 +281,11 @@ export function RuleEditSheet({ rule, onClose }: Props) {
                                     onPress={() => setShowAccountPicker(true)}
                                     activeOpacity={0.7}
                                 >
-                                    <CreditCard size={15} color="#6B7280" style={{ marginRight: 8 }} />
+                                    <CreditCard size={15} color={colors.muted} style={{ marginRight: 8 }} />
                                     <Text className={`flex-1 text-sm ${form.accountId ? 'text-brand-text' : 'text-brand-muted'}`} numberOfLines={1}>
                                         {selectedAccountLabel ?? 'Any account'}
                                     </Text>
-                                    <ChevronRight size={16} color="#6B7280" />
+                                    <ChevronRight size={16} color={colors.muted} />
                                 </TouchableOpacity>
                             </View>
 
@@ -299,11 +300,11 @@ export function RuleEditSheet({ rule, onClose }: Props) {
                                     onPress={() => setShowCategoryPicker(true)}
                                     activeOpacity={0.7}
                                 >
-                                    <Tag size={15} color="#6B7280" style={{ marginRight: 8 }} />
+                                    <Tag size={15} color={colors.muted} style={{ marginRight: 8 }} />
                                     <Text className={`flex-1 text-sm ${form.categoryName ? 'text-brand-text' : 'text-brand-muted'}`}>
                                         {form.categoryName || 'Select a category...'}
                                     </Text>
-                                    <ChevronRight size={16} color="#6B7280" />
+                                    <ChevronRight size={16} color={colors.muted} />
                                 </TouchableOpacity>
                             </View>
 

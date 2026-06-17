@@ -8,6 +8,7 @@ import { apiClient } from '@/lib/api-client'
 import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
 import type { Transaction } from '@/lib/types'
+import { colors } from '@/lib/colors'
 
 interface ReportStats {
     totalIncome: number
@@ -90,7 +91,7 @@ export default function ReportsScreen() {
             {/* Header */}
             <View className="flex-row items-center px-4 pt-4 pb-3">
                 <TouchableOpacity onPress={() => router.back()} hitSlop={8} className="w-8">
-                    <ChevronLeft size={22} color="#6B7280" />
+                    <ChevronLeft size={22} color={colors.muted} />
                 </TouchableOpacity>
                 <Text className="flex-1 text-center text-brand-text text-lg font-bold">Reports</Text>
                 <View className="w-8" />
@@ -103,7 +104,7 @@ export default function ReportsScreen() {
                     onPress={() => setOffset(o => o - 1)}
                     hitSlop={8}
                 >
-                    <ChevronLeft size={20} color="#6B7280" strokeWidth={2} />
+                    <ChevronLeft size={20} color={colors.muted} strokeWidth={2} />
                 </TouchableOpacity>
                 <Text className="text-brand-text font-semibold text-base">
                     {formatMonth(activeDate)}
@@ -114,7 +115,7 @@ export default function ReportsScreen() {
                     hitSlop={8}
                     disabled={offset >= 0}
                 >
-                    <ChevronRight size={20} color={offset >= 0 ? '#2A2A38' : '#6B7280'} strokeWidth={2} />
+                    <ChevronRight size={20} color={offset >= 0 ? colors.disabled : colors.muted} strokeWidth={2} />
                 </TouchableOpacity>
             </View>
 
@@ -122,7 +123,7 @@ export default function ReportsScreen() {
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
                 refreshControl={
-                    <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#5B7BF8" />
+                    <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.accent} />
                 }
             >
                 <View className="px-6 gap-y-4 pb-8 pt-3">
@@ -290,7 +291,7 @@ function EmptyState() {
     return (
         <View className="items-center py-16">
             <View className="w-14 h-14 rounded-2xl bg-brand-surface border border-brand-border items-center justify-center mb-4">
-                <BarChart3 size={24} color="#6B7280" strokeWidth={1.5} />
+                <BarChart3 size={24} color={colors.muted} strokeWidth={1.5} />
             </View>
             <Text className="text-brand-text font-semibold mb-1">No data for this month</Text>
             <Text className="text-brand-muted text-sm text-center leading-relaxed px-8">

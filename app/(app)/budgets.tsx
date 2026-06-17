@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/Card'
 import { BudgetEditSheet } from '@/components/budgets/EditSheet'
 import { AddBudgetSheet } from '@/components/budgets/AddSheet'
 import type { Budget } from '@/lib/types'
+import { colors } from '@/lib/colors'
 
 function BudgetBar({ spent, total }: { spent: number; total: number }) {
     const pct = total > 0 ? Math.min((spent / total) * 100, 100) : 0
@@ -77,7 +78,7 @@ export default function BudgetsScreen() {
                     onPress={() => setOffset((o) => o - 1)}
                     hitSlop={8}
                 >
-                    <ChevronLeft size={20} color="#6B7280" strokeWidth={2} />
+                    <ChevronLeft size={20} color={colors.muted} strokeWidth={2} />
                 </TouchableOpacity>
                 <Text className="text-brand-text font-semibold text-base">
                     {formatMonth(activeDate)}
@@ -87,7 +88,7 @@ export default function BudgetsScreen() {
                     onPress={() => { haptics.medium(); setShowAdd(true) }}
                     hitSlop={6}
                 >
-                    <Plus size={18} color="#5B7BF8" strokeWidth={2.2} />
+                    <Plus size={18} color={colors.accent} strokeWidth={2.2} />
                 </TouchableOpacity>
             </View>
             {/* Sub-actions */}
@@ -97,7 +98,7 @@ export default function BudgetsScreen() {
                     onPress={() => setShowAdd(true)}
                     activeOpacity={0.7}
                 >
-                    <Plus size={13} color="#5B7BF8" />
+                    <Plus size={13} color={colors.accent} />
                     <Text className="text-brand-accent text-xs font-medium">Add Budget</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -107,8 +108,8 @@ export default function BudgetsScreen() {
                     activeOpacity={0.7}
                 >
                     {isCopying
-                        ? <ActivityIndicator size="small" color="#6B7280" />
-                        : <Copy size={13} color="#6B7280" />
+                        ? <ActivityIndicator size="small" color={colors.muted} />
+                        : <Copy size={13} color={colors.muted} />
                     }
                     <Text className="text-brand-muted text-xs font-medium">Copy Previous</Text>
                 </TouchableOpacity>
@@ -118,7 +119,7 @@ export default function BudgetsScreen() {
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
                 refreshControl={
-                    <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#5B7BF8" />
+                    <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.accent} />
                 }
             >
                 <View className="px-6 gap-y-4 pb-8 pt-4">

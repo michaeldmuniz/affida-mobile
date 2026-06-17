@@ -1,4 +1,5 @@
 import { View, Image, ActivityIndicator } from 'react-native'
+import { colors } from '@/lib/colors'
 
 export function LoadingScreen() {
     return (
@@ -8,7 +9,7 @@ export function LoadingScreen() {
                 style={{ width: 160, height: 80 }}
                 resizeMode="contain"
             />
-            <ActivityIndicator size="large" color="#5B7BF8" />
+            <ActivityIndicator size="large" color={colors.accent} />
         </View>
     )
 }

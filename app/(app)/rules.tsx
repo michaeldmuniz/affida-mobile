@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router'
 import { apiClient } from '@/lib/api-client'
 import { RuleEditSheet } from '@/components/rules/EditSheet'
 import type { Rule } from '@/lib/types'
+import { colors } from '@/lib/colors'
 
 function ruleDescription(rule: Rule): string {
     const parts: string[] = []
@@ -67,11 +68,11 @@ export default function RulesScreen() {
             {/* Header */}
             <View className="flex-row items-center px-4 pt-4 pb-3">
                 <TouchableOpacity onPress={() => router.back()} hitSlop={8} className="w-8">
-                    <ChevronLeft size={22} color="#6B7280" />
+                    <ChevronLeft size={22} color={colors.muted} />
                 </TouchableOpacity>
                 <Text className="flex-1 text-center text-brand-text text-lg font-bold">Rules</Text>
                 <TouchableOpacity onPress={() => setEditing('new')} hitSlop={8} className="w-8 items-end">
-                    <Plus size={22} color="#5B7BF8" />
+                    <Plus size={22} color={colors.accent} />
                 </TouchableOpacity>
             </View>
 
@@ -79,12 +80,12 @@ export default function RulesScreen() {
                 <View className="px-4 pb-8">
                     {isLoading ? (
                         <View className="items-center py-16">
-                            <ActivityIndicator color="#5B7BF8" />
+                            <ActivityIndicator color={colors.accent} />
                         </View>
                     ) : !rules?.length ? (
                         <View className="items-center py-16 gap-y-3">
                             <View className="w-14 h-14 rounded-2xl bg-brand-surface border border-brand-border items-center justify-center">
-                                <Zap size={24} color="#6B7280" strokeWidth={1.5} />
+                                <Zap size={24} color={colors.muted} strokeWidth={1.5} />
                             </View>
                             <Text className="text-brand-text font-semibold">No rules yet</Text>
                             <Text className="text-brand-muted text-sm text-center leading-relaxed px-8">
@@ -125,7 +126,7 @@ export default function RulesScreen() {
                                         <Switch
                                             value={rule.enabled}
                                             onValueChange={enabled => toggleEnabled({ id: rule.id, enabled })}
-                                            trackColor={{ false: '#2A2A38', true: '#5B7BF8' }}
+                                            trackColor={{ false: colors.disabled, true: colors.accent }}
                                             thumbColor="#fff"
                                         />
                                     </View>

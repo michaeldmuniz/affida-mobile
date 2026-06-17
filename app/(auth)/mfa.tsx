@@ -14,6 +14,7 @@ import { ArrowLeft } from 'lucide-react-native'
 import { authApi } from '@/lib/api-client'
 import { useAuthStore } from '@/lib/auth-store'
 import type { AuthTokenResponse, MobileUser } from '@/lib/types'
+import { colors } from '@/lib/colors'
 
 const CODE_LENGTH = 6
 
@@ -130,7 +131,7 @@ export default function MfaScreen() {
                         onPress={() => router.back()}
                         hitSlop={8}
                     >
-                        <ArrowLeft size={20} color="#6B7280" />
+                        <ArrowLeft size={20} color={colors.muted} />
                         <Text className="text-brand-muted text-sm">Back</Text>
                     </TouchableOpacity>
 

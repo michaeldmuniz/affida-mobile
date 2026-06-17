@@ -7,6 +7,7 @@ import { apiClient } from '@/lib/api-client'
 import { Card } from '@/components/ui/Card'
 import { GoalCreateSheet } from '@/components/goals/CreateSheet'
 import type { Goal } from '@/lib/types'
+import { colors } from '@/lib/colors'
 
 function daysUntil(dateStr: string | null) {
     if (!dateStr) return null
@@ -67,7 +68,7 @@ export default function GoalsScreen() {
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
                 refreshControl={
-                    <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#5B7BF8" />
+                    <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.accent} />
                 }
             >
                 {/* Header */}
@@ -77,7 +78,7 @@ export default function GoalsScreen() {
                         className="w-9 h-9 rounded-full bg-brand-surface border border-brand-border items-center justify-center"
                         onPress={() => setShowCreate(true)}
                     >
-                        <Plus size={18} color="#5B7BF8" strokeWidth={2} />
+                        <Plus size={18} color={colors.accent} strokeWidth={2} />
                     </TouchableOpacity>
                 </View>
 
@@ -190,7 +191,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
     return (
         <View className="items-center py-16">
             <View className="w-14 h-14 rounded-2xl bg-brand-surface border border-brand-border items-center justify-center mb-4">
-                <Target size={24} color="#6B7280" strokeWidth={1.5} />
+                <Target size={24} color={colors.muted} strokeWidth={1.5} />
             </View>
             <Text className="text-brand-text font-semibold mb-1">No goals yet</Text>
             <Text className="text-brand-muted text-sm text-center leading-relaxed px-8 mb-5">

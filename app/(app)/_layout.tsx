@@ -9,11 +9,12 @@ import { useSettingsStore } from '@/lib/settings-store'
 import { LockScreen } from '@/components/LockScreen'
 import { LoadingScreen } from '@/components/LoadingScreen'
 import { haptics } from '@/lib/haptics'
+import { colors } from '@/lib/colors'
 
 function TabIcon({ Icon, focused }: { Icon: any; focused: boolean }) {
     return (
         <View className={`p-2 rounded-xl ${focused ? 'bg-brand-accent/15' : ''}`}>
-            <Icon size={22} color={focused ? '#5B7BF8' : '#6B7280'} strokeWidth={focused ? 2.5 : 1.8} />
+            <Icon size={22} color={focused ? colors.accent : colors.muted} strokeWidth={focused ? 2.5 : 1.8} />
         </View>
     )
 }
@@ -69,8 +70,8 @@ export default function AppLayout() {
             screenOptions={{
                 headerShown: false,
                 tabBarStyle: {
-                    backgroundColor: '#09090F',
-                    borderTopColor: '#1E1E2A',
+                    backgroundColor: colors.bg,
+                    borderTopColor: colors.border,
                     borderTopWidth: 1,
                     paddingTop: 8,
                     paddingBottom: 4,
@@ -82,8 +83,8 @@ export default function AppLayout() {
                     fontWeight: '500',
                     marginTop: 2,
                 },
-                tabBarActiveTintColor: '#5B7BF8',
-                tabBarInactiveTintColor: '#6B7280',
+                tabBarActiveTintColor: colors.accent,
+                tabBarInactiveTintColor: colors.muted,
             }}
             screenListeners={{
                 tabPress: () => haptics.light(),

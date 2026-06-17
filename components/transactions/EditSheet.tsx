@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { CategoryPicker } from './CategoryPicker'
 import type { Transaction, Category } from '@/lib/types'
+import { colors } from '@/lib/colors'
 
 interface EditState {
     merchantName: string
@@ -119,7 +120,7 @@ export function EditSheet({ transaction, onClose }: Props) {
                         {/* Header */}
                         <View className="flex-row items-center px-4 py-3 border-b border-brand-border">
                             <TouchableOpacity onPress={onClose} hitSlop={8} className="w-8">
-                                <X size={20} color="#6B7280" />
+                                <X size={20} color={colors.muted} />
                             </TouchableOpacity>
                             <Text className="flex-1 text-center text-brand-text text-base font-semibold" numberOfLines={1}>
                                 Edit Transaction
@@ -131,7 +132,7 @@ export function EditSheet({ transaction, onClose }: Props) {
                                 hitSlop={8}
                             >
                                 {isPending
-                                    ? <ActivityIndicator size="small" color="#5B7BF8" />
+                                    ? <ActivityIndicator size="small" color={colors.accent} />
                                     : <Text className="text-brand-accent font-semibold text-sm">Save</Text>
                                 }
                             </TouchableOpacity>
@@ -165,7 +166,7 @@ export function EditSheet({ transaction, onClose }: Props) {
                                         value={form.merchantName}
                                         onChangeText={v => setForm(f => f ? { ...f, merchantName: v } : f)}
                                         placeholder="Merchant name"
-                                        placeholderTextColor="#6B7280"
+                                        placeholderTextColor={colors.muted}
                                     />
                                 </View>
                             </View>
@@ -178,11 +179,11 @@ export function EditSheet({ transaction, onClose }: Props) {
                                     onPress={() => setShowCategoryPicker(true)}
                                     activeOpacity={0.7}
                                 >
-                                    <Tag size={15} color="#6B7280" style={{ marginRight: 8 }} />
+                                    <Tag size={15} color={colors.muted} style={{ marginRight: 8 }} />
                                     <Text className={`flex-1 text-base ${form.categoryName ? 'text-brand-text' : 'text-brand-muted'}`}>
                                         {form.categoryName ?? 'Uncategorized'}
                                     </Text>
-                                    <ChevronRight size={16} color="#6B7280" />
+                                    <ChevronRight size={16} color={colors.muted} />
                                 </TouchableOpacity>
                             </View>
 
@@ -194,7 +195,7 @@ export function EditSheet({ transaction, onClose }: Props) {
                                         onPress={() => setCreateRule(r => !r)}
                                         activeOpacity={0.7}
                                     >
-                                        <Zap size={16} color={createRule ? '#5B7BF8' : '#6B7280'} fill={createRule ? '#5B7BF8' : 'none'} />
+                                        <Zap size={16} color={createRule ? colors.accent : colors.muted} fill={createRule ? colors.accent : 'none'} />
                                         <Text className={`flex-1 text-sm ${createRule ? 'text-brand-accent' : 'text-brand-muted'}`} numberOfLines={1}>
                                             Always categorize "{form.merchantName.trim()}" as {form.categoryName}
                                         </Text>
@@ -211,7 +212,7 @@ export function EditSheet({ transaction, onClose }: Props) {
                                         value={form.notes}
                                         onChangeText={v => setForm(f => f ? { ...f, notes: v } : f)}
                                         placeholder="Add a note..."
-                                        placeholderTextColor="#6B7280"
+                                        placeholderTextColor={colors.muted}
                                         multiline
                                         textAlignVertical="top"
                                     />
@@ -221,16 +222,16 @@ export function EditSheet({ transaction, onClose }: Props) {
                             {/* Flag */}
                             <View className="px-4 pt-5 pb-2">
                                 <TouchableOpacity
-                                    className={`flex-row items-center gap-x-3 bg-brand-surface border rounded-xl px-4 h-12 ${form.flagged ? 'border-red-400/40' : 'border-brand-border'}`}
+                                    className={`flex-row items-center gap-x-3 bg-brand-surface border rounded-xl px-4 h-12 ${form.flagged ? 'border-brand-negative/40' : 'border-brand-border'}`}
                                     onPress={() => setForm(f => f ? { ...f, flagged: !f.flagged } : f)}
                                     activeOpacity={0.7}
                                 >
                                     <Flag
                                         size={16}
-                                        color={form.flagged ? '#F87171' : '#6B7280'}
-                                        fill={form.flagged ? '#F87171' : 'none'}
+                                        color={form.flagged ? colors.negative : colors.muted}
+                                        fill={form.flagged ? colors.negative : 'none'}
                                     />
-                                    <Text className={`text-base ${form.flagged ? 'text-red-400' : 'text-brand-muted'}`}>
+                                    <Text className={`text-base ${form.flagged ? 'text-brand-negative' : 'text-brand-muted'}`}>
                                         {form.flagged ? 'Flagged' : 'Flag transaction'}
                                     </Text>
                                 </TouchableOpacity>

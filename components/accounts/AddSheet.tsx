@@ -10,6 +10,7 @@ import { apiClient } from '@/lib/api-client'
 import { OptionPicker } from '@/components/OptionPicker'
 import { DEBT_TYPES } from '@/lib/account-types'
 import { PlaidLinkButton } from './PlaidLinkButton'
+import { colors } from '@/lib/colors'
 
 const ACCOUNT_TYPE_OPTIONS = [
     { label: 'Checking', value: 'CHECKING' },
@@ -89,7 +90,7 @@ export function AddAccountSheet({ visible, onClose }: Props) {
                     {/* Header */}
                     <View className="flex-row items-center px-4 py-3 border-b border-brand-border">
                         <TouchableOpacity onPress={mode === 'manual' ? () => setMode('choose') : handleClose} hitSlop={8} className="w-8">
-                            <X size={20} color="#6B7280" />
+                            <X size={20} color={colors.muted} />
                         </TouchableOpacity>
                         <Text className="flex-1 text-center text-brand-text text-base font-semibold">
                             {mode === 'manual' ? 'Add Manually' : 'Add Account'}
@@ -97,7 +98,7 @@ export function AddAccountSheet({ visible, onClose }: Props) {
                         {mode === 'manual' ? (
                             <TouchableOpacity onPress={() => save()} disabled={isPending} className="items-end" hitSlop={8}>
                                 {isPending
-                                    ? <ActivityIndicator size="small" color="#5B7BF8" />
+                                    ? <ActivityIndicator size="small" color={colors.accent} />
                                     : <Text className="text-brand-accent font-semibold text-sm">Save</Text>
                                 }
                             </TouchableOpacity>
@@ -129,7 +130,7 @@ export function AddAccountSheet({ visible, onClose }: Props) {
                                     onPress={() => setMode('manual')}
                                     activeOpacity={0.7}
                                 >
-                                    <PenLine size={16} color="#6B7280" />
+                                    <PenLine size={16} color={colors.muted} />
                                     <Text className="text-brand-muted font-medium text-base">Add manually</Text>
                                 </TouchableOpacity>
                             </View>
@@ -145,7 +146,7 @@ export function AddAccountSheet({ visible, onClose }: Props) {
                                         value={name}
                                         onChangeText={setName}
                                         placeholder="e.g. Chase Checking"
-                                        placeholderTextColor="#6B7280"
+                                        placeholderTextColor={colors.muted}
                                         autoCorrect={false}
                                     />
                                 </View>
@@ -159,11 +160,11 @@ export function AddAccountSheet({ visible, onClose }: Props) {
                                     onPress={() => setShowTypePicker(true)}
                                     activeOpacity={0.7}
                                 >
-                                    <Layers size={15} color="#6B7280" style={{ marginRight: 8 }} />
+                                    <Layers size={15} color={colors.muted} style={{ marginRight: 8 }} />
                                     <Text className={`flex-1 text-base ${type ? 'text-brand-text' : 'text-brand-muted'}`}>
                                         {type ? ACCOUNT_TYPE_LABELS[type] : 'Select type...'}
                                     </Text>
-                                    <ChevronRight size={16} color="#6B7280" />
+                                    <ChevronRight size={16} color={colors.muted} />
                                 </TouchableOpacity>
                             </View>
 
@@ -179,7 +180,7 @@ export function AddAccountSheet({ visible, onClose }: Props) {
                                         value={balance}
                                         onChangeText={setBalance}
                                         placeholder="0.00"
-                                        placeholderTextColor="#6B7280"
+                                        placeholderTextColor={colors.muted}
                                         keyboardType="decimal-pad"
                                         selectTextOnFocus
                                     />
@@ -200,7 +201,7 @@ export function AddAccountSheet({ visible, onClose }: Props) {
                                 <Switch
                                     value={excludeFromNetWorth}
                                     onValueChange={setExcludeFromNetWorth}
-                                    trackColor={{ false: '#2A2A38', true: '#5B7BF8' }}
+                                    trackColor={{ false: colors.disabled, true: colors.accent }}
                                     thumbColor="#fff"
                                 />
                             </View>

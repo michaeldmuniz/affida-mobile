@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { CategoryPicker } from './CategoryPicker'
 import type { Account, Category } from '@/lib/types'
+import { colors } from '@/lib/colors'
 
 export interface TransactionFilters {
     type: 'all' | 'income' | 'expense'
@@ -148,7 +149,7 @@ export function FilterSheet({ visible, filters, onApply, onClose }: Props) {
                         </TouchableOpacity>
                         <Text className="text-brand-text text-base font-bold">Filters</Text>
                         <TouchableOpacity onPress={onClose}>
-                            <X size={20} color="#6B7280" />
+                            <X size={20} color={colors.muted} />
                         </TouchableOpacity>
                     </View>
 
@@ -195,9 +196,9 @@ export function FilterSheet({ visible, filters, onApply, onClose }: Props) {
                                     </Text>
                                     {local.accountId
                                         ? <TouchableOpacity onPress={() => { set('accountId', null); set('accountName', null) }} hitSlop={8}>
-                                            <X size={15} color="#6B7280" />
+                                            <X size={15} color={colors.muted} />
                                         </TouchableOpacity>
-                                        : <ChevronRight size={16} color="#6B7280" />
+                                        : <ChevronRight size={16} color={colors.muted} />
                                     }
                                 </TouchableOpacity>
                             </Section>
@@ -214,9 +215,9 @@ export function FilterSheet({ visible, filters, onApply, onClose }: Props) {
                                     </Text>
                                     {local.categoryId
                                         ? <TouchableOpacity onPress={() => { set('categoryId', null); set('categoryName', null) }} hitSlop={8}>
-                                            <X size={15} color="#6B7280" />
+                                            <X size={15} color={colors.muted} />
                                         </TouchableOpacity>
-                                        : <ChevronRight size={16} color="#6B7280" />
+                                        : <ChevronRight size={16} color={colors.muted} />
                                     }
                                 </TouchableOpacity>
                             </Section>
@@ -228,7 +229,7 @@ export function FilterSheet({ visible, filters, onApply, onClose }: Props) {
                                     <Switch
                                         value={local.flagged}
                                         onValueChange={v => set('flagged', v)}
-                                        trackColor={{ true: '#5B7BF8' }}
+                                        trackColor={{ true: colors.accent }}
                                         thumbColor="#fff"
                                     />
                                 </View>
@@ -282,7 +283,7 @@ export function FilterSheet({ visible, filters, onApply, onClose }: Props) {
                         <View className="flex-row items-center justify-between px-4 py-3 border-b border-brand-border">
                             <Text className="flex-1 text-brand-text text-lg font-semibold">Account</Text>
                             <TouchableOpacity onPress={() => setShowAccountPicker(false)} hitSlop={8}>
-                                <X size={20} color="#6B7280" />
+                                <X size={20} color={colors.muted} />
                             </TouchableOpacity>
                         </View>
                         <ScrollView className="flex-1">
@@ -291,7 +292,7 @@ export function FilterSheet({ visible, filters, onApply, onClose }: Props) {
                                 onPress={() => { set('accountId', null); set('accountName', null); setShowAccountPicker(false) }}
                             >
                                 <Text className="flex-1 text-brand-muted text-sm">All accounts</Text>
-                                {!local.accountId && <Check size={16} color="#5B7BF8" />}
+                                {!local.accountId && <Check size={16} color={colors.accent} />}
                             </TouchableOpacity>
                             {accounts.map((acc, i) => (
                                 <TouchableOpacity
@@ -303,7 +304,7 @@ export function FilterSheet({ visible, filters, onApply, onClose }: Props) {
                                         <Text className="text-brand-text text-sm">{acc.name}</Text>
                                         <Text className="text-brand-muted text-xs mt-0.5">{acc.institutionName}</Text>
                                     </View>
-                                    {local.accountId === acc.id && <Check size={16} color="#5B7BF8" />}
+                                    {local.accountId === acc.id && <Check size={16} color={colors.accent} />}
                                 </TouchableOpacity>
                             ))}
                             <View className="h-8" />
@@ -344,7 +345,7 @@ function RowOption({ label, active, onPress }: { label: string; active: boolean;
             activeOpacity={0.7}
         >
             <Text className={`flex-1 text-sm ${active ? 'text-brand-accent font-medium' : 'text-brand-text'}`}>{label}</Text>
-            {active && <Check size={15} color="#5B7BF8" />}
+            {active && <Check size={15} color={colors.accent} />}
         </TouchableOpacity>
     )
 }

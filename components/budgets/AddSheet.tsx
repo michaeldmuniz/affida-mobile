@@ -5,6 +5,7 @@ import { X, Check } from 'lucide-react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import type { Budget, Category } from '@/lib/types'
+import { colors } from '@/lib/colors'
 
 interface Props {
     visible: boolean
@@ -63,12 +64,12 @@ export function AddBudgetSheet({ visible, month, existingBudgets, onClose }: Pro
                     {/* Header */}
                     <View className="flex-row items-center px-4 py-3 border-b border-brand-border">
                         <TouchableOpacity onPress={onClose} hitSlop={8} className="w-8">
-                            <X size={20} color="#6B7280" />
+                            <X size={20} color={colors.muted} />
                         </TouchableOpacity>
                         <Text className="flex-1 text-center text-brand-text text-base font-semibold">Add Budget</Text>
                         <TouchableOpacity onPress={() => save()} disabled={isPending || !selectedCategory} className="items-end" hitSlop={8}>
                             {isPending
-                                ? <ActivityIndicator size="small" color="#5B7BF8" />
+                                ? <ActivityIndicator size="small" color={colors.accent} />
                                 : <Text className={`font-semibold text-sm ${selectedCategory ? 'text-brand-accent' : 'text-brand-muted'}`}>Save</Text>
                             }
                         </TouchableOpacity>
@@ -88,7 +89,7 @@ export function AddBudgetSheet({ visible, month, existingBudgets, onClose }: Pro
                                         onChangeText={setAmount}
                                         keyboardType="decimal-pad"
                                         placeholder="0"
-                                        placeholderTextColor="#6B7280"
+                                        placeholderTextColor={colors.muted}
                                         selectTextOnFocus
                                         autoFocus
                                     />
@@ -118,7 +119,7 @@ export function AddBudgetSheet({ visible, month, existingBudgets, onClose }: Pro
                                                     <Text className={`flex-1 text-sm ${selected ? 'text-brand-accent font-medium' : 'text-brand-text'}`}>
                                                         {cat.name}
                                                     </Text>
-                                                    {selected && <Check size={16} color="#5B7BF8" />}
+                                                    {selected && <Check size={16} color={colors.accent} />}
                                                 </TouchableOpacity>
                                             )
                                         })}

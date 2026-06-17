@@ -13,6 +13,7 @@ import { FilterSheet, DEFAULT_FILTERS, activeFilterCount, filtersToParams } from
 import { haptics } from '@/lib/haptics'
 import type { Transaction, PaginatedResponse } from '@/lib/types'
 import type { TransactionFilters } from '@/components/transactions/FilterSheet'
+import { colors } from '@/lib/colors'
 
 const PAGE_SIZE = 50
 
@@ -115,8 +116,8 @@ export default function TransactionsScreen() {
                             disabled={isExporting}
                         >
                             {isExporting
-                                ? <ActivityIndicator size="small" color="#6B7280" />
-                                : <Download size={16} color="#6B7280" strokeWidth={1.8} />
+                                ? <ActivityIndicator size="small" color={colors.muted} />
+                                : <Download size={16} color={colors.muted} strokeWidth={1.8} />
                             }
                         </TouchableOpacity>
                         <TouchableOpacity
@@ -125,7 +126,7 @@ export default function TransactionsScreen() {
                         >
                             {filterCount > 0
                                 ? <Text className="text-white text-xs font-bold">{filterCount}</Text>
-                                : <SlidersHorizontal size={16} color="#6B7280" strokeWidth={1.8} />
+                                : <SlidersHorizontal size={16} color={colors.muted} strokeWidth={1.8} />
                             }
                         </TouchableOpacity>
                     </View>
@@ -165,11 +166,11 @@ export default function TransactionsScreen() {
 
                 {/* Search */}
                 <View className="flex-row items-center bg-brand-surface border border-brand-border rounded-xl px-3.5 h-11 gap-x-2">
-                    <Search size={16} color="#6B7280" strokeWidth={1.8} />
+                    <Search size={16} color={colors.muted} strokeWidth={1.8} />
                     <TextInput
                         className="flex-1 text-brand-text text-sm"
                         placeholder="Search transactions..."
-                        placeholderTextColor="#6B7280"
+                        placeholderTextColor={colors.muted}
                         value={search}
                         onChangeText={setSearch}
                         autoCorrect={false}
@@ -181,7 +182,7 @@ export default function TransactionsScreen() {
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
                 refreshControl={
-                    <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#5B7BF8" />
+                    <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.accent} />
                 }
             >
                 <View className="px-6 gap-y-5 pb-8">
@@ -210,7 +211,7 @@ export default function TransactionsScreen() {
                                                             {tx.merchantName ?? tx.description}
                                                         </Text>
                                                         {tx.flagged && (
-                                                            <Flag size={11} color="#F87171" fill="#F87171" />
+                                                            <Flag size={11} color={colors.negative} fill={colors.negative} />
                                                         )}
                                                     </View>
                                                     <Text className="text-brand-muted text-xs mt-0.5" numberOfLines={1}>
@@ -233,7 +234,7 @@ export default function TransactionsScreen() {
                                     activeOpacity={0.7}
                                 >
                                     {isFetchingNextPage
-                                        ? <ActivityIndicator color="#5B7BF8" size="small" />
+                                        ? <ActivityIndicator color={colors.accent} size="small" />
                                         : <Text className="text-brand-text text-sm font-medium">Load more</Text>
                                     }
                                 </TouchableOpacity>
@@ -306,7 +307,7 @@ function EmptyState({ hasFilters, onClear }: { hasFilters: boolean; onClear: () 
     return (
         <View className="items-center py-16">
             <View className="w-14 h-14 rounded-2xl bg-brand-surface border border-brand-border items-center justify-center mb-4">
-                <Search size={24} color="#6B7280" strokeWidth={1.5} />
+                <Search size={24} color={colors.muted} strokeWidth={1.5} />
             </View>
             <Text className="text-brand-text font-semibold mb-1">No transactions found</Text>
             {hasFilters ? (

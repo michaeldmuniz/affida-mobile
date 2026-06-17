@@ -12,6 +12,7 @@ import { getPaymentUrl } from '@/lib/payment-links'
 import { DEBT_TYPES } from '@/lib/account-types'
 import { formatAccountType } from '@/lib/format'
 import type { Account } from '@/lib/types'
+import { colors } from '@/lib/colors'
 
 const ACCOUNT_ICONS: Record<string, any> = {
     CHECKING: Landmark,
@@ -24,7 +25,7 @@ function AccountIcon({ type }: { type: string }) {
     const Icon = ACCOUNT_ICONS[type] ?? Wallet
     return (
         <View className="w-10 h-10 rounded-xl bg-brand-accent/10 items-center justify-center">
-            <Icon size={18} color="#5B7BF8" strokeWidth={1.8} />
+            <Icon size={18} color={colors.accent} strokeWidth={1.8} />
         </View>
     )
 }
@@ -56,7 +57,7 @@ export default function AccountsScreen() {
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
                 refreshControl={
-                    <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#5B7BF8" />
+                    <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.accent} />
                 }
             >
                 {/* Header */}
@@ -71,7 +72,7 @@ export default function AccountsScreen() {
                         className="w-9 h-9 rounded-full bg-brand-surface border border-brand-border items-center justify-center"
                         onPress={() => setShowAdd(true)}
                     >
-                        <Plus size={18} color="#5B7BF8" strokeWidth={2} />
+                        <Plus size={18} color={colors.accent} strokeWidth={2} />
                     </TouchableOpacity>
                 </View>
 
@@ -151,7 +152,7 @@ function AccountRow({ account, onPress }: { account: Account; onPress: () => voi
                         </TouchableOpacity>
                     )}
                 </View>
-                <ChevronRight size={14} color="#2A2A38" style={{ marginLeft: 4 }} />
+                <ChevronRight size={14} color={colors.disabled} style={{ marginLeft: 4 }} />
             </Card>
         </TouchableOpacity>
     )
@@ -174,7 +175,7 @@ function EmptyState() {
     return (
         <View className="items-center py-16">
             <View className="w-14 h-14 rounded-2xl bg-brand-surface border border-brand-border items-center justify-center mb-4">
-                <Landmark size={24} color="#6B7280" strokeWidth={1.5} />
+                <Landmark size={24} color={colors.muted} strokeWidth={1.5} />
             </View>
             <Text className="text-brand-text font-semibold mb-1">No accounts yet</Text>
             <Text className="text-brand-muted text-sm text-center leading-relaxed px-8">

@@ -1,6 +1,7 @@
 import { Modal, View, Text, TouchableOpacity, ScrollView } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { X, Check } from 'lucide-react-native'
+import { colors } from '@/lib/colors'
 
 interface Option {
     label: string
@@ -24,7 +25,7 @@ export function OptionPicker({ visible, title, options, selectedValue, onSelect,
                 <View className="flex-row items-center px-4 py-3 border-b border-brand-border">
                     <Text className="flex-1 text-brand-text text-lg font-semibold">{title}</Text>
                     <TouchableOpacity onPress={onClose} hitSlop={8}>
-                        <X size={20} color="#6B7280" />
+                        <X size={20} color={colors.muted} />
                     </TouchableOpacity>
                 </View>
                 <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
@@ -33,7 +34,7 @@ export function OptionPicker({ visible, title, options, selectedValue, onSelect,
                         onPress={() => { onSelect(null); onClose() }}
                     >
                         <Text className="flex-1 text-brand-muted text-sm">{noneLabel}</Text>
-                        {selectedValue === null && <Check size={16} color="#5B7BF8" />}
+                        {selectedValue === null && <Check size={16} color={colors.accent} />}
                     </TouchableOpacity>
                     {options.map((opt, i) => (
                         <TouchableOpacity
@@ -42,7 +43,7 @@ export function OptionPicker({ visible, title, options, selectedValue, onSelect,
                             onPress={() => { onSelect(opt.value); onClose() }}
                         >
                             <Text className="flex-1 text-brand-text text-sm">{opt.label}</Text>
-                            {selectedValue === opt.value && <Check size={16} color="#5B7BF8" />}
+                            {selectedValue === opt.value && <Check size={16} color={colors.accent} />}
                         </TouchableOpacity>
                     ))}
                     <View className="h-8" />

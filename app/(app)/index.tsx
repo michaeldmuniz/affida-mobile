@@ -8,6 +8,7 @@ import { useAuthStore } from '@/lib/auth-store'
 import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
 import type { DashboardStats } from '@/lib/types'
+import { colors } from '@/lib/colors'
 
 interface Alert {
     id: string
@@ -68,7 +69,7 @@ export default function DashboardScreen() {
                     <RefreshControl
                         refreshing={isRefetching}
                         onRefresh={refetch}
-                        tintColor="#5B7BF8"
+                        tintColor={colors.accent}
                     />
                 }
             >
@@ -106,7 +107,7 @@ export default function DashboardScreen() {
                             className={`flex-row items-start gap-x-3 rounded-2xl p-4 ${alert.severity === 'destructive' ? 'bg-brand-negative/10 border border-brand-negative/20' : 'bg-amber-500/10 border border-amber-500/20'}`}
                         >
                             {alert.severity === 'destructive'
-                                ? <AlertCircle size={16} color="#EF4444" style={{ marginTop: 1 }} />
+                                ? <AlertCircle size={16} color={colors.destructive} style={{ marginTop: 1 }} />
                                 : <AlertTriangle size={16} color="#F59E0B" style={{ marginTop: 1 }} />
                             }
                             <Text className={`flex-1 text-sm leading-relaxed ${alert.severity === 'destructive' ? 'text-brand-negative' : 'text-amber-400'}`}>
@@ -165,7 +166,7 @@ export default function DashboardScreen() {
                     <View className="flex-row gap-x-3">
                         <Card className="flex-1 p-4">
                             <View className="flex-row items-center gap-x-2 mb-2">
-                                <TrendingUp size={14} color="#34D399" strokeWidth={2} />
+                                <TrendingUp size={14} color={colors.positive} strokeWidth={2} />
                                 <Text className="text-brand-muted text-xs uppercase tracking-widest">Income</Text>
                             </View>
                             {data
@@ -175,7 +176,7 @@ export default function DashboardScreen() {
                         </Card>
                         <Card className="flex-1 p-4">
                             <View className="flex-row items-center gap-x-2 mb-2">
-                                <TrendingDown size={14} color="#F87171" strokeWidth={2} />
+                                <TrendingDown size={14} color={colors.negative} strokeWidth={2} />
                                 <Text className="text-brand-muted text-xs uppercase tracking-widest">Expenses</Text>
                             </View>
                             {data
@@ -189,10 +190,10 @@ export default function DashboardScreen() {
                     <TouchableOpacity onPress={() => router.push('/(app)/reports')} activeOpacity={0.7}>
                         <Card className="flex-row items-center gap-x-3 p-4">
                             <View className="w-10 h-10 rounded-xl bg-brand-accent/10 items-center justify-center">
-                                <BarChart3 size={18} color="#5B7BF8" strokeWidth={1.8} />
+                                <BarChart3 size={18} color={colors.accent} strokeWidth={1.8} />
                             </View>
                             <Text className="flex-1 text-brand-text font-medium text-sm">View Reports</Text>
-                            <ChevronRight size={16} color="#6B7280" />
+                            <ChevronRight size={16} color={colors.muted} />
                         </Card>
                     </TouchableOpacity>
 

@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
+import { colors } from '@/lib/colors'
 
 interface AccountDetail {
     id: string
@@ -111,15 +112,15 @@ export default function AccountDetailScreen() {
             {/* Header */}
             <View className="flex-row items-center px-4 pt-4 pb-3">
                 <TouchableOpacity onPress={() => router.back()} hitSlop={8} className="w-8">
-                    <ChevronLeft size={22} color="#6B7280" />
+                    <ChevronLeft size={22} color={colors.muted} />
                 </TouchableOpacity>
                 <Text className="flex-1 text-center text-brand-text text-lg font-bold" numberOfLines={1}>
                     {account?.name ?? ''}
                 </Text>
                 <TouchableOpacity onPress={handleDelete} hitSlop={8} className="w-8 items-end" disabled={isDeleting}>
                     {isDeleting
-                        ? <ActivityIndicator size="small" color="#EF4444" />
-                        : <Trash2 size={18} color="#EF4444" strokeWidth={1.8} />
+                        ? <ActivityIndicator size="small" color={colors.destructive} />
+                        : <Trash2 size={18} color={colors.destructive} strokeWidth={1.8} />
                     }
                 </TouchableOpacity>
             </View>
@@ -127,7 +128,7 @@ export default function AccountDetailScreen() {
             <ScrollView
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
-                refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#5B7BF8" />}
+                refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.accent} />}
             >
                 <View className="px-6 gap-y-4 pb-8 pt-2">
 
@@ -151,7 +152,7 @@ export default function AccountDetailScreen() {
                                         onPress={() => { setNewBalance(''); setShowUpdateBalance(true) }}
                                         activeOpacity={0.7}
                                     >
-                                        <Pencil size={13} color="#6B7280" />
+                                        <Pencil size={13} color={colors.muted} />
                                         <Text className="text-brand-muted text-sm font-medium">Update Balance</Text>
                                     </TouchableOpacity>
                                 )}
@@ -229,7 +230,7 @@ export default function AccountDetailScreen() {
                                 onChangeText={setNewBalance}
                                 keyboardType="decimal-pad"
                                 placeholder="0.00"
-                                placeholderTextColor="#6B7280"
+                                placeholderTextColor={colors.muted}
                                 autoFocus
                                 selectTextOnFocus
                             />

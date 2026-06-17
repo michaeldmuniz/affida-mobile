@@ -1,6 +1,7 @@
 import { Modal, View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Check, UploadCloud } from 'lucide-react-native'
+import { colors } from '@/lib/colors'
 
 type RangeOption = '30d' | '90d' | '180d' | '365d' | 'all'
 
@@ -63,7 +64,7 @@ export function SyncOptionsSheet({ visible, institutionName, selected, onSelect,
                                         </Text>
                                         <Text className="text-brand-muted text-xs mt-0.5">{opt.sub}</Text>
                                     </View>
-                                    {active && <Check size={16} color="#5B7BF8" />}
+                                    {active && <Check size={16} color={colors.accent} />}
                                 </TouchableOpacity>
                             )
                         })}

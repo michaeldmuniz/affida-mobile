@@ -1,5 +1,6 @@
 import { Redirect, Stack } from 'expo-router'
 import { useAuthStore } from '@/lib/auth-store'
+import { colors } from '@/lib/colors'
 
 export default function AuthLayout() {
     const { token } = useAuthStore()
@@ -12,7 +13,7 @@ export default function AuthLayout() {
         <Stack
             screenOptions={{
                 headerShown: false,
-                contentStyle: { backgroundColor: '#09090F' },
+                contentStyle: { backgroundColor: colors.bg },
                 animation: 'slide_from_right',
             }}
         />

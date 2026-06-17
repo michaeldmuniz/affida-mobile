@@ -8,6 +8,7 @@ import { apiClient } from '@/lib/api-client'
 import { useAuthStore } from '@/lib/auth-store'
 import { useSettingsStore } from '@/lib/settings-store'
 import { haptics } from '@/lib/haptics'
+import { colors } from '@/lib/colors'
 
 interface UserProfile {
     id: string
@@ -57,7 +58,7 @@ function SettingsRow({
             activeOpacity={onPress ? 0.7 : 1}
         >
             <View className={`w-8 h-8 rounded-lg items-center justify-center mr-3 ${destructive ? 'bg-brand-negative/15' : 'bg-brand-accent/15'}`}>
-                <Icon size={16} color={destructive ? '#EF4444' : '#5B7BF8'} strokeWidth={2} />
+                <Icon size={16} color={destructive ? colors.destructive : colors.accent} strokeWidth={2} />
             </View>
             <Text className={`flex-1 text-sm font-medium ${destructive ? 'text-brand-negative' : 'text-brand-text'}`}>
                 {label}
@@ -65,9 +66,9 @@ function SettingsRow({
             {value && (
                 <Text className="text-brand-muted text-sm mr-2">{value}</Text>
             )}
-            {ActionIcon && <ActionIcon size={14} color="#6B7280" />}
+            {ActionIcon && <ActionIcon size={14} color={colors.muted} />}
             {onPress && !destructive && !ActionIcon && (
-                <ChevronRight size={16} color="#6B7280" />
+                <ChevronRight size={16} color={colors.muted} />
             )}
         </TouchableOpacity>
     )
@@ -163,7 +164,7 @@ export default function SettingsScreen() {
                 <View className="items-center pb-6">
                     <View className="w-20 h-20 rounded-full bg-brand-accent/20 border border-brand-accent/30 items-center justify-center mb-3">
                         {isLoading ? (
-                            <ActivityIndicator color="#5B7BF8" />
+                            <ActivityIndicator color={colors.accent} />
                         ) : (
                             <Text className="text-brand-accent text-2xl font-bold">
                                 {getInitials(displayName, displayEmail)}
@@ -309,7 +310,7 @@ export default function SettingsScreen() {
                             <View className="flex-row items-center justify-between mb-4">
                                 <Text className="text-brand-text text-base font-bold">Edit Name</Text>
                                 <TouchableOpacity onPress={() => setShowEditName(false)} hitSlop={8}>
-                                    <X size={18} color="#6B7280" />
+                                    <X size={18} color={colors.muted} />
                                 </TouchableOpacity>
                             </View>
                             <View className="bg-brand-elevated border border-brand-border rounded-xl px-4 h-12 justify-center mb-4">
@@ -318,7 +319,7 @@ export default function SettingsScreen() {
                                     value={newName}
                                     onChangeText={setNewName}
                                     placeholder="Your name"
-                                    placeholderTextColor="#6B7280"
+                                    placeholderTextColor={colors.muted}
                                     autoFocus
                                     autoCorrect={false}
                                 />

@@ -1,5 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { ErrorBoundaryProps } from 'expo-router'
+import { colors } from '@/lib/colors'
 
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
     return (
@@ -16,26 +17,26 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#09090F',
+        backgroundColor: colors.bg,
         alignItems: 'center',
         justifyContent: 'center',
         padding: 24,
     },
     title: {
-        color: '#F0F0FA',
+        color: colors.text,
         fontSize: 18,
         fontWeight: '600',
         marginBottom: 8,
     },
     message: {
-        color: '#6B7280',
+        color: colors.muted,
         fontSize: 14,
         textAlign: 'center',
         marginBottom: 24,
         lineHeight: 20,
     },
     button: {
-        backgroundColor: '#5B7BF8',
+        backgroundColor: colors.accent,
         paddingHorizontal: 24,
         paddingVertical: 12,
         borderRadius: 12,
