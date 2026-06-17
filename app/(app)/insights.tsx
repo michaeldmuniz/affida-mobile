@@ -14,6 +14,7 @@ import { colorForIndex } from '@/components/charts/palette'
 import { formatMonth, toMonthKey, compactUsd } from '@/lib/format'
 import { haptics } from '@/lib/haptics'
 import type { Insights, SubscriptionsResponse } from '@/lib/types'
+import { colors } from '@/lib/colors'
 
 export default function InsightsScreen() {
     const router = useRouter()
@@ -72,7 +73,7 @@ export default function InsightsScreen() {
                     onPress={() => { haptics.light(); setOffset((o) => o - 1) }}
                     hitSlop={8}
                 >
-                    <ChevronLeft size={20} color="#6B7280" strokeWidth={2} />
+                    <ChevronLeft size={20} color={colors.muted} strokeWidth={2} />
                 </TouchableOpacity>
                 <Text className="text-brand-text font-semibold text-base">
                     {formatMonth(activeDate)}
@@ -83,7 +84,7 @@ export default function InsightsScreen() {
                     hitSlop={8}
                     disabled={offset >= 0}
                 >
-                    <ChevronRight size={20} color={offset >= 0 ? '#2A2A38' : '#6B7280'} strokeWidth={2} />
+                    <ChevronRight size={20} color={offset >= 0 ? colors.disabled : colors.muted} strokeWidth={2} />
                 </TouchableOpacity>
             </View>
 
@@ -91,7 +92,7 @@ export default function InsightsScreen() {
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
                 refreshControl={
-                    <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#5B7BF8" />
+                    <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.accent} />
                 }
             >
                 <View className="px-6 gap-y-4 pb-10 pt-2">
@@ -187,7 +188,7 @@ export default function InsightsScreen() {
                         >
                             <Card className="p-5 flex-row items-center">
                                 <View className="w-10 h-10 rounded-xl bg-brand-accent/15 items-center justify-center mr-4">
-                                    <Repeat size={18} color="#5B7BF8" strokeWidth={2} />
+                                    <Repeat size={18} color={colors.accent} strokeWidth={2} />
                                 </View>
                                 <View className="flex-1">
                                     <Text className="text-brand-text font-semibold text-sm">Recurring</Text>
@@ -199,7 +200,7 @@ export default function InsightsScreen() {
                                     <AmountText amount={-subs.monthlyTotal} size="sm" />
                                     <Text className="text-brand-muted text-[10px]">per month</Text>
                                 </View>
-                                <Chevron size={16} color="#6B7280" strokeWidth={2} />
+                                <Chevron size={16} color={colors.muted} strokeWidth={2} />
                             </Card>
                         </TouchableOpacity>
                     )}

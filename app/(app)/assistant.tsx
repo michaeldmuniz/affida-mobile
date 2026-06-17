@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router'
 import { streamChat } from '@/lib/chat-api'
 import { haptics } from '@/lib/haptics'
 import type { ChatMessage } from '@/lib/types'
+import { colors } from '@/lib/colors'
 
 const SUGGESTIONS = [
     'How much did I spend on dining this month?',
@@ -93,10 +94,10 @@ export default function AssistantScreen() {
             {/* Header */}
             <View className="flex-row items-center px-4 pt-4 pb-3 border-b border-brand-border">
                 <TouchableOpacity onPress={() => router.back()} hitSlop={8} className="w-8">
-                    <ChevronLeft size={22} color="#6B7280" />
+                    <ChevronLeft size={22} color={colors.muted} />
                 </TouchableOpacity>
                 <View className="flex-1 flex-row items-center justify-center gap-x-2">
-                    <Sparkles size={16} color="#5B7BF8" strokeWidth={2} />
+                    <Sparkles size={16} color={colors.accent} strokeWidth={2} />
                     <Text className="text-brand-text text-lg font-bold">Assistant</Text>
                 </View>
                 <View className="w-8" />
@@ -118,7 +119,7 @@ export default function AssistantScreen() {
                         <View className="pt-10">
                             <View className="items-center mb-8">
                                 <View className="w-16 h-16 rounded-3xl bg-brand-accent/15 items-center justify-center mb-4">
-                                    <Sparkles size={28} color="#5B7BF8" strokeWidth={1.8} />
+                                    <Sparkles size={28} color={colors.accent} strokeWidth={1.8} />
                                 </View>
                                 <Text className="text-brand-text text-xl font-bold mb-1.5">
                                     Ask me anything
@@ -159,7 +160,7 @@ export default function AssistantScreen() {
                         <TextInput
                             className="text-brand-text text-base py-2.5 max-h-28"
                             placeholder="Ask about your money…"
-                            placeholderTextColor="#6B7280"
+                            placeholderTextColor={colors.muted}
                             value={input}
                             onChangeText={setInput}
                             multiline
@@ -177,9 +178,9 @@ export default function AssistantScreen() {
                         }`}
                     >
                         {isStreaming ? (
-                            <ActivityIndicator size="small" color="#6B7280" />
+                            <ActivityIndicator size="small" color={colors.muted} />
                         ) : (
-                            <ArrowUp size={20} color={input.trim() ? '#FFFFFF' : '#6B7280'} strokeWidth={2.5} />
+                            <ArrowUp size={20} color={input.trim() ? '#FFFFFF' : colors.muted} strokeWidth={2.5} />
                         )}
                     </TouchableOpacity>
                 </View>
@@ -204,7 +205,7 @@ function MessageBubble({ message, streaming }: { message: ChatMessage; streaming
             <View className="bg-brand-surface border border-brand-border rounded-2xl rounded-bl-md px-4 py-3 max-w-[90%]">
                 {streaming ? (
                     <View className="flex-row items-center gap-x-2 py-1">
-                        <ActivityIndicator size="small" color="#5B7BF8" />
+                        <ActivityIndicator size="small" color={colors.accent} />
                         <Text className="text-brand-muted text-sm">Looking at your finances…</Text>
                     </View>
                 ) : (

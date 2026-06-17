@@ -11,6 +11,7 @@ import { CategoryPicker } from './CategoryPicker'
 import { OptionPicker } from '@/components/OptionPicker'
 import { haptics } from '@/lib/haptics'
 import type { Account, Category } from '@/lib/types'
+import { colors } from '@/lib/colors'
 
 interface Props {
     visible: boolean
@@ -101,7 +102,7 @@ export function TransactionAddSheet({ visible, onClose }: Props) {
                     {/* Header */}
                     <View className="flex-row items-center px-4 py-3 border-b border-brand-border">
                         <TouchableOpacity onPress={close} hitSlop={8} className="w-8">
-                            <X size={20} color="#6B7280" />
+                            <X size={20} color={colors.muted} />
                         </TouchableOpacity>
                         <Text className="flex-1 text-center text-brand-text text-base font-semibold">
                             New Transaction
@@ -113,7 +114,7 @@ export function TransactionAddSheet({ visible, onClose }: Props) {
                             hitSlop={8}
                         >
                             {isPending
-                                ? <ActivityIndicator size="small" color="#5B7BF8" />
+                                ? <ActivityIndicator size="small" color={colors.accent} />
                                 : <Text className="text-brand-accent font-semibold text-sm">Add</Text>
                             }
                         </TouchableOpacity>
@@ -158,7 +159,7 @@ export function TransactionAddSheet({ visible, onClose }: Props) {
                                         <TextInput
                                             className="flex-1 text-brand-text text-xl font-semibold"
                                             placeholder="0.00"
-                                            placeholderTextColor="#6B7280"
+                                            placeholderTextColor={colors.muted}
                                             value={amount}
                                             onChangeText={setAmount}
                                             keyboardType="decimal-pad"
@@ -175,7 +176,7 @@ export function TransactionAddSheet({ visible, onClose }: Props) {
                                     <TextInput
                                         className="bg-brand-surface border border-brand-border rounded-xl px-4 h-14 text-brand-text text-base"
                                         placeholder="e.g. Coffee with Sam"
-                                        placeholderTextColor="#6B7280"
+                                        placeholderTextColor={colors.muted}
                                         value={description}
                                         onChangeText={setDescription}
                                     />
@@ -194,7 +195,7 @@ export function TransactionAddSheet({ visible, onClose }: Props) {
                                         <Text className={account ? 'text-brand-text text-base' : 'text-brand-muted text-base'}>
                                             {account?.name ?? 'Choose account'}
                                         </Text>
-                                        <ChevronRight size={16} color="#6B7280" />
+                                        <ChevronRight size={16} color={colors.muted} />
                                     </TouchableOpacity>
                                 </View>
 
@@ -211,7 +212,7 @@ export function TransactionAddSheet({ visible, onClose }: Props) {
                                         <Text className={category ? 'text-brand-text text-base' : 'text-brand-muted text-base'}>
                                             {category?.name ?? 'Uncategorized'}
                                         </Text>
-                                        <ChevronRight size={16} color="#6B7280" />
+                                        <ChevronRight size={16} color={colors.muted} />
                                     </TouchableOpacity>
                                 </View>
 
@@ -223,7 +224,7 @@ export function TransactionAddSheet({ visible, onClose }: Props) {
                                     <TextInput
                                         className="bg-brand-surface border border-brand-border rounded-xl px-4 py-3.5 text-brand-text text-base min-h-[60px]"
                                         placeholder="Add a note…"
-                                        placeholderTextColor="#6B7280"
+                                        placeholderTextColor={colors.muted}
                                         value={notes}
                                         onChangeText={setNotes}
                                         multiline

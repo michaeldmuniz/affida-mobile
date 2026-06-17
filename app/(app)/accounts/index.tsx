@@ -64,7 +64,7 @@ export default function AccountsScreen() {
                 <View className="flex-row items-center justify-between px-6 pt-4 pb-2">
                     <View className="flex-row items-center gap-x-2">
                         <TouchableOpacity onPress={() => router.back()} hitSlop={8} className="-ml-2">
-                            <ChevronLeft size={24} color="#6B7280" />
+                            <ChevronLeft size={24} color={colors.muted} />
                         </TouchableOpacity>
                         <Text className="text-brand-text text-2xl font-bold">Accounts</Text>
                     </View>

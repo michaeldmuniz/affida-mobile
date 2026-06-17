@@ -155,7 +155,7 @@ export default function SettingsScreen() {
                 {/* Header */}
                 <View className="flex-row items-center px-6 pt-4 pb-6 gap-x-2">
                     <TouchableOpacity onPress={() => router.back()} hitSlop={8} className="-ml-2">
-                        <ChevronLeft size={24} color="#6B7280" />
+                        <ChevronLeft size={24} color={colors.muted} />
                     </TouchableOpacity>
                     <Text className="text-brand-text text-2xl font-bold">Settings</Text>
                 </View>
@@ -220,7 +220,7 @@ export default function SettingsScreen() {
                 <View className="mx-4 rounded-2xl overflow-hidden border border-brand-border">
                     <View className="flex-row items-center px-4 py-3.5 bg-brand-surface">
                         <View className="w-8 h-8 rounded-lg items-center justify-center mr-3 bg-brand-accent/15">
-                            <ScanFace size={16} color="#5B7BF8" strokeWidth={2} />
+                            <ScanFace size={16} color={colors.accent} strokeWidth={2} />
                         </View>
                         <View className="flex-1">
                             <Text className="text-sm font-medium text-brand-text">App Lock</Text>
@@ -234,7 +234,7 @@ export default function SettingsScreen() {
                             value={appLockEnabled}
                             onValueChange={handleToggleAppLock}
                             disabled={!biometricsAvailable && !appLockEnabled}
-                            trackColor={{ false: '#2A2A38', true: '#5B7BF8' }}
+                            trackColor={{ false: colors.disabled, true: colors.accent }}
                             thumbColor="#fff"
                         />
                     </View>

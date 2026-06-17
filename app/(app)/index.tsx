@@ -87,14 +87,14 @@ export default function DashboardScreen() {
                             className="w-10 h-10 rounded-full bg-brand-accent/15 items-center justify-center"
                             activeOpacity={0.7}
                         >
-                            <Sparkles size={18} color="#5B7BF8" strokeWidth={2} />
+                            <Sparkles size={18} color={colors.accent} strokeWidth={2} />
                         </TouchableOpacity>
                         <TouchableOpacity
                             onPress={() => { haptics.light(); router.push('/settings') }}
                             className="w-10 h-10 rounded-full bg-brand-surface border border-brand-border items-center justify-center"
                             activeOpacity={0.7}
                         >
-                            <Settings size={18} color="#6B7280" strokeWidth={2} />
+                            <Settings size={18} color={colors.muted} strokeWidth={2} />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -126,7 +126,7 @@ export default function DashboardScreen() {
                                 <Text className="text-brand-muted text-xs font-medium uppercase tracking-widest">
                                     Net Worth
                                 </Text>
-                                <ChevronRight size={16} color="#6B7280" strokeWidth={2} />
+                                <ChevronRight size={16} color={colors.muted} strokeWidth={2} />
                             </View>
                             {data ? (
                                 <>

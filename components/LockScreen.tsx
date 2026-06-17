@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Image } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import * as LocalAuthentication from 'expo-local-authentication'
 import { ScanFace } from 'lucide-react-native'
+import { colors } from '@/lib/colors'
 
 interface Props {
     onUnlock: () => void
@@ -36,7 +37,7 @@ export function LockScreen({ onUnlock }: Props) {
         <SafeAreaView className="flex-1 bg-brand-bg items-center justify-center px-8">
             <View className="items-center">
                 <View className="w-16 h-16 rounded-3xl bg-brand-accent/15 items-center justify-center mb-5">
-                    <ScanFace size={30} color="#5B7BF8" strokeWidth={1.8} />
+                    <ScanFace size={30} color={colors.accent} strokeWidth={1.8} />
                 </View>
                 <Text className="text-brand-text text-xl font-bold mb-1.5">Affida is locked</Text>
                 <Text className="text-brand-muted text-sm text-center leading-relaxed mb-8">

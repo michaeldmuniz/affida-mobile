@@ -134,7 +134,7 @@ function GoalCard({ goal, onLongPress }: { goal: Goal; onLongPress: () => void }
                         <Text className="text-brand-text font-semibold text-base" numberOfLines={1}>
                             {goal.name}
                         </Text>
-                        {isLinked && <Link2 size={13} color="#6B7280" strokeWidth={2} />}
+                        {isLinked && <Link2 size={13} color={colors.muted} strokeWidth={2} />}
                     </View>
                     {deadline && (
                         <View className={`px-2 py-0.5 rounded-full ${

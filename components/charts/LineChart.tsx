@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { View, Text } from 'react-native'
 import Svg, { Polyline, Polygon, Defs, LinearGradient, Stop, Circle } from 'react-native-svg'
+import { colors } from '@/lib/colors'
 
 interface LineChartProps {
     points: number[]
@@ -15,7 +16,7 @@ export function LineChart({
     points,
     labels,
     height = 140,
-    color = '#5B7BF8',
+    color = colors.accent,
     sparkline = false,
 }: LineChartProps) {
     const [width, setWidth] = useState(0)

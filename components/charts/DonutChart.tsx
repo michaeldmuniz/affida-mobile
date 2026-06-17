@@ -1,5 +1,6 @@
 import { View } from 'react-native'
 import Svg, { Path, Circle } from 'react-native-svg'
+import { colors } from '@/lib/colors'
 
 export interface DonutSlice {
     label: string
@@ -61,7 +62,7 @@ export function DonutChart({ data, size = 180, strokeWidth = 22, children }: Don
         <View style={{ width: size, height: size }}>
             <Svg width={size} height={size}>
                 {total === 0 && (
-                    <Circle cx={cx} cy={cy} r={r} stroke="#1A1A24" strokeWidth={strokeWidth} fill="none" />
+                    <Circle cx={cx} cy={cy} r={r} stroke={colors.elevated} strokeWidth={strokeWidth} fill="none" />
                 )}
                 {fullCircleColor && (
                     <Circle cx={cx} cy={cy} r={r} stroke={fullCircleColor} strokeWidth={strokeWidth} fill="none" />

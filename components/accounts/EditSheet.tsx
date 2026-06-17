@@ -9,6 +9,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { haptics } from '@/lib/haptics'
 import type { Account } from '@/lib/types'
+import { colors } from '@/lib/colors'
 
 interface Props {
     visible: boolean
@@ -96,7 +97,7 @@ export function AccountEditSheet({ visible, account, onClose, onDeleted }: Props
                     {/* Header */}
                     <View className="flex-row items-center px-4 py-3 border-b border-brand-border">
                         <TouchableOpacity onPress={onClose} hitSlop={8} className="w-8">
-                            <X size={20} color="#6B7280" />
+                            <X size={20} color={colors.muted} />
                         </TouchableOpacity>
                         <Text className="flex-1 text-center text-brand-text text-base font-semibold">
                             Edit Account
@@ -108,7 +109,7 @@ export function AccountEditSheet({ visible, account, onClose, onDeleted }: Props
                             hitSlop={8}
                         >
                             {isPending
-                                ? <ActivityIndicator size="small" color="#5B7BF8" />
+                                ? <ActivityIndicator size="small" color={colors.accent} />
                                 : <Text className="text-brand-accent font-semibold text-sm">Save</Text>
                             }
                         </TouchableOpacity>
@@ -162,7 +163,7 @@ export function AccountEditSheet({ visible, account, onClose, onDeleted }: Props
                                 <Switch
                                     value={excludeFromNetWorth}
                                     onValueChange={(v) => { haptics.light(); setExcludeFromNetWorth(v) }}
-                                    trackColor={{ false: '#2A2A38', true: '#5B7BF8' }}
+                                    trackColor={{ false: colors.disabled, true: colors.accent }}
                                     thumbColor="#fff"
                                 />
                             </View>

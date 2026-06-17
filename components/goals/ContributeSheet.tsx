@@ -9,6 +9,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { haptics } from '@/lib/haptics'
 import type { Goal } from '@/lib/types'
+import { colors } from '@/lib/colors'
 
 interface Props {
     goal: Goal | null
@@ -65,7 +66,7 @@ export function GoalContributeSheet({ goal, onClose }: Props) {
                     {/* Header */}
                     <View className="flex-row items-center px-4 py-3 border-b border-brand-border">
                         <TouchableOpacity onPress={onClose} hitSlop={8} className="w-8">
-                            <X size={20} color="#6B7280" />
+                            <X size={20} color={colors.muted} />
                         </TouchableOpacity>
                         <Text className="flex-1 text-center text-brand-text text-base font-semibold" numberOfLines={1}>
                             Add to {goal.name}
@@ -77,7 +78,7 @@ export function GoalContributeSheet({ goal, onClose }: Props) {
                             hitSlop={8}
                         >
                             {isPending
-                                ? <ActivityIndicator size="small" color="#5B7BF8" />
+                                ? <ActivityIndicator size="small" color={colors.accent} />
                                 : <Text className="text-brand-accent font-semibold text-sm">Add</Text>
                             }
                         </TouchableOpacity>
@@ -100,7 +101,7 @@ export function GoalContributeSheet({ goal, onClose }: Props) {
                                 <TextInput
                                     className="flex-1 text-brand-text text-xl font-semibold"
                                     placeholder="0"
-                                    placeholderTextColor="#6B7280"
+                                    placeholderTextColor={colors.muted}
                                     value={amount}
                                     onChangeText={setAmount}
                                     keyboardType="decimal-pad"
@@ -129,7 +130,7 @@ export function GoalContributeSheet({ goal, onClose }: Props) {
                             <TextInput
                                 className="bg-brand-surface border border-brand-border rounded-xl px-4 h-14 text-brand-text text-base"
                                 placeholder="e.g. Tax refund"
-                                placeholderTextColor="#6B7280"
+                                placeholderTextColor={colors.muted}
                                 value={note}
                                 onChangeText={setNote}
                             />

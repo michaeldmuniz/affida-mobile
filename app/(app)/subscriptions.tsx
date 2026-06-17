@@ -9,6 +9,7 @@ import { AmountText } from '@/components/ui/AmountText'
 import { formatShortDate } from '@/lib/format'
 import { haptics } from '@/lib/haptics'
 import type { SubscriptionsResponse, SubscriptionItem } from '@/lib/types'
+import { colors } from '@/lib/colors'
 
 function daysUntil(dateStr: string) {
     const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
@@ -84,7 +85,7 @@ export default function SubscriptionsScreen() {
             {/* Header */}
             <View className="flex-row items-center px-4 pt-4 pb-3">
                 <TouchableOpacity onPress={() => router.back()} hitSlop={8} className="w-8">
-                    <ChevronLeft size={22} color="#6B7280" />
+                    <ChevronLeft size={22} color={colors.muted} />
                 </TouchableOpacity>
                 <Text className="flex-1 text-center text-brand-text text-lg font-bold">Recurring</Text>
                 <View className="w-8" />
@@ -94,7 +95,7 @@ export default function SubscriptionsScreen() {
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
                 refreshControl={
-                    <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#5B7BF8" />
+                    <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.accent} />
                 }
             >
                 <View className="px-6 gap-y-4 pb-10 pt-2">
@@ -118,7 +119,7 @@ export default function SubscriptionsScreen() {
                     {/* Upcoming list */}
                     {isLoading ? (
                         <View className="items-center py-16">
-                            <ActivityIndicator color="#5B7BF8" />
+                            <ActivityIndicator color={colors.accent} />
                         </View>
                     ) : sorted.length > 0 ? (
                         <View>
@@ -132,7 +133,7 @@ export default function SubscriptionsScreen() {
                                         className={`flex-row items-center px-4 py-4 ${i > 0 ? 'border-t border-brand-border' : ''}`}
                                     >
                                         <View className="w-9 h-9 rounded-xl bg-brand-accent/15 items-center justify-center mr-3.5">
-                                            <CalendarClock size={16} color="#5B7BF8" strokeWidth={2} />
+                                            <CalendarClock size={16} color={colors.accent} strokeWidth={2} />
                                         </View>
                                         <View className="flex-1 pr-3">
                                             <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>
@@ -164,7 +165,7 @@ function EmptyState() {
     return (
         <View className="items-center py-16">
             <View className="w-14 h-14 rounded-2xl bg-brand-surface border border-brand-border items-center justify-center mb-4">
-                <Repeat size={24} color="#6B7280" strokeWidth={1.5} />
+                <Repeat size={24} color={colors.muted} strokeWidth={1.5} />
             </View>
             <Text className="text-brand-text font-semibold mb-1">No recurring charges found</Text>
             <Text className="text-brand-muted text-sm text-center leading-relaxed px-8">
