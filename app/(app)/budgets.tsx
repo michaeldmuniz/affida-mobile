@@ -1,6 +1,6 @@
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity, Alert, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { ChevronLeft, ChevronRight, Plus, Copy } from 'lucide-react-native'
+import { ChevronLeft, ChevronRight, Plus, Copy, Users, Calculator, ArrowLeft } from 'lucide-react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { apiClient } from '@/lib/api-client'
@@ -68,6 +68,7 @@ export default function BudgetsScreen() {
 
     const totalBudgeted = budgets?.reduce((s, b) => s + b.amount, 0) ?? 0
     const totalSpent = budgets?.reduce((s, b) => s + b.spent, 0) ?? 0
+    const isHousehold = budgets?.some(b => b.isHousehold) ?? false
 
     return (
         <SafeAreaView className="flex-1 bg-brand-bg" edges={['top']}>
@@ -139,6 +140,14 @@ export default function BudgetsScreen() {
                         </View>
                     </Card>
 
+                    {/* Household badge */}
+                    {isHousehold && (
+                        <View className="flex-row items-center gap-x-1.5 bg-violet-500/10 border border-violet-500/20 rounded-lg px-3 py-2 self-start">
+                            <Users size={13} color="#7c3aed" strokeWidth={2} />
+                            <Text className="text-violet-600 text-xs font-medium">Combined household spending</Text>
+                        </View>
+                    )}
+
                     {/* Budget rows */}
                     {isLoading ? (
                         <View className="gap-y-2">
@@ -147,7 +156,11 @@ export default function BudgetsScreen() {
                     ) : budgets?.length ? (
                         <View className="gap-y-2">
                             {budgets.map((b) => (
-                                <BudgetRow key={b.id} budget={b} onEdit={() => { haptics.light(); setEditing(b) }} />
+                                <BudgetRow
+                                    key={b.id}
+                                    budget={b}
+                                    onEdit={b.partnerOnly ? undefined : () => { haptics.light(); setEditing(b) }}
+                                />
                             ))}
                         </View>
                     ) : (
@@ -162,17 +175,29 @@ export default function BudgetsScreen() {
     )
 }
 
-function BudgetRow({ budget, onEdit }: { budget: Budget; onEdit: () => void }) {
+function BudgetRow({ budget, onEdit }: { budget: Budget; onEdit?: () => void }) {
     const over = budget.spent > budget.amount
     const remaining = budget.amount - budget.spent
 
-    return (
-        <TouchableOpacity activeOpacity={0.7} onPress={onEdit}>
-        <Card className="p-4">
+    const row = (
+        <Card className={`p-4 ${budget.partnerOnly ? 'opacity-80' : ''}`}>
             <View className="flex-row items-center justify-between">
-                <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>
-                    {budget.categoryName}
-                </Text>
+                <View className="flex-row items-center gap-x-1.5 flex-1 mr-2">
+                    <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>
+                        {budget.categoryName}
+                    </Text>
+                    {budget.partnerOnly && (
+                        <View className="bg-brand-elevated px-1.5 py-0.5 rounded">
+                            <Text className="text-brand-muted text-[10px] font-medium">partner</Text>
+                        </View>
+                    )}
+                    {budget.method === 'AVERAGE_3_MONTHS' && (
+                        <Calculator size={11} color={colors.muted} strokeWidth={2.5} />
+                    )}
+                    {budget.method === 'PREVIOUS_MONTH' && (
+                        <ArrowLeft size={11} color={colors.muted} strokeWidth={2.5} />
+                    )}
+                </View>
                 <Text className={`text-sm font-semibold font-mono ${over ? 'text-brand-negative' : 'text-brand-muted'}`}>
                     ${Math.abs(remaining).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     <Text className="text-brand-muted font-normal"> {over ? 'over' : 'left'}</Text>
@@ -188,6 +213,13 @@ function BudgetRow({ budget, onEdit }: { budget: Budget; onEdit: () => void }) {
                 </Text>
             </View>
         </Card>
+    )
+
+    if (!onEdit) return row
+
+    return (
+        <TouchableOpacity activeOpacity={0.7} onPress={onEdit}>
+            {row}
         </TouchableOpacity>
     )
 }

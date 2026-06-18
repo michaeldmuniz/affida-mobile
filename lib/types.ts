@@ -81,6 +81,9 @@ export interface Budget {
     remaining: number
     rollover: boolean
     rolloverAmount: number
+    method: string
+    isHousehold: boolean
+    partnerOnly: boolean
     month: string
 }
 
