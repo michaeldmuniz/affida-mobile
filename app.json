@@ -18,7 +18,9 @@
       "buildNumber": "3",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSFaceIDUsageDescription": "Affida uses Face ID to unlock the app and keep your financial data private."
+        "NSFaceIDUsageDescription": "Affida uses Face ID to unlock the app and keep your financial data private.",
+        "NSCameraUsageDescription": "Affida uses the camera to scan receipts and match them to your transactions.",
+        "NSPhotoLibraryUsageDescription": "Affida accesses your photo library so you can choose a receipt image to scan."
       }
     },
     "android": {
@@ -31,6 +33,13 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Affida accesses your photo library so you can choose a receipt image to scan.",
+          "cameraPermission": "Affida uses the camera to scan receipts and match them to your transactions."
+        }
+      ],
       "expo-secure-store",
       [
         "expo-local-authentication",
@@ -57,11 +66,19 @@
               "NSPrivacyAccessedAPITypes": [
                 {
                   "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
-                  "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+                  "NSPrivacyAccessedAPITypeReasons": [
+                    "CA92.1"
+                  ]
                 }
               ]
             }
           }
+        }
+      ],
+      [
+        "react-native-document-scanner-plugin",
+        {
+          "cameraPermission": "Affida uses the camera to scan receipts and match them to your transactions."
         }
       ]
     ],
