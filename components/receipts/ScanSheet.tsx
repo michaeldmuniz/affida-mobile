@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
     Modal, View, Text, ScrollView, TouchableOpacity, Image,
-    ActivityIndicator, Alert,
+    ActivityIndicator, Alert, useWindowDimensions,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { X, Camera, Image as ImageIcon, ReceiptText } from 'lucide-react-native'
@@ -12,9 +12,10 @@ import { apiClient } from '@/lib/api-client'
 import { haptics } from '@/lib/haptics'
 import { colors } from '@/lib/colors'
 import { ReceiptDetailSheet } from '@/components/receipts/ReceiptDetailSheet'
+import { CropStep, type CropQuad } from '@/components/receipts/CropStep'
 import type { Receipt } from '@/lib/types'
 
-type ScanStep = 'pick' | 'preview' | 'uploading'
+type ScanStep = 'pick' | 'crop' | 'preview' | 'uploading'
 
 interface Props {
     visible: boolean
@@ -26,11 +27,15 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
     const queryClient = useQueryClient()
     const [step, setStep] = useState<ScanStep>('pick')
     const [imageUri, setImageUri] = useState<string | null>(null)
+    const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null)
+    const [cropQuad, setCropQuad] = useState<CropQuad | null>(null)
     const [result, setResult] = useState<Receipt | null>(null)
 
     const reset = () => {
         setStep('pick')
         setImageUri(null)
+        setNaturalSize(null)
+        setCropQuad(null)
         setResult(null)
     }
 
@@ -69,8 +74,10 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
             allowsEditing: false,
         })
         if (!res.canceled && res.assets[0]) {
-            setImageUri(res.assets[0].uri)
-            setStep('preview')
+            const asset = res.assets[0]
+            setImageUri(asset.uri)
+            setNaturalSize({ width: asset.width, height: asset.height })
+            setStep('crop')
         }
     }
 
@@ -83,6 +90,9 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
                 type: 'image/jpeg',
                 name: 'receipt.jpg',
             } as any)
+            if (cropQuad) {
+                formData.append('cropQuad', JSON.stringify(cropQuad))
+            }
             const res = await apiClient.post('/receipts', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
                 timeout: 30000,
@@ -122,7 +132,12 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
                         <View className="w-8" />
                     </View>
 
-                    <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+                    <ScrollView
+                        className="flex-1"
+                        contentContainerStyle={{ flexGrow: 1 }}
+                        showsVerticalScrollIndicator={false}
+                        scrollEnabled={step !== 'crop'}
+                    >
                         {step === 'pick' && (
                             <View className="flex-1 items-center justify-center px-8 gap-y-4 py-12">
                                 <View className="w-16 h-16 rounded-2xl bg-brand-surface border border-brand-border items-center justify-center mb-2">
@@ -153,12 +168,31 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
                             </View>
                         )}
 
+                        {step === 'crop' && imageUri && naturalSize && (
+                            <CropStep
+                                imageUri={imageUri}
+                                naturalWidth={naturalSize.width}
+                                naturalHeight={naturalSize.height}
+                                onConfirm={(quad) => { setCropQuad(quad); setStep('preview') }}
+                                onCancel={reset}
+                            />
+                        )}
+
                         {step === 'preview' && imageUri && (
                             <View className="flex-1 px-6 py-6 gap-y-4">
-                                <Image
-                                    source={{ uri: imageUri }}
-                                    style={{ width: '100%', height: 480, borderRadius: 16, resizeMode: 'contain', backgroundColor: '#111' }}
-                                />
+                                {cropQuad && naturalSize ? (
+                                    <>
+                                        <CroppedPreview imageUri={imageUri} naturalSize={naturalSize} cropQuad={cropQuad} />
+                                        <Text className="text-brand-muted text-xs text-center -mt-2">
+                                            Perspective will be straightened automatically
+                                        </Text>
+                                    </>
+                                ) : (
+                                    <Image
+                                        source={{ uri: imageUri }}
+                                        style={{ width: '100%', height: 480, borderRadius: 16, resizeMode: 'contain', backgroundColor: '#111' }}
+                                    />
+                                )}
                                 <TouchableOpacity
                                     className="h-14 rounded-2xl bg-brand-accent items-center justify-center"
                                     onPress={() => upload()}
@@ -192,5 +226,45 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
                 onClose={() => { reset(); onClose() }}
             />
         </>
+    )
+}
+
+function CroppedPreview({
+    imageUri,
+    naturalSize,
+    cropQuad,
+}: {
+    imageUri: string
+    naturalSize: { width: number; height: number }
+    cropQuad: CropQuad
+}) {
+    const { width: windowWidth } = useWindowDimensions()
+
+    // The exact perspective warp happens server-side; this shows an approximate
+    // bounding-box preview of the selection (still skewed) so the user isn't
+    // left staring at the full, unmodified photo before upload.
+    const points = [cropQuad.tl, cropQuad.tr, cropQuad.br, cropQuad.bl]
+    const cropX = Math.min(...points.map((p) => p.x))
+    const cropY = Math.min(...points.map((p) => p.y))
+    const cropWidth = Math.max(...points.map((p) => p.x)) - cropX
+    const cropHeight = Math.max(...points.map((p) => p.y)) - cropY
+
+    const containerWidth = windowWidth - 48 // matches the sheet's px-6 horizontal padding
+    const scale = containerWidth / cropWidth
+    const containerHeight = cropHeight * scale
+
+    return (
+        <View style={{ width: '100%', height: containerHeight, borderRadius: 16, overflow: 'hidden', backgroundColor: '#111' }}>
+            <Image
+                source={{ uri: imageUri }}
+                style={{
+                    position: 'absolute',
+                    left: -cropX * scale,
+                    top: -cropY * scale,
+                    width: naturalSize.width * scale,
+                    height: naturalSize.height * scale,
+                }}
+            />
+        </View>
     )
 }
