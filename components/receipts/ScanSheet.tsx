@@ -72,6 +72,10 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
             mediaTypes: ['images'],
             quality: 1.0,
             allowsEditing: false,
+            // Forces JPEG instead of the original HEIC — some HEIC files (e.g. ones
+            // with many embedded auxiliary images) fail to decode server-side, and
+            // OpenAI's vision API doesn't accept HEIC at all.
+            preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
         })
         if (!res.canceled && res.assets[0]) {
             const asset = res.assets[0]
