@@ -76,8 +76,19 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
         if (!res.canceled && res.assets[0]) {
             const asset = res.assets[0]
             setImageUri(asset.uri)
-            setNaturalSize({ width: asset.width, height: asset.height })
-            setStep('crop')
+            // expo-image-picker's reported width/height can be 0 (e.g. for
+            // iCloud-optimized photos not yet fully downloaded) — read the
+            // real dimensions from the file itself rather than trusting it.
+            Image.getSize(
+                asset.uri,
+                (width, height) => {
+                    setNaturalSize({ width, height })
+                    setStep('crop')
+                },
+                () => {
+                    Alert.alert('Error', 'Could not read that image. Please try a different photo.')
+                }
+            )
         }
     }
 
