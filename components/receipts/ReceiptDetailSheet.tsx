@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Modal, View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native'
+import { Modal, View, Text, TouchableOpacity, ScrollView, Alert, Image } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { X, CheckCircle, Clock, AlertCircle, ChevronRight } from 'lucide-react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -77,6 +77,14 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
 
                     <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
                         <View className="px-6 py-5 gap-y-4">
+                            {receipt.imageUrl && (
+                                <Image
+                                    source={{ uri: receipt.imageUrl }}
+                                    style={{ width: '100%', height: 360, borderRadius: 16, backgroundColor: '#111' }}
+                                    resizeMode="contain"
+                                />
+                            )}
+
                             {/* Status banner */}
                             {receipt.status === 'matched' ? (
                                 <View className="flex-row items-center gap-x-3 bg-brand-positive/10 border border-brand-positive/25 rounded-2xl px-4 py-3.5">

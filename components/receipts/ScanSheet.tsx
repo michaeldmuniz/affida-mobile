@@ -120,7 +120,7 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
 
     return (
         <>
-            <Modal visible={visible && !result} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
+            <Modal visible={visible && !result} animationType="slide" presentationStyle="fullScreen" onRequestClose={handleClose}>
                 <SafeAreaView className="flex-1 bg-brand-bg" edges={['top', 'bottom']}>
                     <View className="flex-row items-center px-4 py-3 border-b border-brand-border">
                         <TouchableOpacity onPress={handleClose} hitSlop={8} className="w-8">
