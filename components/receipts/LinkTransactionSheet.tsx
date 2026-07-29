@@ -152,7 +152,7 @@ export function LinkTransactionSheet({ receipt, onClose }: Props) {
                                             {tx.merchantName ?? tx.description}
                                         </Text>
                                         <Text className="text-brand-muted text-xs mt-0.5">
-                                            {new Date(tx.date + 'T00:00:00').toLocaleDateString('en-US', {
+                                            {new Date(tx.date.slice(0, 10) + 'T00:00:00').toLocaleDateString('en-US', {
                                                 month: 'short', day: 'numeric',
                                             })} · {tx.categoryName ?? 'Uncategorized'} · {tx.accountName}
                                         </Text>
