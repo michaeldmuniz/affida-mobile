@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
     Modal, View, Text, ScrollView, TouchableOpacity, Image,
-    ActivityIndicator, Alert, useWindowDimensions,
+    ActivityIndicator, Alert,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { X, Camera, Image as ImageIcon, ReceiptText } from 'lucide-react-native'
@@ -15,7 +15,7 @@ import { ReceiptDetailSheet } from '@/components/receipts/ReceiptDetailSheet'
 import { CropStep, type CropQuad } from '@/components/receipts/CropStep'
 import type { Receipt } from '@/lib/types'
 
-type ScanStep = 'pick' | 'crop' | 'preview' | 'uploading'
+type ScanStep = 'pick' | 'crop' | 'uploading'
 
 interface Props {
     visible: boolean
@@ -53,8 +53,9 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
                 croppedImageQuality: 100,
             })
             if (status === 'success' && scannedImages && scannedImages.length > 0) {
-                setImageUri(scannedImages[0])
-                setStep('preview')
+                const uri = scannedImages[0]
+                setImageUri(uri)
+                upload({ uri, cropQuad: null })
             }
         } catch {
             Alert.alert('Camera Error', 'Could not open the document scanner. Please try again.')
@@ -97,11 +98,10 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
     }
 
     const { mutate: upload } = useMutation({
-        mutationFn: async () => {
-            if (!imageUri) return null
+        mutationFn: async ({ uri, cropQuad }: { uri: string; cropQuad: CropQuad | null }) => {
             const formData = new FormData()
             formData.append('image', {
-                uri: imageUri,
+                uri,
                 type: 'image/jpeg',
                 name: 'receipt.jpg',
             } as any)
@@ -127,7 +127,7 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
             }
         },
         onError: (err: any) => {
-            setStep('preview')
+            reset()
             const msg = err?.response?.data?.error ?? err?.message ?? 'Unknown error'
             Alert.alert('Upload Failed', msg)
         },
@@ -188,41 +188,9 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
                                 imageUri={imageUri}
                                 naturalWidth={naturalSize.width}
                                 naturalHeight={naturalSize.height}
-                                onConfirm={(quad) => { setCropQuad(quad); setStep('preview') }}
+                                onConfirm={(quad) => { setCropQuad(quad); upload({ uri: imageUri, cropQuad: quad }) }}
                                 onCancel={reset}
                             />
-                        )}
-
-                        {step === 'preview' && imageUri && (
-                            <View className="flex-1 px-6 py-6 gap-y-4">
-                                {cropQuad && naturalSize ? (
-                                    <>
-                                        <CroppedPreview imageUri={imageUri} naturalSize={naturalSize} cropQuad={cropQuad} />
-                                        <Text className="text-brand-muted text-xs text-center -mt-2">
-                                            Perspective will be straightened automatically
-                                        </Text>
-                                    </>
-                                ) : (
-                                    <Image
-                                        source={{ uri: imageUri }}
-                                        style={{ width: '100%', height: 480, borderRadius: 16, resizeMode: 'contain', backgroundColor: '#111' }}
-                                    />
-                                )}
-                                <TouchableOpacity
-                                    className="h-14 rounded-2xl bg-brand-accent items-center justify-center"
-                                    onPress={() => upload()}
-                                    activeOpacity={0.8}
-                                >
-                                    <Text className="text-white font-semibold text-base">Scan Receipt</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    className="h-12 rounded-2xl items-center justify-center"
-                                    onPress={reset}
-                                    activeOpacity={0.7}
-                                >
-                                    <Text className="text-brand-muted text-sm">Choose a different image</Text>
-                                </TouchableOpacity>
-                            </View>
                         )}
 
                         {step === 'uploading' && (
@@ -241,45 +209,5 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
                 onClose={() => { reset(); onClose() }}
             />
         </>
-    )
-}
-
-function CroppedPreview({
-    imageUri,
-    naturalSize,
-    cropQuad,
-}: {
-    imageUri: string
-    naturalSize: { width: number; height: number }
-    cropQuad: CropQuad
-}) {
-    const { width: windowWidth } = useWindowDimensions()
-
-    // The exact perspective warp happens server-side; this shows an approximate
-    // bounding-box preview of the selection (still skewed) so the user isn't
-    // left staring at the full, unmodified photo before upload.
-    const points = [cropQuad.tl, cropQuad.tr, cropQuad.br, cropQuad.bl]
-    const cropX = Math.min(...points.map((p) => p.x))
-    const cropY = Math.min(...points.map((p) => p.y))
-    const cropWidth = Math.max(...points.map((p) => p.x)) - cropX
-    const cropHeight = Math.max(...points.map((p) => p.y)) - cropY
-
-    const containerWidth = windowWidth - 48 // matches the sheet's px-6 horizontal padding
-    const scale = containerWidth / cropWidth
-    const containerHeight = cropHeight * scale
-
-    return (
-        <View style={{ width: '100%', height: containerHeight, borderRadius: 16, overflow: 'hidden', backgroundColor: '#111' }}>
-            <Image
-                source={{ uri: imageUri }}
-                style={{
-                    position: 'absolute',
-                    left: -cropX * scale,
-                    top: -cropY * scale,
-                    width: naturalSize.width * scale,
-                    height: naturalSize.height * scale,
-                }}
-            />
-        </View>
     )
 }
