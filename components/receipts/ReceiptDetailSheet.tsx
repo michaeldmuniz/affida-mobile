@@ -43,6 +43,34 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
         onError: () => Alert.alert('Error', 'Failed to save category change.'),
     })
 
+    const { mutate: applySplit, isPending: isSplitting } = useMutation({
+        mutationFn: async () => {
+            await apiClient.post(`/receipts/${receipt!.id}/split`)
+        },
+        onSuccess: () => {
+            haptics.success()
+            queryClient.invalidateQueries({ queryKey: ['receipts'] })
+            queryClient.invalidateQueries({ queryKey: ['transactions'] })
+            onClose()
+        },
+        onError: (err: any) => {
+            const msg = err?.response?.data?.error ?? err?.message ?? 'Failed to split transaction'
+            Alert.alert('Error', msg)
+        },
+    })
+
+    const handleApplySplit = () => {
+        haptics.light()
+        Alert.alert(
+            'Split Transaction',
+            'This will split the matched transaction into one entry per category from this receipt. This cannot be undone from here.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Split', onPress: () => applySplit() },
+            ]
+        )
+    }
+
     if (!receipt) return null
 
     const currentItems = lineItems.length ? lineItems : receipt.lineItems
@@ -163,6 +191,32 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
                                     </View>
                                 )}
                             </View>
+
+                            {/* Apply split to matched transaction */}
+                            {receipt.status === 'matched' && currentItems.length > 0 && (
+                                receipt.splitApplied ? (
+                                    <View className="flex-row items-center gap-x-3 bg-brand-positive/10 border border-brand-positive/25 rounded-2xl px-4 py-3.5">
+                                        <CheckCircle size={20} color={colors.positive} />
+                                        <View className="flex-1">
+                                            <Text className="text-brand-positive font-semibold text-sm">Split Applied</Text>
+                                            <Text className="text-brand-positive/80 text-xs mt-0.5">
+                                                The transaction has been split by category
+                                            </Text>
+                                        </View>
+                                    </View>
+                                ) : (
+                                    <TouchableOpacity
+                                        className="h-14 rounded-2xl bg-brand-accent items-center justify-center"
+                                        onPress={handleApplySplit}
+                                        disabled={isSplitting}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Text className="text-white font-semibold text-base">
+                                            {isSplitting ? 'Splitting…' : 'Split Transaction by Category'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                )
+                            )}
                         </View>
                     </ScrollView>
 

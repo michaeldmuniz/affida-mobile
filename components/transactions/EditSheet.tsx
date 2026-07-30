@@ -4,12 +4,14 @@ import {
     ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { X, Flag, ChevronRight, Tag, Zap } from 'lucide-react-native'
+import { X, Flag, ChevronRight, Tag, Zap, ReceiptText, CheckCircle } from 'lucide-react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { CategoryPicker } from './CategoryPicker'
-import type { Transaction, Category } from '@/lib/types'
+import { AmountText } from '@/components/ui/AmountText'
+import type { Transaction, Category, Receipt } from '@/lib/types'
 import { colors } from '@/lib/colors'
+import { haptics } from '@/lib/haptics'
 
 interface EditState {
     merchantName: string
@@ -44,6 +46,17 @@ export function EditSheet({ transaction, onClose }: Props) {
             })
         }
     }, [transaction])
+
+    const { data: receipt } = useQuery<Receipt | null>({
+        queryKey: ['receipt', transaction?.receiptId],
+        queryFn: async () => {
+            if (!transaction?.receiptId) return null
+            const res = await apiClient.get(`/receipts/${transaction.receiptId}`)
+            return res.data.data
+        },
+        enabled: !!transaction?.receiptId,
+        staleTime: 5 * 60 * 1000,
+    })
 
     const { data: categories = [] } = useQuery<Category[]>({
         queryKey: ['categories'],
@@ -88,6 +101,34 @@ export function EditSheet({ transaction, onClose }: Props) {
             Alert.alert('Error', 'Failed to save changes. Please try again.')
         },
     })
+
+    const { mutate: applySplit, isPending: isSplitting } = useMutation({
+        mutationFn: async () => {
+            await apiClient.post(`/receipts/${receipt!.id}/split`)
+        },
+        onSuccess: () => {
+            haptics.success()
+            queryClient.invalidateQueries({ queryKey: ['receipt', transaction?.receiptId] })
+            queryClient.invalidateQueries({ queryKey: ['transactions'] })
+            onClose()
+        },
+        onError: (err: any) => {
+            const msg = err?.response?.data?.error ?? err?.message ?? 'Failed to split transaction'
+            Alert.alert('Error', msg)
+        },
+    })
+
+    const handleApplySplit = () => {
+        haptics.light()
+        Alert.alert(
+            'Split Transaction',
+            'This will split this transaction into one entry per category from the receipt. This cannot be undone from here.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Split', onPress: () => applySplit() },
+            ]
+        )
+    }
 
     const handleDelete = () => {
         Alert.alert('Delete Transaction', 'This cannot be undone.', [
@@ -218,6 +259,58 @@ export function EditSheet({ transaction, onClose }: Props) {
                                     />
                                 </View>
                             </View>
+
+                            {/* Linked receipt */}
+                            {receipt && (
+                                <View className="px-4 pt-5 pb-2">
+                                    <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest mb-2">Receipt</Text>
+                                    <View className="bg-brand-surface border border-brand-border rounded-xl overflow-hidden">
+                                        <View className="flex-row items-center px-4 py-3 border-b border-brand-border">
+                                            <ReceiptText size={14} color={colors.accent} strokeWidth={1.8} style={{ marginRight: 8 }} />
+                                            <Text className="flex-1 text-brand-text text-sm font-medium">
+                                                {receipt.merchantName ?? 'Receipt'}
+                                            </Text>
+                                            {receipt.total != null && (
+                                                <AmountText amount={-receipt.total} size="sm" showSign />
+                                            )}
+                                        </View>
+                                        {receipt.lineItems.map((item, i) => (
+                                            <View
+                                                key={i}
+                                                className={`flex-row items-center px-4 py-2.5 ${i > 0 ? 'border-t border-brand-border' : ''}`}
+                                            >
+                                                <View className="flex-1 pr-3">
+                                                    <Text className="text-brand-text text-sm" numberOfLines={1}>{item.description}</Text>
+                                                    {item.categoryName && (
+                                                        <Text className="text-brand-muted text-xs mt-0.5">{item.categoryName}</Text>
+                                                    )}
+                                                </View>
+                                                <AmountText amount={-item.amount} size="sm" showSign />
+                                            </View>
+                                        ))}
+                                    </View>
+
+                                    {receipt.lineItems.length > 0 && (
+                                        receipt.splitApplied ? (
+                                            <View className="flex-row items-center gap-x-2 mt-2.5 px-1">
+                                                <CheckCircle size={14} color={colors.positive} strokeWidth={2} />
+                                                <Text className="text-brand-positive text-xs font-medium">Split applied to this transaction</Text>
+                                            </View>
+                                        ) : (
+                                            <TouchableOpacity
+                                                className="h-11 rounded-xl bg-brand-accent items-center justify-center mt-2.5"
+                                                onPress={handleApplySplit}
+                                                disabled={isSplitting}
+                                                activeOpacity={0.8}
+                                            >
+                                                <Text className="text-white font-semibold text-sm">
+                                                    {isSplitting ? 'Splitting…' : 'Split Transaction by Category'}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        )
+                                    )}
+                                </View>
+                            )}
 
                             {/* Flag */}
                             <View className="px-4 pt-5 pb-2">

@@ -62,6 +62,28 @@ export interface Transaction {
     flagged: boolean
     pending: boolean
     isManual: boolean
+    receiptId?: string | null
+}
+
+export interface ReceiptLineItem {
+    description: string
+    amount: number
+    categoryId: string | null
+    categoryName: string | null
+}
+
+export interface Receipt {
+    id: string
+    status: 'processing' | 'matched' | 'pending' | 'unmatched'
+    imageUrl: string | null
+    merchantName: string | null
+    date: string | null
+    total: number | null
+    lineItems: ReceiptLineItem[]
+    splitApplied: boolean
+    matchedTransactionId: string | null
+    matchedTransaction: Pick<Transaction, 'id' | 'description' | 'merchantName' | 'amount' | 'date'> | null
+    createdAt: string
 }
 
 export interface Category {
