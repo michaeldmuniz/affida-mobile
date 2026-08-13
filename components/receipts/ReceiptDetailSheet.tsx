@@ -59,6 +59,21 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
         },
     })
 
+    const { mutate: unlink, isPending: isUnlinking } = useMutation({
+        mutationFn: async () => {
+            await apiClient.patch(`/receipts/${receipt!.id}`, { unlink: true })
+        },
+        onSuccess: () => {
+            haptics.success()
+            queryClient.invalidateQueries({ queryKey: ['receipts'] })
+            queryClient.invalidateQueries({ queryKey: ['transactions'] })
+        },
+        onError: (err: any) => {
+            const msg = err?.response?.data?.error ?? err?.message ?? 'Failed to unlink transaction'
+            Alert.alert('Error', msg)
+        },
+    })
+
     const handleApplySplit = () => {
         haptics.light()
         Alert.alert(
@@ -67,6 +82,18 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
             [
                 { text: 'Cancel', style: 'cancel' },
                 { text: 'Split', onPress: () => applySplit() },
+            ]
+        )
+    }
+
+    const handleUnlink = () => {
+        haptics.light()
+        Alert.alert(
+            'Unlink Transaction',
+            'This receipt will be unlinked and returned to pending, so it can be matched to a different transaction.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Unlink', style: 'destructive', onPress: () => unlink() },
             ]
         )
     }
@@ -123,6 +150,17 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
                                             Linked to {receipt.matchedTransaction?.merchantName ?? receipt.matchedTransaction?.description ?? 'a transaction'}
                                         </Text>
                                     </View>
+                                    {!receipt.splitApplied && (
+                                        <TouchableOpacity
+                                            onPress={handleUnlink}
+                                            disabled={isUnlinking}
+                                            hitSlop={8}
+                                        >
+                                            <Text className="text-brand-positive/80 text-xs font-medium underline">
+                                                {isUnlinking ? 'Unlinking…' : 'Unlink'}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    )}
                                 </View>
                             ) : receipt.status === 'pending' ? (
                                 <View className="flex-row items-center gap-x-3 bg-brand-accent/10 border border-brand-accent/25 rounded-2xl px-4 py-3.5">
