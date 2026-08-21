@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity, Alert } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Target, Plus } from 'lucide-react-native'
+import { Target, Plus, Link2 } from 'lucide-react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { Card } from '@/components/ui/Card'
 import { GoalCreateSheet } from '@/components/goals/CreateSheet'
+import { GoalEditSheet } from '@/components/goals/EditSheet'
 import type { Goal } from '@/lib/types'
 import { colors } from '@/lib/colors'
 
@@ -36,6 +37,7 @@ function GoalProgressBar({ current, target }: { current: number; target: number 
 export default function GoalsScreen() {
     const queryClient = useQueryClient()
     const [showCreate, setShowCreate] = useState(false)
+    const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
 
     const { data: goals, isLoading, refetch, isRefetching } = useQuery<Goal[]>({
         queryKey: ['goals'],
@@ -54,6 +56,9 @@ export default function GoalsScreen() {
         },
         onError: () => Alert.alert('Error', 'Failed to delete goal.'),
     })
+
+    const totalTarget = (goals ?? []).reduce((s, g) => s + g.targetAmount, 0)
+    const totalSaved = (goals ?? []).reduce((s, g) => s + g.currentAmount, 0)
 
     const handleLongPress = (goal: Goal) => {
         Alert.alert('Delete Goal', `Delete "${goal.name}"? This cannot be undone.`, [
@@ -100,6 +105,7 @@ export default function GoalsScreen() {
                                 <GoalCard
                                     key={goal.id}
                                     goal={goal}
+                                    onPress={() => setEditingGoal(goal)}
                                     onLongPress={() => handleLongPress(goal)}
                                 />
                             ))}
@@ -114,11 +120,12 @@ export default function GoalsScreen() {
             </ScrollView>
 
             <GoalCreateSheet visible={showCreate} onClose={() => setShowCreate(false)} />
+            <GoalEditSheet goal={editingGoal} onClose={() => setEditingGoal(null)} />
         </SafeAreaView>
     )
 }
 
-function GoalCard({ goal, onLongPress }: { goal: Goal; onLongPress: () => void }) {
+function GoalCard({ goal, onPress, onLongPress }: { goal: Goal; onPress: () => void; onLongPress: () => void }) {
     const pct = goal.targetAmount > 0
         ? Math.min((goal.currentAmount / goal.targetAmount) * 100, 100)
         : 0
@@ -127,7 +134,7 @@ function GoalCard({ goal, onLongPress }: { goal: Goal; onLongPress: () => void }
     const lastContribution = goal.contributions?.[0]
 
     return (
-        <TouchableOpacity activeOpacity={0.85} onLongPress={onLongPress} delayLongPress={400}>
+        <TouchableOpacity activeOpacity={0.85} onPress={onPress} onLongPress={onLongPress} delayLongPress={400}>
             <Card className="p-5">
                 <View className="flex-row items-start justify-between mb-1">
                     <View className="flex-1 flex-row items-center pr-3 gap-x-2">

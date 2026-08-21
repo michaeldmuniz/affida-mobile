@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Plus, Landmark, CreditCard, TrendingUp, Wallet, ExternalLink, ChevronRight } from 'lucide-react-native'
+import { Plus, Landmark, CreditCard, TrendingUp, Wallet, ExternalLink, ChevronRight, ChevronLeft } from 'lucide-react-native'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { apiClient } from '@/lib/api-client'
@@ -136,7 +136,7 @@ function AccountRow({ account, onPress }: { account: Account; onPress: () => voi
                     <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>
                         {account.name}
                     </Text>
-                    <Text className="text-brand-muted text-xs mt-0.5">{formatType(account.type)}</Text>
+                    <Text className="text-brand-muted text-xs mt-0.5">{formatAccountType(account.type)}</Text>
                 </View>
                 <View className="items-end gap-y-1">
                     <AmountText amount={account.balance} size="sm" neutral />

@@ -1,9 +1,10 @@
-import { useState } from 'react'
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Linking, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native'
+import { useState, useEffect } from 'react'
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Linking, Modal, TextInput, KeyboardAvoidingView, Platform, Switch } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
-import { LogOut, User, Shield, CreditCard, ChevronRight, Mail, Smartphone, Zap, FileText, ScrollText, Pencil, X } from 'lucide-react-native'
+import { LogOut, User, Shield, CreditCard, ChevronRight, ChevronLeft, Mail, Smartphone, Zap, FileText, ScrollText, Pencil, X, ScanFace, Repeat } from 'lucide-react-native'
+import * as LocalAuthentication from 'expo-local-authentication'
 import { apiClient } from '@/lib/api-client'
 import { useAuthStore } from '@/lib/auth-store'
 import { useSettingsStore } from '@/lib/settings-store'
@@ -90,8 +91,14 @@ export default function SettingsScreen() {
     const router = useRouter()
     const queryClient = useQueryClient()
     const { clearAuth, user: authUser, setAuth, token, expiresAt } = useAuthStore()
+    const { appLockEnabled, setAppLockEnabled } = useSettingsStore()
+    const [biometricsAvailable, setBiometricsAvailable] = useState(false)
     const [showEditName, setShowEditName] = useState(false)
     const [newName, setNewName] = useState('')
+
+    useEffect(() => {
+        LocalAuthentication.hasHardwareAsync().then(setBiometricsAvailable)
+    }, [])
 
     const { mutate: saveName, isPending: isSavingName } = useMutation({
         mutationFn: async (name: string) => {

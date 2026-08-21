@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity, TextInput, ActivityIndicator, Share, Alert } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Search, Flag, SlidersHorizontal, Download } from 'lucide-react-native'
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { Search, Flag, SlidersHorizontal, Download, Camera, ReceiptText } from 'lucide-react-native'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { apiClient } from '@/lib/api-client'
 import { Card } from '@/components/ui/Card'
@@ -10,8 +10,9 @@ import { AmountText } from '@/components/ui/AmountText'
 import { EditSheet } from '@/components/transactions/EditSheet'
 import { TransactionAddSheet } from '@/components/transactions/AddSheet'
 import { FilterSheet, DEFAULT_FILTERS, activeFilterCount, filtersToParams } from '@/components/transactions/FilterSheet'
+import { ScanSheet } from '@/components/receipts/ScanSheet'
 import { haptics } from '@/lib/haptics'
-import type { Transaction, PaginatedResponse } from '@/lib/types'
+import type { Transaction, Receipt, PaginatedResponse } from '@/lib/types'
 import type { TransactionFilters } from '@/components/transactions/FilterSheet'
 import { colors } from '@/lib/colors'
 
@@ -44,7 +45,17 @@ export default function TransactionsScreen() {
     }, [params.categoryId, params.categoryName, params.dateRange])
 
     const filterCount = activeFilterCount(filters)
+    const [showScan, setShowScan] = useState(false)
     const [isExporting, setIsExporting] = useState(false)
+
+    const { data: pendingReceipts } = useQuery<Receipt[]>({
+        queryKey: ['receipts', 'pending'],
+        queryFn: async () => {
+            const res = await apiClient.get('/receipts', { params: { status: 'pending' } })
+            return res.data.data ?? []
+        },
+        staleTime: 60 * 1000,
+    })
 
     const handleExport = async () => {
         setIsExporting(true)
@@ -110,6 +121,29 @@ export default function TransactionsScreen() {
                 <View className="flex-row items-center justify-between mb-4">
                     <Text className="text-brand-text text-2xl font-bold">Transactions</Text>
                     <View className="flex-row items-center gap-x-2">
+                        {/* Pending receipts inbox */}
+                        {(pendingReceipts?.length ?? 0) > 0 && (
+                            <TouchableOpacity
+                                className="w-9 h-9 rounded-full bg-brand-surface border border-brand-border items-center justify-center"
+                                onPress={() => { haptics.light(); router.push('/(app)/receipts' as any) }}
+                            >
+                                <ReceiptText size={16} color={colors.accent} strokeWidth={1.8} />
+                                <View
+                                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-brand-accent items-center justify-center"
+                                >
+                                    <Text className="text-white text-[9px] font-bold leading-none">
+                                        {pendingReceipts!.length > 9 ? '9+' : pendingReceipts!.length}
+                                    </Text>
+                                </View>
+                            </TouchableOpacity>
+                        )}
+                        {/* Scan receipt */}
+                        <TouchableOpacity
+                            className="w-9 h-9 rounded-full bg-brand-surface border border-brand-border items-center justify-center"
+                            onPress={() => { haptics.light(); setShowScan(true) }}
+                        >
+                            <Camera size={16} color={colors.muted} strokeWidth={1.8} />
+                        </TouchableOpacity>
                         <TouchableOpacity
                             className="w-9 h-9 rounded-full bg-brand-surface border border-brand-border items-center justify-center"
                             onPress={handleExport}
@@ -213,6 +247,9 @@ export default function TransactionsScreen() {
                                                         {tx.flagged && (
                                                             <Flag size={11} color={colors.negative} fill={colors.negative} />
                                                         )}
+                                                        {tx.receiptId && (
+                                                            <ReceiptText size={11} color={colors.accent} strokeWidth={2} />
+                                                        )}
                                                     </View>
                                                     <Text className="text-brand-muted text-xs mt-0.5" numberOfLines={1}>
                                                         {tx.categoryName ?? 'Uncategorized'} · {tx.accountName}
@@ -256,6 +293,12 @@ export default function TransactionsScreen() {
             <EditSheet transaction={editing} onClose={() => setEditing(null)} />
 
             <TransactionAddSheet visible={showAdd} onClose={() => setShowAdd(false)} />
+
+            <ScanSheet
+                visible={showScan}
+                onClose={() => setShowScan(false)}
+                onViewPending={() => router.push('/(app)/receipts' as any)}
+            />
 
             <FilterSheet
                 visible={showFilters}

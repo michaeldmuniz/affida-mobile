@@ -127,10 +127,19 @@ export default function AppLayout() {
             />
             <Tabs.Screen
                 name="settings"
-                options={{
-                    title: 'Settings',
-                    tabBarIcon: ({ focused }) => <TabIcon Icon={Settings} focused={focused} />,
-                }}
+                options={HIDDEN_SCREEN_OPTIONS}
+            />
+            <Tabs.Screen
+                name="assistant"
+                options={HIDDEN_SCREEN_OPTIONS}
+            />
+            <Tabs.Screen
+                name="subscriptions"
+                options={HIDDEN_SCREEN_OPTIONS}
+            />
+            <Tabs.Screen
+                name="accounts/index"
+                options={HIDDEN_SCREEN_OPTIONS}
             />
             <Tabs.Screen
                 name="rules"
@@ -142,6 +151,14 @@ export default function AppLayout() {
             />
             <Tabs.Screen
                 name="reports"
+                options={{
+                    tabBarButton: () => null,
+                    tabBarItemStyle: { display: 'none', width: 0 },
+                    tabBarStyle: { display: 'none' },
+                }}
+            />
+            <Tabs.Screen
+                name="receipts"
                 options={{
                     tabBarButton: () => null,
                     tabBarItemStyle: { display: 'none', width: 0 },

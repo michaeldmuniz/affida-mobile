@@ -4,7 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-**Affida Mobile** — the Expo / React Native companion app for the Affida personal-finance web app (Next.js repo: `my-awesome-app`). Real users are on the web app today; mobile talks to the same production backend, so never ship anything that could mutate or wipe user data unexpectedly.
+**Affida Mobile** — the Expo / React Native companion app for the Affida personal-finance web app.
+
+**Companion web repo**: `my-awesome-app` at `/Users/mikemuniz/Desktop/Websites/my-awesome-app` (Next.js + Prisma + PostgreSQL). New mobile features almost always need a matching `app/api/mobile/` route there.
+
+**CRITICAL — production database with real users:**
+- NEVER run `prisma migrate dev` directly — it can reset the DB if it detects drift.
+- Safe migration workflow: `prisma migrate dev --create-only` (generates SQL file only) → review the SQL → `prisma migrate deploy` (applies it, no prompts, no resets).
+- NEVER run `prisma db push`, `prisma migrate reset`, or any command that drops tables or truncates data.
+- All schema changes must be purely additive (new tables, new nullable columns) unless the user explicitly approves destructive changes after seeing the SQL.
 
 ## Commands
 

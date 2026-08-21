@@ -2,7 +2,6 @@ import { useState, useRef } from 'react'
 import {
     View,
     Text,
-    Image,
     TextInput,
     TouchableOpacity,
     KeyboardAvoidingView,
@@ -20,6 +19,7 @@ import { authApi } from '@/lib/api-client'
 import { useAuthStore } from '@/lib/auth-store'
 import type { AuthTokenResponse, MobileUser } from '@/lib/types'
 import { colors } from '@/lib/colors'
+import { BrandMark } from '@/components/BrandMark'
 
 export default function LoginScreen() {
     const router = useRouter()
@@ -118,12 +118,11 @@ export default function LoginScreen() {
                 >
                     {/* Logo */}
                     <View className="flex-1 justify-center px-6 pt-16 pb-8">
-                        <View className="mb-12">
-                            <Image
-                                source={require('../../assets/logo.png')}
-                                style={{ width: 160, height: 80 }}
-                                resizeMode="contain"
-                            />
+                        <View className="flex-row items-center gap-x-2.5 mb-12">
+                            <BrandMark size={32} />
+                            <Text className="text-brand-text text-lg font-bold tracking-tight">
+                                Affida
+                            </Text>
                         </View>
 
                         {/* Form */}

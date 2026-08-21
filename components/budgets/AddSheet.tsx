@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Modal, View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { X, Check } from 'lucide-react-native'
+import { X, Check, Plus } from 'lucide-react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import type { Budget, Category } from '@/lib/types'
@@ -18,6 +18,8 @@ export function AddBudgetSheet({ visible, month, existingBudgets, onClose }: Pro
     const queryClient = useQueryClient()
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
     const [amount, setAmount] = useState('')
+    const [showNewCategory, setShowNewCategory] = useState(false)
+    const [newCategoryName, setNewCategoryName] = useState('')
 
     const { data: categories = [] } = useQuery<Category[]>({
         queryKey: ['categories'],
@@ -34,8 +36,26 @@ export function AddBudgetSheet({ visible, month, existingBudgets, onClose }: Pro
         if (!visible) {
             setSelectedCategory(null)
             setAmount('')
+            setShowNewCategory(false)
+            setNewCategoryName('')
         }
     }, [visible])
+
+    const { mutate: createCategory, isPending: isCreatingCategory } = useMutation({
+        mutationFn: async () => {
+            const name = newCategoryName.trim()
+            if (!name) throw new Error('Please enter a category name.')
+            const res = await apiClient.post('/categories', { name, group: 'EXPENSE' })
+            return res.data.data as Category
+        },
+        onSuccess: (category) => {
+            queryClient.invalidateQueries({ queryKey: ['categories'] })
+            setSelectedCategory(category)
+            setShowNewCategory(false)
+            setNewCategoryName('')
+        },
+        onError: (e: any) => Alert.alert('Error', e.message ?? 'Failed to create category.'),
+    })
 
     const { mutate: save, isPending } = useMutation({
         mutationFn: async () => {
@@ -99,32 +119,68 @@ export function AddBudgetSheet({ visible, month, existingBudgets, onClose }: Pro
                             {/* Category picker */}
                             <View>
                                 <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest mb-2">Category</Text>
-                                {available.length === 0 ? (
-                                    <View className="bg-brand-surface border border-brand-border rounded-xl px-4 py-5 items-center">
-                                        <Text className="text-brand-muted text-sm text-center leading-relaxed">
-                                            All expense categories already have a budget this month.
-                                        </Text>
-                                    </View>
-                                ) : (
-                                    <View className="bg-brand-surface border border-brand-border rounded-xl overflow-hidden">
-                                        {available.map((cat, i) => {
-                                            const selected = selectedCategory?.id === cat.id
-                                            return (
-                                                <TouchableOpacity
-                                                    key={cat.id}
-                                                    className={`flex-row items-center px-4 py-3.5 ${i > 0 ? 'border-t border-brand-border' : ''}`}
-                                                    onPress={() => setSelectedCategory(cat)}
-                                                    activeOpacity={0.7}
-                                                >
-                                                    <Text className={`flex-1 text-sm ${selected ? 'text-brand-accent font-medium' : 'text-brand-text'}`}>
-                                                        {cat.name}
-                                                    </Text>
-                                                    {selected && <Check size={16} color={colors.accent} />}
-                                                </TouchableOpacity>
-                                            )
-                                        })}
-                                    </View>
-                                )}
+                                <View className="bg-brand-surface border border-brand-border rounded-xl overflow-hidden">
+                                    {available.length === 0 && !showNewCategory && (
+                                        <View className="px-4 py-5 items-center">
+                                            <Text className="text-brand-muted text-sm text-center leading-relaxed">
+                                                All expense categories already have a budget this month.
+                                            </Text>
+                                        </View>
+                                    )}
+                                    {available.map((cat, i) => {
+                                        const selected = selectedCategory?.id === cat.id
+                                        return (
+                                            <TouchableOpacity
+                                                key={cat.id}
+                                                className={`flex-row items-center px-4 py-3.5 ${i > 0 ? 'border-t border-brand-border' : ''}`}
+                                                onPress={() => setSelectedCategory(cat)}
+                                                activeOpacity={0.7}
+                                            >
+                                                <Text className={`flex-1 text-sm ${selected ? 'text-brand-accent font-medium' : 'text-brand-text'}`}>
+                                                    {cat.name}
+                                                </Text>
+                                                {selected && <Check size={16} color={colors.accent} />}
+                                            </TouchableOpacity>
+                                        )
+                                    })}
+
+                                    {/* New category */}
+                                    {showNewCategory ? (
+                                        <View className={`flex-row items-center px-4 py-2.5 gap-x-2 ${available.length > 0 ? 'border-t border-brand-border' : ''}`}>
+                                            <TextInput
+                                                className="flex-1 text-brand-text text-sm h-9"
+                                                placeholder="New category name"
+                                                placeholderTextColor={colors.muted}
+                                                value={newCategoryName}
+                                                onChangeText={setNewCategoryName}
+                                                autoFocus
+                                                returnKeyType="done"
+                                                onSubmitEditing={() => createCategory()}
+                                            />
+                                            {isCreatingCategory ? (
+                                                <ActivityIndicator size="small" color={colors.accent} />
+                                            ) : (
+                                                <>
+                                                    <TouchableOpacity onPress={() => { setShowNewCategory(false); setNewCategoryName('') }} hitSlop={8}>
+                                                        <X size={18} color={colors.muted} />
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity onPress={() => createCategory()} disabled={!newCategoryName.trim()} hitSlop={8}>
+                                                        <Check size={18} color={newCategoryName.trim() ? colors.accent : colors.muted} />
+                                                    </TouchableOpacity>
+                                                </>
+                                            )}
+                                        </View>
+                                    ) : (
+                                        <TouchableOpacity
+                                            className={`flex-row items-center px-4 py-3.5 gap-x-2 ${available.length > 0 ? 'border-t border-brand-border' : ''}`}
+                                            onPress={() => setShowNewCategory(true)}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Plus size={16} color={colors.accent} />
+                                            <Text className="text-brand-accent text-sm font-medium">New Category</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
                             </View>
 
                         </View>

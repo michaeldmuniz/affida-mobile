@@ -9,6 +9,15 @@ import { BudgetEditSheet } from '@/components/budgets/EditSheet'
 import { AddBudgetSheet } from '@/components/budgets/AddSheet'
 import type { Budget } from '@/lib/types'
 import { colors } from '@/lib/colors'
+import { haptics } from '@/lib/haptics'
+
+function toMonthKey(d: Date) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+function formatMonth(d: Date) {
+    return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+}
 
 function BudgetBar({ spent, total }: { spent: number; total: number }) {
     const pct = total > 0 ? Math.min((spent / total) * 100, 100) : 0
@@ -74,16 +83,25 @@ export default function BudgetsScreen() {
         <SafeAreaView className="flex-1 bg-brand-bg" edges={['top']}>
             {/* Month Picker + actions */}
             <View className="flex-row items-center justify-between px-6 pt-4 pb-2">
-                <TouchableOpacity
-                    className="w-8 h-8 items-center justify-center"
-                    onPress={() => setOffset((o) => o - 1)}
-                    hitSlop={8}
-                >
-                    <ChevronLeft size={20} color={colors.muted} strokeWidth={2} />
-                </TouchableOpacity>
-                <Text className="text-brand-text font-semibold text-base">
-                    {formatMonth(activeDate)}
-                </Text>
+                <View className="flex-row items-center gap-x-1">
+                    <TouchableOpacity
+                        className="w-8 h-8 items-center justify-center"
+                        onPress={() => { haptics.light(); setOffset((o) => o - 1) }}
+                        hitSlop={8}
+                    >
+                        <ChevronLeft size={20} color={colors.muted} strokeWidth={2} />
+                    </TouchableOpacity>
+                    <Text className="text-brand-text font-semibold text-base">
+                        {formatMonth(activeDate)}
+                    </Text>
+                    <TouchableOpacity
+                        className="w-8 h-8 items-center justify-center"
+                        onPress={() => { haptics.light(); setOffset((o) => o + 1) }}
+                        hitSlop={8}
+                    >
+                        <ChevronRight size={20} color={colors.muted} strokeWidth={2} />
+                    </TouchableOpacity>
+                </View>
                 <TouchableOpacity
                     className="w-9 h-9 rounded-full bg-brand-accent/15 items-center justify-center"
                     onPress={() => { haptics.medium(); setShowAdd(true) }}

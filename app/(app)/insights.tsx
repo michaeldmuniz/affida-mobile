@@ -1,6 +1,6 @@
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { ChevronLeft, ChevronRight, Repeat, ChevronRight as Chevron } from 'lucide-react-native'
+import { ChevronLeft, ChevronRight, ChevronRight as Chevron } from 'lucide-react-native'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useRouter } from 'expo-router'
@@ -13,7 +13,7 @@ import { LineChart } from '@/components/charts/LineChart'
 import { colorForIndex } from '@/components/charts/palette'
 import { formatMonth, toMonthKey, compactUsd } from '@/lib/format'
 import { haptics } from '@/lib/haptics'
-import type { Insights, SubscriptionsResponse } from '@/lib/types'
+import type { Insights } from '@/lib/types'
 import { colors } from '@/lib/colors'
 
 export default function InsightsScreen() {
@@ -31,15 +31,6 @@ export default function InsightsScreen() {
         },
     })
 
-    const { data: subs } = useQuery<SubscriptionsResponse>({
-        queryKey: ['subscriptions'],
-        queryFn: async () => {
-            const res = await apiClient.get('/subscriptions')
-            return res.data.data
-        },
-        staleTime: 10 * 60 * 1000,
-    })
-
     const breakdown = data?.categoryBreakdown?.filter((c) => c.value > 0) ?? []
     const topSlices = breakdown.slice(0, 7)
     const otherTotal = breakdown.slice(7).reduce((s, c) => s + c.value, 0)
@@ -53,7 +44,6 @@ export default function InsightsScreen() {
         ...(otherTotal > 0 ? [{ label: 'Other', value: otherTotal, color: '#3F3F50', categoryId: null }] : []),
     ]
 
-    // Drill-down target period: the transactions list supports this/last month presets
     const drillDateRange = offset === 0 ? 'thisMonth' : offset === -1 ? 'lastMonth' : 'all'
 
     const drillToCategory = (categoryId: string, categoryName: string) => {
@@ -66,26 +56,30 @@ export default function InsightsScreen() {
 
     return (
         <SafeAreaView className="flex-1 bg-brand-bg" edges={['top']}>
-            {/* Month Picker */}
-            <View className="flex-row items-center justify-between px-6 pt-4 pb-2">
-                <TouchableOpacity
-                    className="w-8 h-8 items-center justify-center"
-                    onPress={() => { haptics.light(); setOffset((o) => o - 1) }}
-                    hitSlop={8}
-                >
-                    <ChevronLeft size={20} color={colors.muted} strokeWidth={2} />
-                </TouchableOpacity>
-                <Text className="text-brand-text font-semibold text-base">
-                    {formatMonth(activeDate)}
-                </Text>
-                <TouchableOpacity
-                    className="w-8 h-8 items-center justify-center"
-                    onPress={() => { haptics.light(); setOffset((o) => o + 1) }}
-                    hitSlop={8}
-                    disabled={offset >= 0}
-                >
-                    <ChevronRight size={20} color={offset >= 0 ? colors.disabled : colors.muted} strokeWidth={2} />
-                </TouchableOpacity>
+            {/* Header */}
+            <View className="px-6 pt-4 pb-2">
+                <Text className="text-brand-text text-2xl font-bold">Insights</Text>
+                {/* Month Picker */}
+                <View className="flex-row items-center gap-x-1 mt-3">
+                    <TouchableOpacity
+                        className="w-8 h-8 items-center justify-center"
+                        onPress={() => { haptics.light(); setOffset((o) => o - 1) }}
+                        hitSlop={8}
+                    >
+                        <ChevronLeft size={20} color={colors.muted} strokeWidth={2} />
+                    </TouchableOpacity>
+                    <Text className="text-brand-text font-semibold text-base">
+                        {formatMonth(activeDate)}
+                    </Text>
+                    <TouchableOpacity
+                        className="w-8 h-8 items-center justify-center"
+                        onPress={() => { haptics.light(); setOffset((o) => o + 1) }}
+                        hitSlop={8}
+                        disabled={offset >= 0}
+                    >
+                        <ChevronRight size={20} color={offset >= 0 ? colors.disabled : colors.muted} strokeWidth={2} />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <ScrollView
@@ -96,39 +90,6 @@ export default function InsightsScreen() {
                 }
             >
                 <View className="px-6 gap-y-4 pb-10 pt-2">
-                    {/* Cashflow summary */}
-                    <View className="flex-row gap-x-3">
-                        <Card className="flex-1 p-4">
-                            <Text className="text-brand-muted text-xs uppercase tracking-widest mb-2">Income</Text>
-                            {data ? (
-                                <AmountText amount={data.income} size="md" neutral className="text-brand-positive" />
-                            ) : (
-                                <Skeleton w="w-20" />
-                            )}
-                        </Card>
-                        <Card className="flex-1 p-4">
-                            <Text className="text-brand-muted text-xs uppercase tracking-widest mb-2">Spent</Text>
-                            {data ? (
-                                <AmountText amount={-data.expenses} size="md" />
-                            ) : (
-                                <Skeleton w="w-20" />
-                            )}
-                        </Card>
-                        <Card className="flex-1 p-4">
-                            <Text className="text-brand-muted text-xs uppercase tracking-widest mb-2">Net</Text>
-                            {data ? (
-                                <AmountText
-                                    amount={data.net}
-                                    size="md"
-                                    neutral
-                                    className={data.net >= 0 ? 'text-brand-positive' : 'text-brand-negative'}
-                                />
-                            ) : (
-                                <Skeleton w="w-20" />
-                            )}
-                        </Card>
-                    </View>
-
                     {/* Spending by category */}
                     <Card className="p-5">
                         <Text className="text-brand-text font-semibold text-base mb-4">Spending by Category</Text>
@@ -179,31 +140,6 @@ export default function InsightsScreen() {
                             </Text>
                         )}
                     </Card>
-
-                    {/* Recurring subscriptions teaser */}
-                    {subs && subs.items.length > 0 && (
-                        <TouchableOpacity
-                            activeOpacity={0.7}
-                            onPress={() => { haptics.light(); router.push('/subscriptions') }}
-                        >
-                            <Card className="p-5 flex-row items-center">
-                                <View className="w-10 h-10 rounded-xl bg-brand-accent/15 items-center justify-center mr-4">
-                                    <Repeat size={18} color={colors.accent} strokeWidth={2} />
-                                </View>
-                                <View className="flex-1">
-                                    <Text className="text-brand-text font-semibold text-sm">Recurring</Text>
-                                    <Text className="text-brand-muted text-xs mt-0.5">
-                                        {subs.items.length} subscription{subs.items.length === 1 ? '' : 's'} detected
-                                    </Text>
-                                </View>
-                                <View className="items-end mr-2">
-                                    <AmountText amount={-subs.monthlyTotal} size="sm" />
-                                    <Text className="text-brand-muted text-[10px]">per month</Text>
-                                </View>
-                                <Chevron size={16} color={colors.muted} strokeWidth={2} />
-                            </Card>
-                        </TouchableOpacity>
-                    )}
 
                     {/* Income vs Spending trend */}
                     <Card className="p-5">
