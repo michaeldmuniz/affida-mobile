@@ -142,6 +142,7 @@ export default function SubscriptionsScreen() {
                                             <Text className="text-brand-muted text-xs mt-0.5">
                                                 {daysUntil(item.nextDate)} · {item.frequency}
                                                 {item.confidence === 'Medium' ? ' · Possible' : ''}
+                                                {item.previousMerchantName ? ` · formerly ${item.previousMerchantName}` : ''}
                                             </Text>
                                         </View>
                                         <AmountText amount={-item.amount} size="sm" />

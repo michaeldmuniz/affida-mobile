@@ -89,7 +89,9 @@ export default function DashboardScreen() {
     const totalBudgeted = ownBudgets.reduce((s, b) => s + b.amount, 0)
     const totalSpent = ownBudgets.reduce((s, b) => s + b.spent, 0)
     const budgetPct = totalBudgeted > 0 ? Math.min((totalSpent / totalBudgeted) * 100, 100) : 0
-    const overBudgetCount = ownBudgets.filter((b) => b.spent > b.amount).length
+    // Same test as the web dashboard banner and Budgets page: Remaining (which counts
+    // rollover) below zero.
+    const overBudgetCount = ownBudgets.filter((b) => b.remaining < 0).length
 
     const topGoals = (goals ?? []).slice(0, 2)
 

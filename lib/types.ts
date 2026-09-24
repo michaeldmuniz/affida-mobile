@@ -173,6 +173,8 @@ export interface SubscriptionItem {
     lastDate: string
     nextDate: string
     confidence: 'High' | 'Medium'
+    /** Name it was billed under before the merchant renamed itself (e.g. "Claude.ai"). */
+    previousMerchantName?: string | null
 }
 
 export interface SubscriptionsResponse {
