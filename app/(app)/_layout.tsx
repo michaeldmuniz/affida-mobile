@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Redirect, Tabs } from 'expo-router'
 import { View, AppState } from 'react-native'
+import * as LocalAuthentication from 'expo-local-authentication'
 
 export { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Home, ArrowLeftRight, PieChart, Target, LineChart } from 'lucide-react-native'
@@ -27,7 +28,8 @@ const HIDDEN_SCREEN_OPTIONS = {
 
 export default function AppLayout() {
     const { token } = useAuthStore()
-    const { appLockEnabled, _hasHydrated } = useSettingsStore()
+    const { appLockEnabled, appLockDefaultApplied, setAppLockEnabled, setAppLockDefaultApplied, _hasHydrated } =
+        useSettingsStore()
     const [locked, setLocked] = useState<boolean | null>(null)
     const appStateRef = useRef(AppState.currentState)
 
@@ -37,6 +39,18 @@ export default function AppLayout() {
             setLocked(appLockEnabled)
         }
     }, [_hasHydrated, locked, appLockEnabled])
+
+    // One-time default: turn App Lock on automatically if the device already has
+    // Face ID / Touch ID enrolled (which guarantees a passcode fallback exists too,
+    // since iOS requires one to enroll biometrics in the first place).
+    useEffect(() => {
+        if (!_hasHydrated || appLockDefaultApplied) return
+        LocalAuthentication.isEnrolledAsync()
+            .then((enrolled) => {
+                if (enrolled) setAppLockEnabled(true)
+            })
+            .finally(() => setAppLockDefaultApplied(true))
+    }, [_hasHydrated, appLockDefaultApplied, setAppLockEnabled, setAppLockDefaultApplied])
 
     // Re-lock when the app goes to background
     useEffect(() => {

@@ -17,3 +17,6 @@ web-build/
 
 expo-env.d.ts
 # @end expo-cli
+# Native projects are generated from app.json (npx expo prebuild / EAS), not committed
+/ios
+/android
