@@ -8,6 +8,7 @@ import { apiClient } from '@/lib/api-client'
 import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
 import { colors } from '@/lib/colors'
+import { syncStatusLabel } from '@/lib/sync'
 
 interface AccountDetail {
     id: string
@@ -17,6 +18,8 @@ interface AccountDetail {
     balance: number
     creditLimit: number | null
     plaidLinked: boolean
+    lastSyncAt: string | null
+    needsReconnect: boolean
     updatedAt: string
     snapshots: { balance: number; createdAt: string }[]
 }
@@ -142,8 +145,8 @@ export default function AccountDetailScreen() {
                                     {account.institutionName} · {formatType(account.type)}
                                 </Text>
                                 <AmountText amount={account.balance} size="xl" neutral className="text-brand-text mt-2" />
-                                <Text className="text-brand-muted text-xs mt-2">
-                                    Updated {formatDate(account.updatedAt)}
+                                <Text className={`text-xs mt-2 ${account.needsReconnect ? 'text-brand-negative' : 'text-brand-muted'}`}>
+                                    {account.plaidLinked ? syncStatusLabel(account) : `Manual account · updated ${formatDate(account.updatedAt)}`}
                                 </Text>
 
                                 {!account.plaidLinked && (

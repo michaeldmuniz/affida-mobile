@@ -11,6 +11,7 @@ import { LockScreen } from '@/components/LockScreen'
 import { LoadingScreen } from '@/components/LoadingScreen'
 import { haptics } from '@/lib/haptics'
 import { colors } from '@/lib/colors'
+import { syncOnOpen } from '@/lib/sync'
 
 function TabIcon({ Icon, focused }: { Icon: any; focused: boolean }) {
     return (
@@ -51,6 +52,16 @@ export default function AppLayout() {
             })
             .finally(() => setAppLockDefaultApplied(true))
     }, [_hasHydrated, appLockDefaultApplied, setAppLockEnabled, setAppLockDefaultApplied])
+
+    // Keep bank data current: check on launch and whenever the app comes back.
+    useEffect(() => {
+        if (!token) return
+        syncOnOpen()
+        const sub = AppState.addEventListener('change', (next) => {
+            if (next === 'active') syncOnOpen()
+        })
+        return () => sub.remove()
+    }, [token])
 
     // Re-lock when the app goes to background
     useEffect(() => {

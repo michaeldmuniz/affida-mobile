@@ -43,6 +43,9 @@ export interface Account {
     creditLimit: number | null
     excludeFromNetWorth: boolean
     plaidLinked: boolean
+    /** When the bank last synced; null for manual accounts. */
+    lastSyncAt: string | null
+    needsReconnect: boolean
     updatedAt: string
     createdAt: string
 }
