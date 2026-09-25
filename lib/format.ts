@@ -29,3 +29,20 @@ export function compactUsd(n: number) {
             : `$${abs.toFixed(0)}`
     return n < 0 ? `-${formatted}` : formatted
 }
+
+/** Today as YYYY-MM-DD in the device's local time zone (family tasks are per local day). */
+export function localDay(d = new Date()): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+/** "Every day", "Weekdays", "Mon, Wed, Fri", or "One time" — same labels as the web. */
+export function scheduleLabel(task: { frequency: string; days: number[] }): string {
+    if (task.frequency === 'ONCE') return 'One time'
+    const key = [...task.days].sort().join(',')
+    if (key === '0,1,2,3,4,5,6') return 'Every day'
+    if (key === '1,2,3,4,5') return 'Weekdays'
+    if (key === '0,6') return 'Weekends'
+    return task.days.map(d => DAY_NAMES[d]).join(', ')
+}

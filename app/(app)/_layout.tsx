@@ -183,7 +183,11 @@ export default function AppLayout() {
                 }}
             />
             <Tabs.Screen
-                name="family"
+                name="family/index"
+                options={HIDDEN_SCREEN_OPTIONS}
+            />
+            <Tabs.Screen
+                name="family/[id]"
                 options={HIDDEN_SCREEN_OPTIONS}
             />
             <Tabs.Screen

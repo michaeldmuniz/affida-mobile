@@ -12,24 +12,16 @@ import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
 import { KidAvatar } from '@/components/family/KidAvatar'
 import { ChildEditSheet } from '@/components/family/ChildEditSheet'
-import { WalletSheet } from '@/components/family/WalletSheet'
 
 export default function FamilyScreen() {
     const router = useRouter()
     const [editing, setEditing] = useState<Child | 'new' | null>(null)
-    const [openChildId, setOpenChildId] = useState<string | null>(null)
 
     const { data: kids, isLoading, refetch, isRefetching } = useQuery<Child[]>({
         queryKey: ['family'],
         queryFn: async () => (await apiClient.get('/family/children')).data.data,
         staleTime: 60 * 1000,
     })
-
-    // iOS can't present a sheet while another is still animating closed.
-    const switchToEdit = (child: Child) => {
-        setOpenChildId(null)
-        setTimeout(() => setEditing(child), 400)
-    }
 
     const total = kids?.reduce((s, k) => s + k.balance, 0) ?? 0
 
@@ -74,7 +66,7 @@ export default function FamilyScreen() {
                             </View>
                             <Text className="text-brand-text font-semibold mb-1">No kids added yet</Text>
                             <Text className="text-brand-muted text-sm text-center leading-relaxed px-8 mb-5">
-                                Give each kid a wallet. Log allowance and gifts, and track what they spend.
+                                Give each kid a wallet, then set chores and daily goals that pay into it.
                             </Text>
                             <TouchableOpacity
                                 onPress={() => { haptics.medium(); setEditing('new') }}
@@ -95,7 +87,7 @@ export default function FamilyScreen() {
                             {kids.map((kid) => {
                                 const age = kid.birthYear ? new Date().getFullYear() - kid.birthYear : null
                                 return (
-                                    <TouchableOpacity key={kid.id} activeOpacity={0.7} onPress={() => { haptics.light(); setOpenChildId(kid.id) }}>
+                                    <TouchableOpacity key={kid.id} activeOpacity={0.7} onPress={() => { haptics.light(); router.push(`/(app)/family/${kid.id}` as any) }}>
                                         <Card className="flex-row items-center gap-x-3 p-4">
                                             <KidAvatar name={kid.name} color={kid.color} />
                                             <View className="flex-1">
@@ -114,7 +106,6 @@ export default function FamilyScreen() {
             </ScrollView>
 
             <ChildEditSheet child={editing} onClose={() => setEditing(null)} />
-            <WalletSheet childId={openChildId} onClose={() => setOpenChildId(null)} onEdit={switchToEdit} />
         </SafeAreaView>
     )
 }

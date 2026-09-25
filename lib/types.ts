@@ -239,9 +239,31 @@ export interface WalletEntry {
     note: string | null
     date: string
     createdByName: string | null
+    /** Earned by completing a chore/goal — remove it by undoing the task. */
+    fromTask: boolean
 }
 
 export interface ChildDetail {
     child: Child
     entries: WalletEntry[]
+}
+
+export type TaskKind = 'CHORE' | 'HABIT'
+
+/** A chore or daily goal as of a given day (the device's local today). */
+export interface ChildTask {
+    id: string
+    title: string
+    kind: TaskKind
+    reward: number
+    frequency: 'ONCE' | 'REPEATING'
+    /** 0 = Sunday … 6 = Saturday */
+    days: number[]
+    bonusEvery: number | null
+    bonusAmount: number | null
+    dueOnDay: boolean
+    doneOnDay: boolean
+    lastDone: string | null
+    streak: number
+    nextBonusIn: number | null
 }

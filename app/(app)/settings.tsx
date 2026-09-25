@@ -269,7 +269,7 @@ export default function SettingsScreen() {
                     <SettingsRow
                         icon={Users}
                         label="Family"
-                        onPress={() => router.push('/(app)/family')}
+                        onPress={() => router.push('/(app)/family' as any)}
                     />
                     <Divider />
                     <SettingsRow
