@@ -261,9 +261,28 @@ export interface ChildTask {
     days: number[]
     bonusEvery: number | null
     bonusAmount: number | null
+    /** Adult goals: the account the reward is logged toward (null for kids, or none picked). */
+    rewardAccountId: string | null
+    rewardAccountName: string | null
     dueOnDay: boolean
     doneOnDay: boolean
     lastDone: string | null
     streak: number
     nextBonusIn: number | null
+}
+
+/** You or your partner, with goal rewards logged this month. */
+export interface HouseholdAdult {
+    id: string
+    name: string
+    isYou: boolean
+    loggedThisMonth: number
+}
+
+/** An adult's goals page: accounts rewards can be logged toward, totals, and history. No money moves. */
+export interface AdultDetail {
+    adult: { id: string; name: string; isYou: boolean }
+    accounts: { id: string; name: string; institutionName: string | null }[]
+    totals: { accountId: string | null; accountName: string; total: number }[]
+    history: { id: string; day: string; amount: number; title: string; accountName: string | null }[]
 }

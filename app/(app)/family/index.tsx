@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Plus, Users } from 'lucide-react-native'
 import { apiClient } from '@/lib/api-client'
-import type { Child } from '@/lib/types'
+import type { Child, HouseholdAdult } from '@/lib/types'
 import { colors } from '@/lib/colors'
 import { haptics } from '@/lib/haptics'
 import { Card } from '@/components/ui/Card'
@@ -20,6 +20,12 @@ export default function FamilyScreen() {
     const { data: kids, isLoading, refetch, isRefetching } = useQuery<Child[]>({
         queryKey: ['family'],
         queryFn: async () => (await apiClient.get('/family/children')).data.data,
+        staleTime: 60 * 1000,
+    })
+
+    const { data: adults } = useQuery<HouseholdAdult[]>({
+        queryKey: ['family', 'adults'],
+        queryFn: async () => (await apiClient.get('/family/adults')).data.data,
         staleTime: 60 * 1000,
     })
 
@@ -48,6 +54,7 @@ export default function FamilyScreen() {
                 </View>
 
                 <View className="px-6 gap-y-3 pb-8 pt-4">
+                    <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest px-1">Kids</Text>
                     {isLoading ? (
                         [1, 2].map((i) => (
                             <Card key={i} className="flex-row items-center gap-x-3 p-4">
@@ -100,6 +107,28 @@ export default function FamilyScreen() {
                                     </TouchableOpacity>
                                 )
                             })}
+                        </>
+                    )}
+
+                    {adults && adults.length > 0 && (
+                        <>
+                            <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest px-1 mt-4">Adults</Text>
+                            {adults.map((a) => (
+                                <TouchableOpacity key={a.id} activeOpacity={0.7} onPress={() => { haptics.light(); router.push(`/(app)/family/adult/${a.id}` as any) }}>
+                                    <Card className="flex-row items-center gap-x-3 p-4">
+                                        <KidAvatar name={a.name} color="chart-2" />
+                                        <View className="flex-1">
+                                            <Text className="text-brand-text text-base font-semibold" numberOfLines={1}>{a.isYou ? 'You' : a.name}</Text>
+                                            <Text className="text-brand-muted text-xs mt-0.5">Goals &amp; rewards</Text>
+                                        </View>
+                                        <View className="items-end">
+                                            <AmountText amount={a.loggedThisMonth} size="md" neutral className="font-semibold" />
+                                            <Text className="text-brand-muted text-[10px]">this month</Text>
+                                        </View>
+                                        <ChevronRight size={14} color={colors.disabled} style={{ marginLeft: 4 }} />
+                                    </Card>
+                                </TouchableOpacity>
+                            ))}
                         </>
                     )}
                 </View>
