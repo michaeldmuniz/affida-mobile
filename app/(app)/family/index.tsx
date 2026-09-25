@@ -66,8 +66,8 @@ export default function FamilyScreen() {
                                             <Text className="text-brand-muted text-xs mt-0.5">Goals &amp; rewards</Text>
                                         </View>
                                         <View className="items-end">
-                                            <AmountText amount={a.loggedThisMonth} size="md" neutral className="font-semibold" />
-                                            <Text className="text-brand-muted text-[10px]">this month</Text>
+                                            <AmountText amount={a.earnedThisMonth} size="md" neutral className="font-semibold" />
+                                            <Text className="text-brand-muted text-[10px]">to budgets this month</Text>
                                         </View>
                                         <ChevronRight size={14} color={colors.disabled} style={{ marginLeft: 4 }} />
                                     </Card>

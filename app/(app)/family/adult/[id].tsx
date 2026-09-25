@@ -19,8 +19,8 @@ function money(n: number) {
     return `$${n.toFixed(2)}`
 }
 
-// An adult's own goals and chores. Rewards are logged toward an account they
-// pick, as a running total; nothing moves. Both partners can see and check off.
+// A parent's own goals and chores. Each reward is added to the budget category
+// they pick, for the month it's earned. Both partners can see and check off.
 export default function AdultGoalsScreen() {
     const { id } = useLocalSearchParams<{ id: string }>()
     const router = useRouter()
@@ -45,13 +45,13 @@ export default function AdultGoalsScreen() {
                 return null
             }
             const result = (await apiClient.post(`/family/tasks/${task.id}/complete`, { day })).data.data as { earned: number; bonus: number; streak: number }
-            return { ...result, accountName: task.rewardAccountName }
+            return { ...result, categoryName: task.rewardCategoryName }
         },
         onMutate: (task) => setTogglingId(task.id),
         onSuccess: (result) => {
             haptics.success()
             if (result && result.bonus > 0) {
-                Alert.alert(`${result.streak} in a row!`, `${money(result.earned + result.bonus)} logged${result.accountName ? ` toward ${result.accountName}` : ''}, including a ${money(result.bonus)} streak bonus.`)
+                Alert.alert(`${result.streak} in a row!`, `+${money(result.earned + result.bonus)}${result.categoryName ? ` to your ${result.categoryName} budget` : ''}, including a ${money(result.bonus)} streak bonus.`)
             }
         },
         onError: (e: any) => {
@@ -68,13 +68,13 @@ export default function AdultGoalsScreen() {
     const onRefresh = () => { detailQuery.refetch(); tasksQuery.refetch() }
 
     const adult = detailQuery.data?.adult
-    const totals = detailQuery.data?.totals ?? []
+    const thisMonth = detailQuery.data?.thisMonth ?? []
     const history = detailQuery.data?.history ?? []
     const tasks = tasksQuery.data ?? []
     const dueToday = tasks.filter(t => t.dueOnDay)
     const habits = tasks.filter(t => t.kind === 'HABIT')
     const chores = tasks.filter(t => t.kind === 'CHORE')
-    const allTime = totals.reduce((s, t) => s + t.total, 0)
+    const monthTotal = thisMonth.reduce((s, t) => s + t.total, 0)
     const firstName = adult?.name.split(' ')[0] ?? ''
 
     return (
@@ -99,19 +99,19 @@ export default function AdultGoalsScreen() {
                         {adult ? (
                             <>
                                 <KidAvatar name={adult.name} color="chart-2" size={52} />
-                                <AmountText amount={allTime} size="xl" neutral className="mt-3" />
-                                <Text className="text-brand-muted text-xs uppercase tracking-widest mt-1">Rewards logged</Text>
-                                {totals.length > 0 && (
+                                <AmountText amount={monthTotal} size="xl" neutral className="mt-3" />
+                                <Text className="text-brand-muted text-xs uppercase tracking-widest mt-1">Added to budgets this month</Text>
+                                {thisMonth.length > 0 && (
                                     <View className="self-stretch mt-4 gap-y-2">
-                                        {totals.map(t => (
-                                            <View key={t.accountId ?? 'none'} className="flex-row justify-between">
-                                                <Text className={`text-sm ${t.accountId ? 'text-brand-text' : 'text-brand-muted'}`} numberOfLines={1}>{t.accountName}</Text>
+                                        {thisMonth.map(t => (
+                                            <View key={t.categoryId ?? 'none'} className="flex-row justify-between">
+                                                <Text className={`text-sm ${t.categoryId ? 'text-brand-text' : 'text-brand-muted'}`} numberOfLines={1}>{t.categoryName}</Text>
                                                 <Text className="text-brand-text text-sm font-semibold">{money(t.total)}</Text>
                                             </View>
                                         ))}
                                     </View>
                                 )}
-                                <Text className="text-brand-muted text-xs text-center mt-4">A running total toward your accounts. No money moves.</Text>
+                                <Text className="text-brand-muted text-xs text-center mt-4">Rewards go into the budget category you pick for each goal.</Text>
                             </>
                         ) : (
                             <View className="py-10"><ActivityIndicator color={colors.accent} /></View>
@@ -139,7 +139,7 @@ export default function AdultGoalsScreen() {
                     <View>
                         <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest mb-3 px-1">History</Text>
                         {history.length === 0 ? (
-                            <Card className="p-4"><Text className="text-brand-muted text-sm text-center">Nothing logged yet.</Text></Card>
+                            <Card className="p-4"><Text className="text-brand-muted text-sm text-center">No rewards yet.</Text></Card>
                         ) : (
                             <Card className="p-0 overflow-hidden">
                                 {history.map((h, i) => (
@@ -148,7 +148,7 @@ export default function AdultGoalsScreen() {
                                             <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>{h.title}</Text>
                                             <Text className="text-brand-muted text-xs mt-0.5">
                                                 {new Date(`${h.day}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                                {h.accountName ? ` · ${h.accountName}` : ''}
+                                                {h.categoryName ? ` · ${h.categoryName}` : ''}
                                             </Text>
                                         </View>
                                         <AmountText amount={h.amount} size="sm" showSign />
@@ -164,7 +164,7 @@ export default function AdultGoalsScreen() {
                 <TaskEditSheet
                     owner={{ adultId: adult.id }}
                     ownerName={adult.isYou ? 'you' : firstName}
-                    rewardAccounts={detailQuery.data?.accounts ?? []}
+                    rewardCategories={detailQuery.data?.categories ?? []}
                     task={editingTask}
                     onClose={() => setEditingTask(null)}
                 />

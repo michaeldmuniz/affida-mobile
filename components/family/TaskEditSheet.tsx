@@ -17,22 +17,22 @@ const EVERY_DAY = [0, 1, 2, 3, 4, 5, 6]
 const WEEKDAYS = [1, 2, 3, 4, 5]
 
 interface Props {
-    /** A kid (reward pays into their wallet) or an adult (reward is logged toward an account). */
+    /** A kid (reward pays into their wallet) or a parent (reward is added to a budget category). */
     owner: { childId: string } | { adultId: string }
     ownerName: string
-    /** Adults: accounts the reward can be logged toward. */
-    rewardAccounts?: { id: string; name: string; institutionName: string | null }[]
+    /** Parents: budget categories the reward can be added to. */
+    rewardCategories?: { id: string; name: string }[]
     /** 'CHORE' / 'HABIT' to create that kind, a task to edit it, null when closed. */
     task: ChildTask | TaskKind | null
     onClose: () => void
 }
 
-export function TaskEditSheet({ owner, ownerName, rewardAccounts = [], task, onClose }: Props) {
+export function TaskEditSheet({ owner, ownerName, rewardCategories = [], task, onClose }: Props) {
     const queryClient = useQueryClient()
     const existing = task && typeof task === 'object' ? task : null
     const isAdult = 'adultId' in owner
-    const [rewardAccountId, setRewardAccountId] = useState<string | null>(null)
-    const [pickingAccount, setPickingAccount] = useState(false)
+    const [rewardCategoryId, setRewardCategoryId] = useState<string | null>(null)
+    const [pickingCategory, setPickingCategory] = useState(false)
     const [title, setTitle] = useState('')
     const [kind, setKind] = useState<TaskKind>('CHORE')
     const [reward, setReward] = useState('')
@@ -53,7 +53,7 @@ export function TaskEditSheet({ owner, ownerName, rewardAccounts = [], task, onC
             setBonusOn(!!existing.bonusEvery)
             setBonusEvery(String(existing.bonusEvery ?? 7))
             setBonusAmount(existing.bonusAmount ? String(existing.bonusAmount) : '')
-            setRewardAccountId(existing.rewardAccountId)
+            setRewardCategoryId(existing.rewardCategoryId)
         } else {
             const k = task as TaskKind
             setTitle('')
@@ -65,7 +65,7 @@ export function TaskEditSheet({ owner, ownerName, rewardAccounts = [], task, onC
             setBonusOn(false)
             setBonusEvery('7')
             setBonusAmount('')
-            setRewardAccountId(null)
+            setRewardCategoryId(null)
         }
     }, [existing?.id ?? task])
 
@@ -81,7 +81,7 @@ export function TaskEditSheet({ owner, ownerName, rewardAccounts = [], task, onC
                 days: repeating ? days : [],
                 bonusEvery: repeating && bonusOn ? Number(bonusEvery) : null,
                 bonusAmount: repeating && bonusOn ? Number(bonusAmount) : null,
-                ...(isAdult ? { rewardAccountId } : {}),
+                ...(isAdult ? { rewardCategoryId } : {}),
             }
             if (!Number.isFinite(body.reward) || body.reward < 0) throw new Error('Enter a valid reward.')
             if (repeating && days.length === 0) throw new Error('Pick at least one day.')
@@ -105,7 +105,7 @@ export function TaskEditSheet({ owner, ownerName, rewardAccounts = [], task, onC
     const handleDelete = () => {
         if (!existing) return
         haptics.warning()
-        Alert.alert(`Delete "${existing.title}"?`, isAdult ? 'It stops showing up. Rewards already logged from it stay in the totals.' : 'It stops showing up. Money already earned from it stays in the wallet.', [
+        Alert.alert(`Delete "${existing.title}"?`, isAdult ? 'It stops showing up. Rewards it already added stay in those budgets.' : 'It stops showing up. Money already earned from it stays in the wallet.', [
             { text: 'Cancel', style: 'cancel' },
             {
                 text: 'Delete', style: 'destructive', onPress: async () => {
@@ -191,17 +191,17 @@ export function TaskEditSheet({ owner, ownerName, rewardAccounts = [], task, onC
 
                             {isAdult && (
                                 <View>
-                                    <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest mb-2">Log rewards toward</Text>
+                                    <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest mb-2">Add rewards to budget</Text>
                                     <TouchableOpacity
-                                        onPress={() => { haptics.light(); setPickingAccount(true) }}
+                                        onPress={() => { haptics.light(); setPickingCategory(true) }}
                                         className="bg-brand-surface border border-brand-border rounded-xl px-4 h-12 flex-row items-center"
                                     >
-                                        <Text className={`flex-1 text-base ${rewardAccountId ? 'text-brand-text' : 'text-brand-muted'}`} numberOfLines={1}>
-                                            {rewardAccounts.find(a => a.id === rewardAccountId)?.name ?? 'No account'}
+                                        <Text className={`flex-1 text-base ${rewardCategoryId ? 'text-brand-text' : 'text-brand-muted'}`} numberOfLines={1}>
+                                            {rewardCategories.find(c => c.id === rewardCategoryId)?.name ?? 'No category'}
                                         </Text>
                                         <ChevronRight size={16} color={colors.muted} />
                                     </TouchableOpacity>
-                                    <Text className="text-brand-muted text-xs mt-1.5">A running total of what you&apos;ve earned. No money moves.</Text>
+                                    <Text className="text-brand-muted text-xs mt-1.5">Each time it&apos;s done, the reward is added to this category&apos;s budget for that month.</Text>
                                 </View>
                             )}
 
@@ -233,7 +233,7 @@ export function TaskEditSheet({ owner, ownerName, rewardAccounts = [], task, onC
                                             <View className="flex-row items-center justify-between">
                                                 <View className="flex-1 pr-3">
                                                     <Text className="text-brand-text text-sm font-medium">Streak bonus</Text>
-                                                    <Text className="text-brand-muted text-xs mt-0.5">{isAdult ? 'Extra reward logged for keeping it up.' : 'Extra money for keeping it up.'}</Text>
+                                                    <Text className="text-brand-muted text-xs mt-0.5">{isAdult ? 'Extra added to the budget for keeping it up.' : 'Extra money for keeping it up.'}</Text>
                                                 </View>
                                                 <Switch value={bonusOn} onValueChange={(v) => { haptics.light(); setBonusOn(v) }} trackColor={{ true: colors.accent }} />
                                             </View>
@@ -274,13 +274,13 @@ export function TaskEditSheet({ owner, ownerName, rewardAccounts = [], task, onC
                 </KeyboardAvoidingView>
             </SafeAreaView>
             <OptionPicker
-                visible={pickingAccount}
-                title="Log rewards toward"
-                options={rewardAccounts.map(a => ({ label: a.institutionName ? `${a.name} · ${a.institutionName}` : a.name, value: a.id }))}
-                selectedValue={rewardAccountId}
-                onSelect={setRewardAccountId}
-                onClose={() => setPickingAccount(false)}
-                noneLabel="No account"
+                visible={pickingCategory}
+                title="Add rewards to budget"
+                options={rewardCategories.map(c => ({ label: c.name, value: c.id }))}
+                selectedValue={rewardCategoryId}
+                onSelect={setRewardCategoryId}
+                onClose={() => setPickingCategory(false)}
+                noneLabel="No category"
             />
         </Modal>
     )

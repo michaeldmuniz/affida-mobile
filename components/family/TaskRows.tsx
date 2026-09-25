@@ -77,7 +77,7 @@ export function TaskSection({ title, empty, tasks, onAdd, onEdit }: {
                                     {scheduleLabel(t)}
                                     {t.frequency === 'ONCE' && t.lastDone ? ` · Done ${new Date(`${t.lastDone}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
                                     {t.bonusEvery && t.bonusAmount ? ` · +${money(t.bonusAmount)} every ${t.bonusEvery}` : ''}
-                                    {t.rewardAccountName && t.reward > 0 ? ` · toward ${t.rewardAccountName}` : ''}
+                                    {t.rewardCategoryName && t.reward > 0 ? ` · to ${t.rewardCategoryName}` : ''}
                                 </Text>
                             </View>
                             {t.streak > 1 && (
