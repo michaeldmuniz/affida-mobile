@@ -38,7 +38,7 @@ There is no test suite or linter in this repo; typecheck + export are the verifi
 ### Navigation (app/(app)/_layout.tsx)
 
 Five visible tabs: **Home (`index`), Transactions, Insights, Budgets, Goals**.
-Hidden tab screens (pushed, tab bar hidden, own back button): `accounts/index`, `settings`, `assistant` (AI chat), `subscriptions` (recurring), `rules`.
+Hidden tab screens (pushed, tab bar hidden, own back button): `accounts/index`, `settings`, `assistant` (AI chat), `subscriptions` (recurring), `rules`, `family` (kids' wallets, opened from Settings → Money).
 Auth group `(auth)`: `login`, `mfa`. Tokenless users are redirected to login by the app layout.
 
 ### App Lock
@@ -47,7 +47,7 @@ Face ID / biometric lock lives in the app layout: `useSettingsStore.appLockEnabl
 
 ### Backend endpoints used (web repo `app/api/mobile/`)
 
-auth/token, auth/refresh, me, dashboard, accounts (+[id]), transactions (+[id], flag), categories, budgets, goals (+[id], contributions), rules (+[id]), insights, subscriptions, chat, plaid/link-token, plaid/exchange.
+auth/token, auth/refresh, me, dashboard, accounts (+[id]), transactions (+[id], flag), categories, budgets, goals (+[id], contributions), rules (+[id]), insights, subscriptions, chat, plaid/link-token, plaid/exchange, family/children (+[id], [id]/entries), family/entries/[entryId].
 All responses are `{ data, error }`; mutations invalidate the matching react-query keys.
 
 ### Conventions

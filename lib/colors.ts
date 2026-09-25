@@ -14,3 +14,19 @@ export const colors = {
     text:        '#F0F0FA',
     disabled:    '#2A2A38',
 } as const
+
+// Kid avatar colors — hex of the web app's dark-theme --chart-1…5 tokens, so a
+// kid's color matches across platforms (the API stores the token name).
+export const KID_COLORS = {
+    'chart-1': '#5A7BF7',
+    'chart-2': '#3AD198',
+    'chart-3': '#F5AE39',
+    'chart-4': '#A876F2',
+    'chart-5': '#36C1DD',
+} as const
+
+export type KidColorKey = keyof typeof KID_COLORS
+
+export function kidColor(key: string | null | undefined): string {
+    return KID_COLORS[(key ?? 'chart-1') as KidColorKey] ?? KID_COLORS['chart-1']
+}

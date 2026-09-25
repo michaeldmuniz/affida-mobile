@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Lin
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
-import { LogOut, User, Shield, CreditCard, ChevronRight, ChevronLeft, Mail, Smartphone, Zap, FileText, ScrollText, Pencil, X, ScanFace, Repeat } from 'lucide-react-native'
+import { LogOut, User, Shield, CreditCard, ChevronRight, ChevronLeft, Mail, Smartphone, Zap, FileText, ScrollText, Pencil, X, ScanFace, Repeat, Users } from 'lucide-react-native'
 import * as LocalAuthentication from 'expo-local-authentication'
 import { apiClient } from '@/lib/api-client'
 import { useAuthStore } from '@/lib/auth-store'
@@ -266,6 +266,12 @@ export default function SettingsScreen() {
                 {/* Money */}
                 <SectionHeader title="Money" />
                 <View className="mx-4 rounded-2xl overflow-hidden border border-brand-border">
+                    <SettingsRow
+                        icon={Users}
+                        label="Family"
+                        onPress={() => router.push('/(app)/family')}
+                    />
+                    <Divider />
                     <SettingsRow
                         icon={Repeat}
                         label="Recurring & Subscriptions"

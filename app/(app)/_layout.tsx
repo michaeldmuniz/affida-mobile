@@ -183,6 +183,10 @@ export default function AppLayout() {
                 }}
             />
             <Tabs.Screen
+                name="family"
+                options={HIDDEN_SCREEN_OPTIONS}
+            />
+            <Tabs.Screen
                 name="receipts"
                 options={{
                     tabBarButton: () => null,

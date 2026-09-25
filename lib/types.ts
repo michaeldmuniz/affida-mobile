@@ -214,3 +214,34 @@ export interface PaginatedResponse<T> {
     page: number
     totalPages: number
 }
+
+// ── Family ────────────────────────────────────────────────────────────────────
+
+export type WalletKind = 'ALLOWANCE' | 'GIFT' | 'EARNED' | 'SPENT' | 'CASHED_OUT' | 'ADJUSTMENT'
+
+/** A kid profile managed by the parents (not a login). */
+export interface Child {
+    id: string
+    name: string
+    birthYear: number | null
+    /** Chart token name ('chart-1'…'chart-5'); map with kidColor() in lib/colors. */
+    color: string | null
+    ownerId: string
+    balance: number
+    createdAt: string
+}
+
+export interface WalletEntry {
+    id: string
+    /** Signed: positive = money in, negative = money out. */
+    amount: number
+    kind: WalletKind
+    note: string | null
+    date: string
+    createdByName: string | null
+}
+
+export interface ChildDetail {
+    child: Child
+    entries: WalletEntry[]
+}
