@@ -127,7 +127,7 @@ export function RuleEditSheet({ rule, onClose }: Props) {
         enabled: rule !== null,
     })
 
-    const accountOptions = accounts.map(a => ({
+    const accountOptions = accounts.filter(a => !a.isShared).map(a => ({
         label: `${a.name} — ${a.institutionName}`,
         value: a.id,
     }))

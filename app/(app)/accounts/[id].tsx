@@ -21,6 +21,11 @@ interface AccountDetail {
     lastSyncAt: string | null
     needsReconnect: boolean
     updatedAt: string
+    /** A partner's account shared with you — only the owner can delete it. */
+    isShared: boolean
+    /** Owner, or partner with EDITOR access. */
+    canEdit: boolean
+    ownerName: string | null
     snapshots: { balance: number; createdAt: string }[]
 }
 
@@ -120,12 +125,16 @@ export default function AccountDetailScreen() {
                 <Text className="flex-1 text-center text-brand-text text-lg font-bold" numberOfLines={1}>
                     {account?.name ?? ''}
                 </Text>
-                <TouchableOpacity onPress={handleDelete} hitSlop={8} className="w-8 items-end" disabled={isDeleting}>
-                    {isDeleting
-                        ? <ActivityIndicator size="small" color={colors.destructive} />
-                        : <Trash2 size={18} color={colors.destructive} strokeWidth={1.8} />
-                    }
-                </TouchableOpacity>
+                {account && !account.isShared ? (
+                    <TouchableOpacity onPress={handleDelete} hitSlop={8} className="w-8 items-end" disabled={isDeleting}>
+                        {isDeleting
+                            ? <ActivityIndicator size="small" color={colors.destructive} />
+                            : <Trash2 size={18} color={colors.destructive} strokeWidth={1.8} />
+                        }
+                    </TouchableOpacity>
+                ) : (
+                    <View className="w-8" />
+                )}
             </View>
 
             <ScrollView
@@ -148,8 +157,13 @@ export default function AccountDetailScreen() {
                                 <Text className={`text-xs mt-2 ${account.needsReconnect ? 'text-brand-negative' : 'text-brand-muted'}`}>
                                     {account.plaidLinked ? syncStatusLabel(account) : `Manual account · updated ${formatDate(account.updatedAt)}`}
                                 </Text>
+                                {account.isShared && (
+                                    <Text className="text-brand-muted text-xs mt-1">
+                                        Shared by {account.ownerName?.split(' ')[0] ?? 'your partner'}{account.canEdit ? '' : ' · view only'}
+                                    </Text>
+                                )}
 
-                                {!account.plaidLinked && (
+                                {!account.plaidLinked && account.canEdit && (
                                     <TouchableOpacity
                                         className="flex-row items-center gap-x-2 mt-4 self-start bg-brand-elevated border border-brand-border rounded-xl px-4 h-9"
                                         onPress={() => { setNewBalance(''); setShowUpdateBalance(true) }}

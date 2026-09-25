@@ -11,6 +11,7 @@ import { CategoryPicker } from './CategoryPicker'
 import { OptionPicker } from '@/components/OptionPicker'
 import { haptics } from '@/lib/haptics'
 import type { Account, Category } from '@/lib/types'
+import { canEditAccount } from '@/lib/account-types'
 import { colors } from '@/lib/colors'
 
 interface Props {
@@ -42,7 +43,7 @@ export function TransactionAddSheet({ visible, onClose }: Props) {
         staleTime: 10 * 60 * 1000,
     })
 
-    const manualAccounts = accounts?.filter((a) => !a.plaidLinked) ?? []
+    const manualAccounts = accounts?.filter((a) => !a.plaidLinked && canEditAccount(a)) ?? []
 
     const reset = () => {
         setType('expense')

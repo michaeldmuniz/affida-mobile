@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
 import { AddAccountSheet } from '@/components/accounts/AddSheet'
 import { getPaymentUrl } from '@/lib/payment-links'
-import { DEBT_TYPES } from '@/lib/account-types'
+import { DEBT_TYPES, computeNetWorth } from '@/lib/account-types'
 import { formatAccountType } from '@/lib/format'
 import type { Account } from '@/lib/types'
 import { colors } from '@/lib/colors'
@@ -43,10 +43,7 @@ export default function AccountsScreen() {
         retry: 1,
     })
 
-    const netWorth = accounts?.reduce((sum, a) => {
-        if (a.excludeFromNetWorth) return sum
-        return sum + a.balance
-    }, 0) ?? 0
+    const netWorth = computeNetWorth(accounts ?? [])
 
     const assets = accounts?.filter((a) => !DEBT_TYPES.has(a.type) && a.balance > 0) ?? []
     const liabilities = accounts?.filter((a) => DEBT_TYPES.has(a.type) || a.balance < 0) ?? []
@@ -114,7 +111,7 @@ export default function AccountsScreen() {
                         </View>
                     )}
 
-                    {!isLoading && !accounts && (
+                    {!isLoading && (accounts?.length ?? 0) === 0 && (
                         <EmptyState />
                     )}
                 </View>
@@ -136,7 +133,10 @@ function AccountRow({ account, onPress }: { account: Account; onPress: () => voi
                     <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>
                         {account.name}
                     </Text>
-                    <Text className="text-brand-muted text-xs mt-0.5">{formatAccountType(account.type)}</Text>
+                    <Text className="text-brand-muted text-xs mt-0.5" numberOfLines={1}>
+                        {formatAccountType(account.type)}
+                        {account.isShared ? ` · Shared by ${account.ownerName?.split(' ')[0] ?? 'partner'}` : ''}
+                    </Text>
                 </View>
                 <View className="items-end gap-y-1">
                     <AmountText amount={account.balance} size="sm" neutral />

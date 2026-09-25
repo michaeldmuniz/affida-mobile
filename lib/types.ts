@@ -48,6 +48,14 @@ export interface Account {
     needsReconnect: boolean
     updatedAt: string
     createdAt: string
+    /** True when a linked partner owns this account and shared it with you. */
+    isShared: boolean
+    /** Your access to a shared account; null for your own accounts. */
+    role: 'VIEWER' | 'EDITOR' | null
+    /** Shared account you've hidden from transactions & reports (also left out of net worth). */
+    hideFromGlobal: boolean
+    /** The partner who owns a shared account; null for your own. */
+    ownerName: string | null
 }
 
 export interface Transaction {

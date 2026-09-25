@@ -8,6 +8,7 @@ import { X, Check, CreditCard } from 'lucide-react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import type { Account } from '@/lib/types'
+import { canEditAccount } from '@/lib/account-types'
 import { colors } from '@/lib/colors'
 
 interface Props {
@@ -40,12 +41,13 @@ export function GoalCreateSheet({ visible, onClose }: Props) {
     const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([])
     const [initialAmount, setInitialAmount] = useState('')
 
-    const { data: accounts = [] } = useQuery<Account[]>({
+    const { data: allAccounts = [] } = useQuery<Account[]>({
         queryKey: ['accounts'],
         queryFn: async () => (await apiClient.get('/accounts')).data.data,
         staleTime: 5 * 60 * 1000,
         enabled: visible,
     })
+    const accounts = allAccounts.filter(canEditAccount)
 
     const reset = () => {
         setName('')
