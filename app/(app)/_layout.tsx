@@ -4,7 +4,7 @@ import { View, AppState } from 'react-native'
 import * as LocalAuthentication from 'expo-local-authentication'
 
 export { ErrorBoundary } from '@/components/ErrorBoundary'
-import { Home, ArrowLeftRight, PieChart, Target, LineChart } from 'lucide-react-native'
+import { Home, ArrowLeftRight, PieChart, Target, Wallet } from 'lucide-react-native'
 import { useAuthStore } from '@/lib/auth-store'
 import { useSettingsStore } from '@/lib/settings-store'
 import { LockScreen } from '@/components/LockScreen'
@@ -92,6 +92,8 @@ export default function AppLayout() {
 
     return (
         <Tabs
+            // Back returns to the screen you came from (e.g. account detail → Accounts tab), not always Home.
+            backBehavior="history"
             screenOptions={{
                 headerShown: false,
                 tabBarStyle: {
@@ -130,10 +132,10 @@ export default function AppLayout() {
                 }}
             />
             <Tabs.Screen
-                name="insights"
+                name="accounts/index"
                 options={{
-                    title: 'Insights',
-                    tabBarIcon: ({ focused }) => <TabIcon Icon={LineChart} focused={focused} />,
+                    title: 'Accounts',
+                    tabBarIcon: ({ focused }) => <TabIcon Icon={Wallet} focused={focused} />,
                 }}
             />
             <Tabs.Screen
@@ -163,7 +165,11 @@ export default function AppLayout() {
                 options={HIDDEN_SCREEN_OPTIONS}
             />
             <Tabs.Screen
-                name="accounts/index"
+                name="insights"
+                options={HIDDEN_SCREEN_OPTIONS}
+            />
+            <Tabs.Screen
+                name="investments"
                 options={HIDDEN_SCREEN_OPTIONS}
             />
             <Tabs.Screen

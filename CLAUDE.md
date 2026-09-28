@@ -37,8 +37,11 @@ There is no test suite or linter in this repo; typecheck + export are the verifi
 
 ### Navigation (app/(app)/_layout.tsx)
 
-Five visible tabs: **Home (`index`), Transactions, Insights, Budgets, Goals**.
-Hidden tab screens (pushed, tab bar hidden, own back button): `accounts/index`, `settings`, `assistant` (AI chat), `subscriptions` (recurring), `rules`, `family/index` (kids list, opened from Settings → Money) and `family/[id]` (a kid's Today checklist, daily goals, chores and wallet).
+Five visible tabs: **Home (`index`), Transactions, Accounts (`accounts/index`), Budgets, Goals**. `backBehavior="history"`, so a pushed screen's back returns to where it was opened from.
+
+Home is one scroll with sticky section chips (Overview · Spending · Investments · Bills · Goals · Activity) that jump to each section; sections with no data hide along with their chip. Each section is a summary card that links to its full screen.
+
+Hidden tab screens (pushed, tab bar hidden, own back button): `insights` (month picker, trends, net worth, merchants — Home's "More insights"), `investments` (portfolio value, allocation, holdings, dividends), `settings`, `assistant` (AI chat), `subscriptions` (recurring), `rules`, `family/index` (kids list, opened from Settings → Money) and `family/[id]` (a kid's Today checklist, daily goals, chores and wallet).
 Auth group `(auth)`: `login`, `mfa`. Tokenless users are redirected to login by the app layout.
 
 ### App Lock
@@ -47,7 +50,7 @@ Face ID / biometric lock lives in the app layout: `useSettingsStore.appLockEnabl
 
 ### Backend endpoints used (web repo `app/api/mobile/`)
 
-auth/token, auth/refresh, me, dashboard, accounts (+[id]), transactions (+[id], flag), categories, budgets, goals (+[id], contributions), rules (+[id]), insights, subscriptions, chat, plaid/link-token, plaid/exchange, family/children (+[id], [id]/entries, [id]/tasks), family/entries/[entryId], family/tasks/[taskId] (+complete).
+auth/token, auth/refresh, me, dashboard, accounts (+[id]), transactions (+[id], flag), categories, budgets, goals (+[id], contributions), rules (+[id]), insights, subscriptions, chat, plaid/link-token, plaid/exchange, family/children (+[id], [id]/entries, [id]/tasks), family/entries/[entryId], family/tasks/[taskId] (+complete), investments.
 All responses are `{ data, error }`; mutations invalidate the matching react-query keys.
 
 ### Conventions

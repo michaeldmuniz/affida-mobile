@@ -288,3 +288,35 @@ export interface AdultDetail {
     thisMonth: { categoryId: string | null; categoryName: string; total: number }[]
     history: { id: string; day: string; amount: number; title: string; categoryName: string | null }[]
 }
+
+// ── Investments ───────────────────────────────────────────────────────────────
+
+export interface InvestmentHolding {
+    name: string
+    ticker: string | null
+    type: string | null
+    value: number
+    quantity: number
+    costBasis: number | null
+    gain: number | null
+    gainPct: number | null
+    /** Share of the portfolio, 0–100. */
+    weight: number
+}
+
+/** GET /investments — same numbers as the web /investments page. */
+export interface Investments {
+    hasInvestments: boolean
+    /** From account balances, so it matches the Accounts screen. */
+    totalValue: number
+    gain: number | null
+    gainPct: number | null
+    change30d: { amount: number; pct: number } | null
+    history: { date: string; value: number }[]
+    allocation: { type: string; label: string; value: number; pct: number }[]
+    holdings: InvestmentHolding[]
+    dividends12m: number
+    dividends: { month: string; amount: number }[]
+    accounts: { id: string; name: string; institutionName: string | null; balance: number }[]
+    holdingsAsOf: string | null
+}

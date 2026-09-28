@@ -46,3 +46,8 @@ export function scheduleLabel(task: { frequency: string; days: number[] }): stri
     if (key === '0,6') return 'Weekends'
     return task.days.map(d => DAY_NAMES[d]).join(', ')
 }
+
+/** "+4.2%" / "−1.3%" */
+export function signedPct(pct: number): string {
+    return `${pct >= 0 ? '+' : '−'}${Math.abs(pct).toFixed(1)}%`
+}

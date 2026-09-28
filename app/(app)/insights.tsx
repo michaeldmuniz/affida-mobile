@@ -58,7 +58,12 @@ export default function InsightsScreen() {
         <SafeAreaView className="flex-1 bg-brand-bg" edges={['top']}>
             {/* Header */}
             <View className="px-6 pt-4 pb-2">
-                <Text className="text-brand-text text-2xl font-bold">Insights</Text>
+                <View className="flex-row items-center gap-x-2">
+                    <TouchableOpacity onPress={() => router.back()} hitSlop={8} className="-ml-2">
+                        <ChevronLeft size={24} color={colors.muted} />
+                    </TouchableOpacity>
+                    <Text className="text-brand-text text-2xl font-bold">Insights</Text>
+                </View>
                 {/* Month Picker */}
                 <View className="flex-row items-center gap-x-1 mt-3">
                     <TouchableOpacity

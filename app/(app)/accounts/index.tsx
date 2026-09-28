@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Plus, Landmark, CreditCard, TrendingUp, Wallet, ExternalLink, ChevronRight, ChevronLeft } from 'lucide-react-native'
+import { Plus, Landmark, CreditCard, TrendingUp, Wallet, ExternalLink, ChevronRight } from 'lucide-react-native'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { apiClient } from '@/lib/api-client'
@@ -59,12 +59,7 @@ export default function AccountsScreen() {
             >
                 {/* Header */}
                 <View className="flex-row items-center justify-between px-6 pt-4 pb-2">
-                    <View className="flex-row items-center gap-x-2">
-                        <TouchableOpacity onPress={() => router.back()} hitSlop={8} className="-ml-2">
-                            <ChevronLeft size={24} color={colors.muted} />
-                        </TouchableOpacity>
-                        <Text className="text-brand-text text-2xl font-bold">Accounts</Text>
-                    </View>
+                    <Text className="text-brand-text text-2xl font-bold">Accounts</Text>
                     <TouchableOpacity
                         className="w-9 h-9 rounded-full bg-brand-surface border border-brand-border items-center justify-center"
                         onPress={() => setShowAdd(true)}
