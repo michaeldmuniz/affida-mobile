@@ -11,6 +11,8 @@ import type { ChildTask, TaskKind } from '@/lib/types'
 import { colors } from '@/lib/colors'
 import { haptics } from '@/lib/haptics'
 import { OptionPicker } from '@/components/OptionPicker'
+import { DatePickerSheet } from '@/components/family/DatePickerSheet'
+import { localDay, shortDay } from '@/lib/format'
 
 const DAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 const EVERY_DAY = [0, 1, 2, 3, 4, 5, 6]
@@ -24,10 +26,12 @@ interface Props {
     rewardCategories?: { id: string; name: string }[]
     /** 'CHORE' / 'HABIT' to create that kind, a task to edit it, null when closed. */
     task: ChildTask | TaskKind | null
+    /** New tasks: the day picked on the calendar (one-time: its date; repeating: its first day). */
+    initialDay?: string | null
     onClose: () => void
 }
 
-export function TaskEditSheet({ owner, ownerName, rewardCategories = [], task, onClose }: Props) {
+export function TaskEditSheet({ owner, ownerName, rewardCategories = [], task, initialDay = null, onClose }: Props) {
     const queryClient = useQueryClient()
     const existing = task && typeof task === 'object' ? task : null
     const isAdult = 'adultId' in owner
@@ -41,6 +45,11 @@ export function TaskEditSheet({ owner, ownerName, rewardCategories = [], task, o
     const [bonusOn, setBonusOn] = useState(false)
     const [bonusEvery, setBonusEvery] = useState('7')
     const [bonusAmount, setBonusAmount] = useState('')
+    /** One-time: the day it's due (null = any day). Repeating: the first day. */
+    const [startDate, setStartDate] = useState<string | null>(null)
+    const [endsOn, setEndsOn] = useState(false)
+    const [endDate, setEndDate] = useState<string | null>(null)
+    const [pickingDate, setPickingDate] = useState<'start' | 'end' | null>(null)
 
     useEffect(() => {
         if (!task) return
@@ -54,6 +63,9 @@ export function TaskEditSheet({ owner, ownerName, rewardCategories = [], task, o
             setBonusEvery(String(existing.bonusEvery ?? 7))
             setBonusAmount(existing.bonusAmount ? String(existing.bonusAmount) : '')
             setRewardCategoryId(existing.rewardCategoryId)
+            setStartDate(existing.startDate)
+            setEndsOn(!!existing.endDate)
+            setEndDate(existing.endDate)
         } else {
             const k = task as TaskKind
             setTitle('')
@@ -66,8 +78,15 @@ export function TaskEditSheet({ owner, ownerName, rewardCategories = [], task, o
             setBonusEvery('7')
             setBonusAmount('')
             setRewardCategoryId(null)
+            setStartDate(initialDay)
+            setEndsOn(false)
+            setEndDate(null)
         }
-    }, [existing?.id ?? task])
+    }, [existing?.id ?? task, initialDay])
+
+    // Repeating tasks saved before start dates existed run from when they were
+    // added; leave that alone (its streak counts back to then) unless it's changed.
+    const keepsCreatedStart = !!existing && existing.frequency === 'REPEATING' && !existing.startDate
 
     const invalidate = () => queryClient.invalidateQueries({ queryKey: ['family'] })
 
@@ -81,12 +100,17 @@ export function TaskEditSheet({ owner, ownerName, rewardCategories = [], task, o
                 days: repeating ? days : [],
                 bonusEvery: repeating && bonusOn ? Number(bonusEvery) : null,
                 bonusAmount: repeating && bonusOn ? Number(bonusAmount) : null,
+                startDate: startDate ?? (repeating && !keepsCreatedStart ? localDay() : null),
+                endDate: repeating && endsOn ? endDate : null,
                 ...(isAdult ? { rewardCategoryId } : {}),
             }
             if (!Number.isFinite(body.reward) || body.reward < 0) throw new Error('Enter a valid reward.')
             if (repeating && days.length === 0) throw new Error('Pick at least one day.')
             if (repeating && bonusOn && (!(body.bonusEvery! >= 2) || !(body.bonusAmount! > 0)))
                 throw new Error('Set how many in a row (2 or more) and a bonus amount.')
+            if (repeating && endsOn && !body.endDate) throw new Error('Pick an end date.')
+            if (repeating && body.endDate && body.startDate && body.endDate < body.startDate)
+                throw new Error("The end date can't be before the start date.")
             if (existing) await apiClient.patch(`/family/tasks/${existing.id}`, body)
             else if ('adultId' in owner) await apiClient.post(`/family/adults/${owner.adultId}/tasks`, body)
             else await apiClient.post(`/family/children/${owner.childId}/tasks`, body)
@@ -211,6 +235,15 @@ export function TaskEditSheet({ owner, ownerName, rewardCategories = [], task, o
                                     <Switch value={repeating} onValueChange={(v) => { haptics.light(); setRepeating(v) }} trackColor={{ true: colors.accent }} />
                                 </View>
 
+                                {!repeating && (
+                                    <View>
+                                        <DateRow label="Date" value={startDate ? shortDay(startDate) : 'Any day'} onPress={() => setPickingDate('start')} />
+                                        <Text className="text-brand-muted text-xs mt-1.5">
+                                            {startDate ? "It shows up on this day and stays on Today until it's done." : "No date: it stays on Today until it's done."}
+                                        </Text>
+                                    </View>
+                                )}
+
                                 {repeating && (
                                     <>
                                         <View className="flex-row justify-between">
@@ -228,6 +261,29 @@ export function TaskEditSheet({ owner, ownerName, rewardCategories = [], task, o
                                             <TouchableOpacity onPress={() => setDays(EVERY_DAY)}><Text className="text-brand-accent text-xs font-medium">Every day</Text></TouchableOpacity>
                                             <TouchableOpacity onPress={() => setDays(WEEKDAYS)}><Text className="text-brand-accent text-xs font-medium">Weekdays</Text></TouchableOpacity>
                                         </View>
+
+                                        <DateRow
+                                            label="Starts"
+                                            value={startDate ? shortDay(startDate) : keepsCreatedStart ? 'Since it was added' : 'Today'}
+                                            onPress={() => setPickingDate('start')}
+                                        />
+                                        <View className="flex-row items-center justify-between">
+                                            <Text className="text-brand-text text-sm font-medium">Ends</Text>
+                                            <View className="flex-row bg-brand-elevated border border-brand-border rounded-lg p-0.5">
+                                                {([false, true] as const).map(on => (
+                                                    <TouchableOpacity
+                                                        key={String(on)}
+                                                        onPress={() => { haptics.light(); setEndsOn(on); if (on && !endDate) setPickingDate('end') }}
+                                                        className={`px-3 h-8 rounded-md items-center justify-center ${endsOn === on ? 'bg-brand-accent' : ''}`}
+                                                    >
+                                                        <Text className={`text-xs font-semibold ${endsOn === on ? 'text-white' : 'text-brand-muted'}`}>{on ? 'On a date' : 'Never'}</Text>
+                                                    </TouchableOpacity>
+                                                ))}
+                                            </View>
+                                        </View>
+                                        {endsOn && (
+                                            <DateRow label="Last day" value={endDate ? shortDay(endDate) : 'Pick a day'} onPress={() => setPickingDate('end')} />
+                                        )}
 
                                         <View className="border-t border-brand-border pt-4 gap-y-3">
                                             <View className="flex-row items-center justify-between">
@@ -282,6 +338,28 @@ export function TaskEditSheet({ owner, ownerName, rewardCategories = [], task, o
                 onClose={() => setPickingCategory(false)}
                 noneLabel="No category"
             />
+            <DatePickerSheet
+                visible={pickingDate !== null}
+                title={pickingDate === 'end' ? 'Last day' : repeating ? 'Starts' : 'Date'}
+                value={pickingDate === 'end' ? endDate : startDate}
+                minDay={pickingDate === 'end' ? startDate ?? undefined : undefined}
+                onPick={(d) => (pickingDate === 'end' ? setEndDate(d) : setStartDate(d))}
+                clearLabel={pickingDate === 'start' && !repeating ? 'Any day' : undefined}
+                onClear={() => setStartDate(null)}
+                onClose={() => setPickingDate(null)}
+            />
         </Modal>
+    )
+}
+
+function DateRow({ label, value, onPress }: { label: string; value: string; onPress: () => void }) {
+    return (
+        <TouchableOpacity onPress={() => { haptics.light(); onPress() }} className="flex-row items-center justify-between">
+            <Text className="text-brand-text text-sm font-medium">{label}</Text>
+            <View className="flex-row items-center gap-x-1">
+                <Text className="text-brand-accent text-sm">{value}</Text>
+                <ChevronRight size={14} color={colors.muted} />
+            </View>
+        </TouchableOpacity>
     )
 }

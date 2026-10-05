@@ -14,6 +14,7 @@ import { AmountText } from '@/components/ui/AmountText'
 import { KidAvatar } from '@/components/family/KidAvatar'
 import { TaskEditSheet } from '@/components/family/TaskEditSheet'
 import { TodayTaskRow, TaskSection } from '@/components/family/TaskRows'
+import { FamilyCalendar } from '@/components/family/FamilyCalendar'
 
 function money(n: number) {
     return `$${n.toFixed(2)}`
@@ -28,6 +29,7 @@ export default function AdultGoalsScreen() {
     const [day] = useState(() => localDay())
     const [editingTask, setEditingTask] = useState<ChildTask | TaskKind | null>(null)
     const [togglingId, setTogglingId] = useState<string | null>(null)
+    const [newTaskDay, setNewTaskDay] = useState<string | null>(null)
 
     const detailQuery = useQuery<AdultDetail>({
         queryKey: ['family', 'adults', id],
@@ -133,8 +135,15 @@ export default function AdultGoalsScreen() {
                         )}
                     </View>
 
-                    <TaskSection title="Daily goals" empty="Things to do regularly, like a workout or no-spend days." tasks={habits} onAdd={() => setEditingTask('HABIT')} onEdit={setEditingTask} />
-                    <TaskSection title="Chores" empty="Jobs to get done, one-time or repeating." tasks={chores} onAdd={() => setEditingTask('CHORE')} onEdit={setEditingTask} />
+                    {adult && (
+                        <View>
+                            <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest mb-3 px-1">Calendar</Text>
+                            <FamilyCalendar owner={{ adultId: adult.id }} onAddOnDay={(d) => { setNewTaskDay(d); setEditingTask('CHORE') }} />
+                        </View>
+                    )}
+
+                    <TaskSection title="Daily goals" empty="Things to do regularly, like a workout or no-spend days." tasks={habits} onAdd={() => { setNewTaskDay(null); setEditingTask('HABIT') }} onEdit={setEditingTask} />
+                    <TaskSection title="Chores" empty="Jobs to get done, one-time or repeating." tasks={chores} onAdd={() => { setNewTaskDay(null); setEditingTask('CHORE') }} onEdit={setEditingTask} />
 
                     <View>
                         <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest mb-3 px-1">History</Text>
@@ -166,7 +175,8 @@ export default function AdultGoalsScreen() {
                     ownerName={adult.isYou ? 'you' : firstName}
                     rewardCategories={detailQuery.data?.categories ?? []}
                     task={editingTask}
-                    onClose={() => setEditingTask(null)}
+                    initialDay={newTaskDay}
+                    onClose={() => { setEditingTask(null); setNewTaskDay(null) }}
                 />
             )}
         </SafeAreaView>

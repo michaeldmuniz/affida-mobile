@@ -261,6 +261,10 @@ export interface ChildTask {
     frequency: 'ONCE' | 'REPEATING'
     /** 0 = Sunday … 6 = Saturday */
     days: number[]
+    /** YYYY-MM-DD. One-time: the day it's due (null = any day). Repeating: the first day (null = since it was added). */
+    startDate: string | null
+    /** YYYY-MM-DD, repeating only: the last day (null = never ends). */
+    endDate: string | null
     bonusEvery: number | null
     bonusAmount: number | null
     /** Parent goals: the budget category the reward is added to (null for kids, or none picked). */
@@ -319,4 +323,40 @@ export interface Investments {
     dividends: { month: string; amount: number }[]
     accounts: { id: string; name: string; institutionName: string | null; balance: number }[]
     holdingsAsOf: string | null
+
+/**
+ * done: completed that day. missed: a repeating day that went by undone.
+ * due: on today, not done yet. overdue: a dated one-time task past its day,
+ * still not done. upcoming: a future day.
+ */
+export type CalendarStatus = 'done' | 'missed' | 'due' | 'overdue' | 'upcoming'
+
+/** Someone in the household on the calendar; color is a chart token name. */
+export interface CalendarMember {
+    kind: 'adult' | 'child'
+    id: string
+    name: string
+    isYou: boolean
+    color: string
+}
+
+/** A chore or goal on one day of the calendar. */
+export interface CalendarItem {
+    day: string
+    status: CalendarStatus
+    taskId: string
+    title: string
+    kind: TaskKind
+    frequency: 'ONCE' | 'REPEATING'
+    reward: number
+    rewardCategoryName: string | null
+    /** The kid's or parent's id (see members). */
+    ownerId: string
+    /** Deleted since: shown for its history only, can't be changed. */
+    archived: boolean
+}
+
+export interface FamilyCalendar {
+    members: CalendarMember[]
+    items: CalendarItem[]
 }

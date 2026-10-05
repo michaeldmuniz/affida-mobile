@@ -50,4 +50,25 @@ export function scheduleLabel(task: { frequency: string; days: number[] }): stri
 /** "+4.2%" / "−1.3%" */
 export function signedPct(pct: number): string {
     return `${pct >= 0 ? '+' : '−'}${Math.abs(pct).toFixed(1)}%`
+
+/** YYYY-MM-DD → "Oct 12". */
+export function shortDay(day: string): string {
+    return new Date(`${day}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+/** "Oct 12" for a dated one-off; "Starts Oct 12" / "Until Nov 30" / "Ended Oct 3" for repeating — same as the web. */
+export function datesLabel(t: { frequency: string; startDate: string | null; endDate: string | null }, today: string): string | null {
+    if (t.frequency === 'ONCE') return t.startDate ? shortDay(t.startDate) : null
+    if (t.endDate && t.endDate < today) return `Ended ${shortDay(t.endDate)}`
+    const parts: string[] = []
+    if (t.startDate && t.startDate > today) parts.push(`Starts ${shortDay(t.startDate)}`)
+    if (t.endDate) parts.push(`Until ${shortDay(t.endDate)}`)
+    return parts.length ? parts.join(' · ') : null
+}
+
+/** Adds n days to a YYYY-MM-DD (local calendar). */
+export function addDaysTo(day: string, n: number): string {
+    const d = new Date(`${day}T12:00:00`)
+    d.setDate(d.getDate() + n)
+    return localDay(d)
 }

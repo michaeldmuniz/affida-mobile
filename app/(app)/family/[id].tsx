@@ -15,6 +15,7 @@ import { KidAvatar } from '@/components/family/KidAvatar'
 import { ChildEditSheet } from '@/components/family/ChildEditSheet'
 import { TaskEditSheet } from '@/components/family/TaskEditSheet'
 import { TodayTaskRow, TaskSection } from '@/components/family/TaskRows'
+import { FamilyCalendar } from '@/components/family/FamilyCalendar'
 import { WalletEntrySheet } from '@/components/family/WalletEntrySheet'
 
 const STREAK_COLOR = KID_COLORS['chart-3']
@@ -35,6 +36,7 @@ export default function KidScreen() {
     const [editingTask, setEditingTask] = useState<ChildTask | TaskKind | null>(null)
     const [walletMode, setWalletMode] = useState<'add' | 'remove' | null>(null)
     const [togglingId, setTogglingId] = useState<string | null>(null)
+    const [newTaskDay, setNewTaskDay] = useState<string | null>(null)
 
     const detailQuery = useQuery<ChildDetail>({
         queryKey: ['family', id],
@@ -169,8 +171,15 @@ export default function KidScreen() {
                         )}
                     </View>
 
-                    <TaskSection title="Daily goals" empty="Things to do regularly, like reading or exercise." tasks={habits} onAdd={() => setEditingTask('HABIT')} onEdit={setEditingTask} />
-                    <TaskSection title="Chores" empty="Jobs around the house, one-time or repeating." tasks={chores} onAdd={() => setEditingTask('CHORE')} onEdit={setEditingTask} />
+                    {child && (
+                        <View>
+                            <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest mb-3 px-1">Calendar</Text>
+                            <FamilyCalendar owner={{ childId: child.id }} onAddOnDay={(d) => { setNewTaskDay(d); setEditingTask('CHORE') }} />
+                        </View>
+                    )}
+
+                    <TaskSection title="Daily goals" empty="Things to do regularly, like reading or exercise." tasks={habits} onAdd={() => { setNewTaskDay(null); setEditingTask('HABIT') }} onEdit={setEditingTask} />
+                    <TaskSection title="Chores" empty="Jobs around the house, one-time or repeating." tasks={chores} onAdd={() => { setNewTaskDay(null); setEditingTask('CHORE') }} onEdit={setEditingTask} />
 
                     {/* History */}
                     <View>
@@ -212,7 +221,7 @@ export default function KidScreen() {
             {child && (
                 <>
                     <ChildEditSheet child={editingKid ? child : null} onClose={() => setEditingKid(false)} onRemoved={() => router.back()} />
-                    <TaskEditSheet owner={{ childId: child.id }} ownerName={child.name} task={editingTask} onClose={() => setEditingTask(null)} />
+                    <TaskEditSheet owner={{ childId: child.id }} ownerName={child.name} task={editingTask} initialDay={newTaskDay} onClose={() => { setEditingTask(null); setNewTaskDay(null) }} />
                     <WalletEntrySheet childId={child.id} childName={child.name} mode={walletMode} onClose={() => setWalletMode(null)} />
                 </>
             )}

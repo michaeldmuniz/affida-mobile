@@ -3,7 +3,7 @@ import { Plus, Check, Flame } from 'lucide-react-native'
 import type { ChildTask } from '@/lib/types'
 import { colors, KID_COLORS } from '@/lib/colors'
 import { haptics } from '@/lib/haptics'
-import { scheduleLabel } from '@/lib/format'
+import { scheduleLabel, datesLabel, localDay, shortDay } from '@/lib/format'
 import { Card } from '@/components/ui/Card'
 
 // Task rows shared by the kid and adult family screens.
@@ -51,6 +51,7 @@ export function TaskSection({ title, empty, tasks, onAdd, onEdit }: {
     onAdd: () => void
     onEdit: (t: ChildTask) => void
 }) {
+    const today = localDay()
     return (
         <View>
             <View className="flex-row items-center justify-between mb-3 px-1">
@@ -75,7 +76,8 @@ export function TaskSection({ title, empty, tasks, onAdd, onEdit }: {
                                 <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>{t.title}</Text>
                                 <Text className="text-brand-muted text-xs mt-0.5" numberOfLines={1}>
                                     {scheduleLabel(t)}
-                                    {t.frequency === 'ONCE' && t.lastDone ? ` · Done ${new Date(`${t.lastDone}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
+                                    {datesLabel(t, today) ? ` · ${datesLabel(t, today)}` : ''}
+                                    {t.frequency === 'ONCE' && t.lastDone ? ` · Done ${shortDay(t.lastDone)}` : ''}
                                     {t.bonusEvery && t.bonusAmount ? ` · +${money(t.bonusAmount)} every ${t.bonusEvery}` : ''}
                                     {t.rewardCategoryName && t.reward > 0 ? ` · to ${t.rewardCategoryName}` : ''}
                                 </Text>

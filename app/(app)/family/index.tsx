@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
 import { KidAvatar } from '@/components/family/KidAvatar'
 import { ChildEditSheet } from '@/components/family/ChildEditSheet'
+import { FamilyCalendar } from '@/components/family/FamilyCalendar'
 
 export default function FamilyScreen() {
     const router = useRouter()
@@ -130,6 +131,9 @@ export default function FamilyScreen() {
                             })}
                         </>
                     )}
+
+                    <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest px-1 mt-4">Calendar</Text>
+                    <FamilyCalendar />
                 </View>
             </ScrollView>
 
