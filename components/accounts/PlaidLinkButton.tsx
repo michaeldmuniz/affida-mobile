@@ -7,6 +7,11 @@ import { SyncOptionsSheet, computeSyncStartDate } from './SyncOptionsSheet'
 
 type RangeOption = '30d' | '90d' | '180d' | '365d' | 'all'
 
+// The server answers 403 when a trialing user already has the maximum number of
+// banks connected. No upgrade action here — billing is managed on the web.
+const TRIAL_LIMIT_TITLE = 'Bank limit reached'
+const TRIAL_LIMIT_MESSAGE = 'Free trials can connect up to 3 banks. You can connect more once your trial ends.'
+
 interface Props {
     onSuccess?: () => void
 }
@@ -19,9 +24,11 @@ export function PlaidLinkButton({ onSuccess }: Props) {
     const [institutionName, setInstitutionName] = useState('')
     const [syncRange, setSyncRange] = useState<RangeOption>('180d')
     const [exchanging, setExchanging] = useState(false)
+    const [limitMessage, setLimitMessage] = useState<string | null>(null)
 
     const refreshToken = useCallback(async () => {
         setLinkToken(null)
+        setLimitMessage(null)
         setFetching(true)
         try {
             await destroy()
@@ -32,6 +39,11 @@ export function PlaidLinkButton({ onSuccess }: Props) {
         } catch (err: any) {
             const status = err?.response?.status
             const detail = err?.response?.data?.error ?? err?.message ?? 'Unknown error'
+            if (status === 403) {
+                // Shown when the button is tapped, not on screen open
+                setLimitMessage(TRIAL_LIMIT_MESSAGE)
+                return
+            }
             console.error('[Plaid] link-token error', { status, detail })
             Alert.alert('Error', `Unable to start bank connection. (${status ?? 'network'}: ${detail})`)
         } finally {
@@ -44,6 +56,10 @@ export function PlaidLinkButton({ onSuccess }: Props) {
     }, [refreshToken])
 
     const handlePress = () => {
+        if (limitMessage) {
+            Alert.alert(TRIAL_LIMIT_TITLE, limitMessage)
+            return
+        }
         if (!linkToken || fetching) return
         open({
             onSuccess: (success: LinkSuccess) => {
@@ -72,7 +88,12 @@ export function PlaidLinkButton({ onSuccess }: Props) {
             setPendingToken(null)
             onSuccess?.()
             Alert.alert('Connected!', `Successfully connected ${institutionName}.`)
-        } catch {
+        } catch (err: any) {
+            if (err?.response?.status === 403) {
+                setPendingToken(null)
+                Alert.alert(TRIAL_LIMIT_TITLE, TRIAL_LIMIT_MESSAGE)
+                return
+            }
             Alert.alert('Error', 'Failed to connect bank account. Please try again.')
         } finally {
             setExchanging(false)
@@ -88,7 +109,7 @@ export function PlaidLinkButton({ onSuccess }: Props) {
             <TouchableOpacity
                 className="h-14 rounded-2xl bg-brand-accent items-center justify-center"
                 onPress={handlePress}
-                disabled={fetching || !linkToken}
+                disabled={fetching || (!linkToken && !limitMessage)}
                 activeOpacity={0.85}
             >
                 {fetching
