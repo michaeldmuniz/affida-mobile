@@ -50,6 +50,7 @@ export function scheduleLabel(task: { frequency: string; days: number[] }): stri
 /** "+4.2%" / "−1.3%" */
 export function signedPct(pct: number): string {
     return `${pct >= 0 ? '+' : '−'}${Math.abs(pct).toFixed(1)}%`
+}
 
 /** YYYY-MM-DD → "Oct 12". */
 export function shortDay(day: string): string {

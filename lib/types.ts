@@ -323,6 +323,7 @@ export interface Investments {
     dividends: { month: string; amount: number }[]
     accounts: { id: string; name: string; institutionName: string | null; balance: number }[]
     holdingsAsOf: string | null
+}
 
 /**
  * done: completed that day. missed: a repeating day that went by undone.
