@@ -63,7 +63,10 @@ export interface Transaction {
     accountId: string
     accountName: string
     amount: number
+    /** Transaction date (when it happened) — reports and months go by this. Editable. */
     date: string
+    /** When the bank posted it. Read-only. Older API versions don't send it. */
+    postedDate?: string
     description: string
     merchantName: string | null
     categoryId: string | null

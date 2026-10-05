@@ -12,6 +12,8 @@ import { AmountText } from '@/components/ui/AmountText'
 import type { Transaction, Category, Receipt } from '@/lib/types'
 import { colors } from '@/lib/colors'
 import { haptics } from '@/lib/haptics'
+import { shortDay } from '@/lib/format'
+import { DatePickerSheet } from '@/components/family/DatePickerSheet'
 
 interface EditState {
     merchantName: string
@@ -20,6 +22,8 @@ interface EditState {
     notes: string
     flagged: boolean
     amount: string
+    /** Transaction date, YYYY-MM-DD. */
+    day: string
 }
 
 interface Props {
@@ -32,6 +36,7 @@ export function EditSheet({ transaction, onClose }: Props) {
     const [form, setForm] = useState<EditState | null>(null)
     const [showCategoryPicker, setShowCategoryPicker] = useState(false)
     const [createRule, setCreateRule] = useState(false)
+    const [pickingDate, setPickingDate] = useState(false)
 
     useEffect(() => {
         setCreateRule(false)
@@ -43,6 +48,7 @@ export function EditSheet({ transaction, onClose }: Props) {
                 notes: transaction.notes ?? '',
                 flagged: transaction.flagged,
                 amount: Math.abs(transaction.amount).toFixed(2),
+                day: transaction.date.slice(0, 10),
             })
         }
     }, [transaction])
@@ -83,6 +89,8 @@ export function EditSheet({ transaction, onClose }: Props) {
                     payload.amount = transaction.amount < 0 ? -Math.abs(parsed) : Math.abs(parsed)
                 }
             }
+            // Transaction date: editable on any transaction (only sent if changed).
+            if (form.day !== transaction.date.slice(0, 10)) payload.date = `${form.day}T12:00:00.000Z`
             await apiClient.patch(`/transactions/${transaction.id}`, payload)
             if (createRule && form.merchantName.trim() && form.categoryId) {
                 await apiClient.post('/rules', {
@@ -197,6 +205,27 @@ export function EditSheet({ transaction, onClose }: Props) {
                                     </View>
                                 </View>
                             )}
+
+                            {/* Dates */}
+                            <View className="px-4 pt-5 pb-2 flex-row gap-x-3">
+                                <View className="flex-1">
+                                    <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest mb-2">Transaction date</Text>
+                                    <TouchableOpacity
+                                        onPress={() => { haptics.light(); setPickingDate(true) }}
+                                        className="bg-brand-surface border border-brand-border rounded-xl px-4 h-12 flex-row items-center"
+                                    >
+                                        <Text className="flex-1 text-brand-text text-base">{shortDay(form.day)}</Text>
+                                        <ChevronRight size={16} color={colors.muted} />
+                                    </TouchableOpacity>
+                                </View>
+                                <View className="flex-1">
+                                    <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest mb-2">Posted</Text>
+                                    <View className="h-12 justify-center px-1">
+                                        <Text className="text-brand-muted text-base">{shortDay((transaction.postedDate ?? transaction.date).slice(0, 10))}</Text>
+                                    </View>
+                                </View>
+                            </View>
+                            <Text className="px-4 text-brand-muted text-xs">Reports and budgets use the transaction date.</Text>
 
                             {/* Merchant */}
                             <View className="px-4 pt-5 pb-2">
@@ -355,7 +384,14 @@ export function EditSheet({ transaction, onClose }: Props) {
                     onSelect={(id, name) => setForm(f => f ? { ...f, categoryId: id, categoryName: name } : f)}
                     onClose={() => setShowCategoryPicker(false)}
                 />
-            </Modal>
+                <DatePickerSheet
+                    visible={pickingDate}
+                    title="Transaction date"
+                    value={form.day}
+                    onPick={(d) => setForm(f => f ? { ...f, day: d } : f)}
+                    onClose={() => setPickingDate(false)}
+                />
+        </Modal>
         </>
     )
 }
