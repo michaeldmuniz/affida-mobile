@@ -3,13 +3,14 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Lin
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
-import { LogOut, User, Shield, CreditCard, ChevronRight, ChevronLeft, Mail, Smartphone, Zap, FileText, ScrollText, Pencil, X, ScanFace, Repeat, Users } from 'lucide-react-native'
+import { LogOut, User, Shield, CreditCard, ChevronRight, ChevronLeft, Mail, Smartphone, Zap, FileText, ScrollText, Pencil, X, ScanFace, Repeat, Users, LifeBuoy } from 'lucide-react-native'
 import * as LocalAuthentication from 'expo-local-authentication'
 import { apiClient } from '@/lib/api-client'
 import { useAuthStore } from '@/lib/auth-store'
 import { useSettingsStore } from '@/lib/settings-store'
 import { haptics } from '@/lib/haptics'
 import { colors } from '@/lib/colors'
+import { SUPPORT_EMAIL } from '@/lib/support'
 
 interface UserProfile {
     id: string
@@ -298,6 +299,12 @@ export default function SettingsScreen() {
                         icon={ScrollText}
                         label="Terms of Service"
                         onPress={() => Linking.openURL('https://affida.money/terms')}
+                    />
+                    <Divider />
+                    <SettingsRow
+                        icon={LifeBuoy}
+                        label="Contact support"
+                        onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}
                     />
                 </View>
 
