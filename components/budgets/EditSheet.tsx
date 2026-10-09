@@ -145,14 +145,16 @@ export function BudgetEditSheet({ budget, month, onClose }: Props) {
                             />
                         </View>
 
-                        {/* Remove budget */}
-                        <TouchableOpacity
-                            className="h-12 rounded-xl border border-brand-negative/30 items-center justify-center mt-2"
-                            onPress={handleDelete}
-                            activeOpacity={0.7}
-                        >
-                            <Text className="text-brand-negative text-sm font-medium">Remove Budget</Text>
-                        </TouchableOpacity>
+                        {/* Remove budget — only when one is set (a category with spending but no budget has nothing to remove) */}
+                        {budget.budgetId !== null && (
+                            <TouchableOpacity
+                                className="h-12 rounded-xl border border-brand-negative/30 items-center justify-center mt-2"
+                                onPress={handleDelete}
+                                activeOpacity={0.7}
+                            >
+                                <Text className="text-brand-negative text-sm font-medium">Remove Budget</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </KeyboardAvoidingView>
             </SafeAreaView>

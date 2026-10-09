@@ -110,7 +110,10 @@ export interface Category {
 }
 
 export interface Budget {
+    /** The budget record's id when there is one, else the category's */
     id: string
+    /** Null for a category with spending but no budget set this month */
+    budgetId?: string | null
     categoryId: string
     categoryName: string
     categoryGroup: string
@@ -121,6 +124,8 @@ export interface Budget {
     rolloverAmount: number
     /** Added by parents completing family goals this month (included in remaining). */
     goalRewardAmount?: number
+    /** Refunds that boost the budget (included in remaining). */
+    refundAmount?: number
     method: string
     isHousehold: boolean
     partnerOnly: boolean

@@ -194,8 +194,11 @@ export default function BudgetsScreen() {
 }
 
 function BudgetRow({ budget, onEdit }: { budget: Budget; onEdit?: () => void }) {
-    const over = budget.spent > budget.amount
-    const remaining = budget.amount - budget.spent
+    // The server's remaining includes rollover, refunds and family-goal rewards (same as
+    // the web), so the bar and "of $X" show the total those add up to.
+    const remaining = budget.remaining ?? budget.amount - budget.spent
+    const total = remaining + budget.spent
+    const over = remaining < 0
 
     const row = (
         <Card className={`p-4 ${budget.partnerOnly ? 'opacity-80' : ''}`}>
@@ -221,13 +224,13 @@ function BudgetRow({ budget, onEdit }: { budget: Budget; onEdit?: () => void }) 
                     <Text className="text-brand-muted font-normal"> {over ? 'over' : 'left'}</Text>
                 </Text>
             </View>
-            <BudgetBar spent={budget.spent} total={budget.amount} />
+            <BudgetBar spent={budget.spent} total={total} />
             <View className="flex-row justify-between mt-1.5">
                 <Text className="text-brand-muted text-xs">
                     ${budget.spent.toLocaleString('en-US', { minimumFractionDigits: 0 })} spent
                 </Text>
                 <Text className="text-brand-muted text-xs">
-                    of ${budget.amount.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                    of ${total.toLocaleString('en-US', { minimumFractionDigits: 0 })}
                 </Text>
             </View>
         </Card>

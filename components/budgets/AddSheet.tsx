@@ -29,8 +29,17 @@ export function AddBudgetSheet({ visible, month, existingBudgets, onClose }: Pro
     })
 
     // Only show expense categories that don't already have a budget this month
-    const budgetedCategoryIds = new Set(existingBudgets.map(b => b.categoryId))
-    const available = categories.filter(c => c.group === 'EXPENSE' && !budgetedCategoryIds.has(c.id))
+    // Matched by name too: with shared budgets the rows are the household's
+    // categories, which may be the partner's same-named ones
+    const budgetedCategoryIds = new Set(existingBudgets.filter(b => b.budgetId !== null).map(b => b.categoryId))
+    const budgetedNames = new Set(existingBudgets.filter(b => b.budgetId !== null).map(b => b.categoryName.toLowerCase()))
+    const seen = new Set<string>()
+    const available = categories.filter(c => {
+        const name = c.name.toLowerCase()
+        if (c.group !== 'EXPENSE' || budgetedCategoryIds.has(c.id) || budgetedNames.has(name) || seen.has(name)) return false
+        seen.add(name)
+        return true
+    })
 
     useEffect(() => {
         if (!visible) {
