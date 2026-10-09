@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
 import { colors } from '@/lib/colors'
 import { syncStatusLabel } from '@/lib/sync'
+import { ReconnectBankButton } from '@/components/accounts/ReconnectBankButton'
 
 interface AccountDetail {
     id: string
@@ -20,6 +21,8 @@ interface AccountDetail {
     plaidLinked: boolean
     lastSyncAt: string | null
     needsReconnect: boolean
+    /** Set for the owner when the bank connection needs reconnecting */
+    reconnectItemId: string | null
     updatedAt: string
     /** A partner's account shared with you — only the owner can delete it. */
     isShared: boolean
@@ -160,6 +163,13 @@ export default function AccountDetailScreen() {
                                 {account.isShared && (
                                     <Text className="text-brand-muted text-xs mt-1">
                                         Shared by {account.ownerName?.split(' ')[0] ?? 'your partner'}{account.canEdit ? '' : ' · view only'}
+                                    </Text>
+                                )}
+
+                                {account.reconnectItemId && <ReconnectBankButton plaidItemId={account.reconnectItemId} />}
+                                {account.needsReconnect && !account.reconnectItemId && (
+                                    <Text className="text-brand-muted text-xs mt-1">
+                                        {account.ownerName?.split(' ')[0] ?? 'Your partner'} needs to reconnect this bank.
                                     </Text>
                                 )}
 

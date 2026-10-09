@@ -46,6 +46,8 @@ export interface Account {
     /** When the bank last synced; null for manual accounts. */
     lastSyncAt: string | null
     needsReconnect: boolean
+    /** Set for the owner when the bank connection needs reconnecting */
+    reconnectItemId: string | null
     updatedAt: string
     createdAt: string
     /** True when a linked partner owns this account and shared it with you. */

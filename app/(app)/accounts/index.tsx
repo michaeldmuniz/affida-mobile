@@ -132,6 +132,11 @@ function AccountRow({ account, onPress }: { account: Account; onPress: () => voi
                         {formatAccountType(account.type)}
                         {account.isShared ? ` · Shared by ${account.ownerName?.split(' ')[0] ?? 'partner'}` : ''}
                     </Text>
+                    {account.needsReconnect && (
+                        <Text className="text-brand-negative text-xs mt-0.5" numberOfLines={1}>
+                            Needs reconnection{account.reconnectItemId ? ' · tap to fix' : ''}
+                        </Text>
+                    )}
                 </View>
                 <View className="items-end gap-y-1">
                     <AmountText amount={account.balance} size="sm" neutral />
