@@ -9,11 +9,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { CategoryPicker } from './CategoryPicker'
 import { AmountText } from '@/components/ui/AmountText'
-import type { Transaction, Category, Receipt } from '@/lib/types'
+import type { Transaction, Category, Receipt, TransactionDetail } from '@/lib/types'
 import { colors } from '@/lib/colors'
 import { haptics } from '@/lib/haptics'
 import { shortDay } from '@/lib/format'
 import { DatePickerSheet } from '@/components/family/DatePickerSheet'
+import { TransactionDetails, SyncedSummary } from './TransactionDetails'
 
 interface EditState {
     merchantName: string
@@ -52,6 +53,17 @@ export function EditSheet({ transaction, onClose }: Props) {
             })
         }
     }, [transaction])
+
+    // Everything the web dialog shows (location, payment, links, splits...), loaded on open
+    const { data: detail } = useQuery<TransactionDetail | null>({
+        queryKey: ['transaction', transaction?.id],
+        queryFn: async () => {
+            const res = await apiClient.get(`/transactions/${transaction!.id}`)
+            return res.data.data
+        },
+        enabled: !!transaction,
+        staleTime: 60 * 1000,
+    })
 
     const { data: receipt } = useQuery<Receipt | null>({
         queryKey: ['receipt', transaction?.receiptId],
@@ -101,6 +113,7 @@ export function EditSheet({ transaction, onClose }: Props) {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['transactions'] })
+            queryClient.invalidateQueries({ queryKey: ['transaction', transaction?.id] })
             queryClient.invalidateQueries({ queryKey: ['dashboard'] })
             if (createRule) queryClient.invalidateQueries({ queryKey: ['rules'] })
             onClose()
@@ -188,6 +201,9 @@ export function EditSheet({ transaction, onClose }: Props) {
                         </View>
 
                         <ScrollView className="flex-1" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+
+                            {/* Synced from the bank: amount, date, account */}
+                            {!transaction.isManual && detail && <SyncedSummary detail={detail} />}
 
                             {/* Amount (manual only) */}
                             {transaction.isManual && (
@@ -288,6 +304,9 @@ export function EditSheet({ transaction, onClose }: Props) {
                                     />
                                 </View>
                             </View>
+
+                            {/* Location, payment, counterparties, links, refunds and splits */}
+                            {detail && <TransactionDetails detail={detail} />}
 
                             {/* Linked receipt */}
                             {receipt && (

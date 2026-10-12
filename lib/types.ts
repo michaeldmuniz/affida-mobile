@@ -81,6 +81,51 @@ export interface Transaction {
     receiptId?: string | null
 }
 
+/** A transaction connected to another one (linked purchase, refund or split). */
+export interface ConnectedTransaction {
+    id: string
+    label: string
+    amount: number
+    date: string
+    accountName: string
+}
+
+/** Everything the web transaction dialog shows, loaded when a transaction is opened. */
+export interface TransactionDetail {
+    id: string
+    /** Synced from a bank: the bank sets the amount. */
+    isSynced: boolean
+    accountName: string
+    institutionName: string | null
+    amount: number
+    date: string
+    postedDate: string
+    pending: boolean
+    logoUrl: string | null
+    website: string | null
+    plaidCategory: string | null
+    plaidCategoryConfidence: string | null
+    checkNumber: string | null
+    currency: string | null
+    location: {
+        address: string | null
+        city: string | null
+        region: string | null
+        postalCode: string | null
+        country: string | null
+        storeNumber: string | null
+        lat: number | null
+        lon: number | null
+    }
+    payment: { method: string | null; processor: string | null; reference: string | null }
+    counterparties: { name: string; type: string | null; website: string | null; logoUrl: string | null }[]
+    linked: ConnectedTransaction[]
+    refundOf: ConnectedTransaction | null
+    refundedBy: ConnectedTransaction[]
+    splitFrom: ConnectedTransaction | null
+    splitInto: (ConnectedTransaction & { categoryName: string | null })[]
+}
+
 export interface ReceiptLineItem {
     description: string
     amount: number
