@@ -63,13 +63,16 @@ export default function AppLayout() {
         return () => sub.remove()
     }, [token])
 
-    // Re-lock when the app goes to background
+    // Re-lock when the app goes to background. Not on 'inactive': system UI (the Face ID
+    // password-autofill prompt, permission alerts, the document scanner) makes the app
+    // inactive, and locking then unmounted the screen underneath the bank sign-in /
+    // Plaid Link and left the phone stuck on a dark, unresponsive screen.
     useEffect(() => {
         const sub = AppState.addEventListener('change', (next) => {
             if (
                 appLockEnabled &&
                 appStateRef.current === 'active' &&
-                (next === 'background' || next === 'inactive')
+                next === 'background'
             ) {
                 setLocked(true)
             }
