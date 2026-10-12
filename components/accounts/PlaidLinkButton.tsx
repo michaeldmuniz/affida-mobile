@@ -12,6 +12,12 @@ type RangeOption = '30d' | '90d' | '180d' | '365d' | 'all'
 const TRIAL_LIMIT_TITLE = 'Bank limit reached'
 const TRIAL_LIMIT_MESSAGE = 'Free trials can connect up to 3 banks. You can connect more once your trial ends.'
 
+// iOS can't present a modal/alert while another native screen is still animating
+// out (Plaid Link, the sync sheet, the Add sheet). Overlapping them left the app
+// on a dark, unresponsive screen, so each step waits for the previous to finish.
+const DISMISS_MS = 600
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+
 interface Props {
     onSuccess?: () => void
 }
@@ -62,13 +68,16 @@ export function PlaidLinkButton({ onSuccess }: Props) {
         }
         if (!linkToken || fetching) return
         open({
-            onSuccess: (success: LinkSuccess) => {
+            onSuccess: async (success: LinkSuccess) => {
+                // Wait for Plaid Link to finish dismissing before presenting our sheet
+                await sleep(DISMISS_MS)
                 setInstitutionName(success.metadata.institution?.name ?? 'your bank')
                 setPendingToken(success.publicToken)
                 setSyncRange('180d')
                 refreshToken()
             },
-            onExit: (_exit: LinkExit) => {
+            onExit: async (_exit: LinkExit) => {
+                await sleep(DISMISS_MS)
                 refreshToken()
             },
         })
@@ -85,12 +94,16 @@ export function PlaidLinkButton({ onSuccess }: Props) {
             queryClient.invalidateQueries({ queryKey: ['accounts'] })
             queryClient.invalidateQueries({ queryKey: ['dashboard'] })
             queryClient.invalidateQueries({ queryKey: ['transactions'] })
+            // Dismiss the sync sheet, then the Add sheet, then show the alert — one at a time
             setPendingToken(null)
+            await sleep(DISMISS_MS)
             onSuccess?.()
+            await sleep(DISMISS_MS)
             Alert.alert('Connected!', `Successfully connected ${institutionName}.`)
         } catch (err: any) {
             if (err?.response?.status === 403) {
                 setPendingToken(null)
+                await sleep(DISMISS_MS)
                 Alert.alert(TRIAL_LIMIT_TITLE, TRIAL_LIMIT_MESSAGE)
                 return
             }

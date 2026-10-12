@@ -46,6 +46,8 @@ export function ReconnectBankButton({ plaidItemId }: Props) {
 
     const finish = async (success: LinkSuccess, mode: Prepared['mode']) => {
         setFinishing(true)
+        // Let Plaid Link finish dismissing before any alert is presented over it
+        await new Promise<void>((resolve) => setTimeout(resolve, 600))
         try {
             if (mode === 'update') {
                 await apiClient.post('/plaid/reconnected', { plaidItemId })
