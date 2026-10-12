@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { TouchableOpacity, Text, ActivityIndicator, Alert } from 'react-native'
+import { TouchableOpacity, Text, ActivityIndicator, Alert, Platform } from 'react-native'
 import { create, open, destroy, LinkSuccess } from 'react-native-plaid-link-sdk'
 import { useQueryClient } from '@tanstack/react-query'
 import { RefreshCw } from 'lucide-react-native'
@@ -29,7 +29,7 @@ export function ReconnectBankButton({ plaidItemId }: Props) {
         setLoading(true)
         try {
             await destroy()
-            const res = await apiClient.get('/plaid/link-token', { params: { reconnectItemId: plaidItemId } })
+            const res = await apiClient.get('/plaid/link-token', { params: { reconnectItemId: plaidItemId, platform: Platform.OS } })
             const next: Prepared = { token: res.data.data.link_token, mode: res.data.data.mode === 'update' ? 'update' : 'fresh' }
             create({ token: next.token })
             setPrepared(next)

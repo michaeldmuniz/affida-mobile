@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { TouchableOpacity, Text, ActivityIndicator, Alert } from 'react-native'
+import { TouchableOpacity, Text, ActivityIndicator, Alert, Platform } from 'react-native'
 import { create, open, destroy, LinkSuccess, LinkExit } from 'react-native-plaid-link-sdk'
 import { useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
@@ -32,7 +32,7 @@ export function PlaidLinkButton({ onSuccess }: Props) {
         setFetching(true)
         try {
             await destroy()
-            const res = await apiClient.get('/plaid/link-token')
+            const res = await apiClient.get('/plaid/link-token', { params: { platform: Platform.OS } })
             const token = res.data.data.link_token
             setLinkToken(token)
             create({ token })
