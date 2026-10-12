@@ -384,6 +384,8 @@ export interface RewardWalletAccount {
     canEdit: boolean
     /** False when the card is a partner's, shared with you. */
     mine: boolean
+    /** A debit card on a checking/savings/other account you turned rewards on for. */
+    isDebit: boolean
     card: { id: string; name: string; issuer: string } | null
     /** The card id the engine used (matches feeChecks). */
     walletCardId: string
@@ -401,6 +403,8 @@ export interface RewardLookupEntry {
     cardName: string
     accountName: string
     mine: boolean
+    /** The best card is a debit card. */
+    debit: boolean
     returnPct: number
     capped: boolean
     /** Any of your cards pays the same here. */
@@ -438,6 +442,8 @@ export interface RewardsOverview {
         interestEstimated: boolean
     } | null
     suggestions: RewardSuggestion[]
+    /** Checking/savings/other accounts you could turn debit rewards on for. */
+    debitCandidates: { accountId: string; accountName: string; institutionName: string; canEdit: boolean }[]
 }
 
 export interface RewardRateLine {
@@ -447,6 +453,9 @@ export interface RewardRateLine {
     /** Percent back after the program's point value. */
     returnPct: number
     cap: string | null
+    /** The limit as numbers (published or yours); null = no limit. */
+    capAmount: number | null
+    capPeriod: 'MONTH' | 'QUARTER' | 'YEAR' | null
     /** Your rate rather than the published one. */
     custom: boolean
     publishedRate: number | null
@@ -456,6 +465,13 @@ export interface RewardRateLine {
 export interface CardRewardsDetail {
     accountId: string
     accountName: string
+    /** A debit account (opt-in), not a credit card. */
+    isDebit: boolean
+    /** Counted in rewards (always for a credit card; for debit once turned on). */
+    enabled: boolean
+    notes: string | null
+    /** A card where you choose the bonus category: the rate and limit to start from. */
+    userPick: { label: string; rate: number; cap?: { amount: number; period: 'MONTH' | 'QUARTER' | 'YEAR' } } | null
     canEdit: boolean
     match: 'CONFIRMED' | 'AUTO' | 'UNKNOWN'
     catalogCard: { id: string; name: string; issuer: string; annualFee: number; sourceUrl: string; verifiedAt: string } | null

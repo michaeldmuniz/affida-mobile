@@ -38,6 +38,32 @@ export default function RewardsScreen() {
     const partner = data?.partnerName ?? 'your partner'
     const cardLabel = (name: string, mine: boolean) => (mine ? name : `${name} (${partner}’s)`)
 
+    // Checking/savings/other accounts whose debit card might pay rewards (opt-in).
+    const DebitSection = () => !data || data.debitCandidates.length === 0 ? null : (
+        <View>
+            <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest mb-1 px-1">Debit cards with rewards</Text>
+            <Text className="text-brand-muted text-xs mb-3 px-1 leading-relaxed">
+                Some debit cards pay real cash back (PayPal’s, for example). Turn rewards on for the account it spends from and it counts with your credit cards.
+            </Text>
+            <Card className="p-0 overflow-hidden">
+                {data.debitCandidates.map((c, i) => (
+                    <TouchableOpacity
+                        key={c.accountId}
+                        activeOpacity={0.7}
+                        onPress={() => { haptics.light(); setOpenCard(c.accountId) }}
+                        className={`flex-row items-center px-4 py-3.5 ${i > 0 ? 'border-t border-brand-border' : ''}`}
+                    >
+                        <View className="flex-1 pr-3">
+                            <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>{c.accountName}</Text>
+                            <Text className="text-brand-muted text-xs mt-0.5" numberOfLines={1}>{c.institutionName}</Text>
+                        </View>
+                        <ChevronRight size={14} color={colors.disabled} />
+                    </TouchableOpacity>
+                ))}
+            </Card>
+        </View>
+    )
+
     return (
         <SafeAreaView className="flex-1 bg-brand-bg" edges={['top']}>
             <ScrollView
@@ -67,7 +93,7 @@ export default function RewardsScreen() {
                                 <Text className="text-white font-semibold">Try again</Text>
                             </TouchableOpacity>
                         </View>
-                    ) : data.wallet.length === 0 ? (
+                    ) : data.wallet.length === 0 && data.debitCandidates.length === 0 ? (
                         <View className="items-center py-16">
                             <View className="w-14 h-14 rounded-2xl bg-brand-surface border border-brand-border items-center justify-center mb-4">
                                 <CreditCard size={24} color={colors.muted} strokeWidth={1.5} />
@@ -80,6 +106,13 @@ export default function RewardsScreen() {
                                 <Text className="text-white font-semibold">Go to Accounts</Text>
                             </TouchableOpacity>
                         </View>
+                    ) : data.wallet.length === 0 ? (
+                        <>
+                            <Text className="text-brand-muted text-sm leading-relaxed px-1">
+                                No credit cards linked yet. If a debit card of yours pays rewards, turn it on below.
+                            </Text>
+                            <DebitSection />
+                        </>
                     ) : (
                         <>
                             {/* Summary */}
@@ -176,7 +209,7 @@ export default function RewardsScreen() {
                                                             </Text>
                                                         </View>
                                                         <Text className="text-brand-text text-sm font-semibold text-right flex-shrink" numberOfLines={2}>
-                                                            {any ? 'Any of your cards' : cardLabel(l.accountName, l.mine)}
+                                                            {any ? 'Any of your cards' : cardLabel(l.accountName, l.mine)}{l.debit ? ' (debit)' : ''}
                                                         </Text>
                                                     </View>
                                                 )
@@ -206,6 +239,7 @@ export default function RewardsScreen() {
                                                     <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>{w.accountName}</Text>
                                                     <Text className="text-brand-muted text-xs" numberOfLines={2}>
                                                         {[
+                                                            w.isDebit ? 'Debit' : null,
                                                             !w.mine ? `${partner}’s card` : null,
                                                             w.card && w.card.name !== w.accountName ? w.card.name : null,
                                                             w.card ? (w.customized ? 'some rates are yours' : null) : (w.customized ? 'your rates' : 'unknown card, counted as 1% back'),
@@ -231,6 +265,8 @@ export default function RewardsScreen() {
                                     })}
                                 </Card>
                             </View>
+
+                            <DebitSection />
 
                             {/* New cards */}
                             {!data.ownCarryingBalance && data.suggestions.length > 0 && (

@@ -20,6 +20,10 @@ interface Props {
     onClose: () => void
 }
 
+type EditRate = { key: string; rate: string; capAmount: string; capPeriod: 'MONTH' | 'QUARTER' | 'YEAR' }
+const NEXT_PERIOD = { MONTH: 'QUARTER', QUARTER: 'YEAR', YEAR: 'MONTH' } as const
+const PERIOD_NAME = { MONTH: 'month', QUARTER: 'quarter', YEAR: 'year' } as const
+
 function errorMessage(e: any, fallback: string) {
     return e?.response?.data?.error ?? e?.message ?? fallback
 }
@@ -33,7 +37,7 @@ export function CardRatesSheet({ accountId, onClose }: Props) {
     const [editing, setEditing] = useState(false)
     const [kind, setKind] = useState<RewardKind>('CASHBACK')
     const [baseRate, setBaseRate] = useState('')
-    const [rates, setRates] = useState<{ key: string; rate: string }[]>([])
+    const [rates, setRates] = useState<EditRate[]>([])
     const [picker, setPicker] = useState<'card' | 'add' | null>(null)
 
     const { data, isLoading, error } = useQuery<CardRewardsDetail>({
@@ -47,9 +51,14 @@ export function CardRatesSheet({ accountId, onClose }: Props) {
     const { mutate: save, isPending: saving } = useMutation({
         mutationFn: async () => {
             const base = Number(baseRate)
-            const parsed = rates.map(r => ({ key: r.key, rate: Number(r.rate) }))
+            const parsed = rates.map(r => {
+                const amount = Number(r.capAmount)
+                return { key: r.key, rate: Number(r.rate), cap: r.capAmount.trim() !== '' && amount > 0 ? { amount, period: r.capPeriod } : null }
+            })
             if (!Number.isFinite(base) || base < 0 || parsed.some(r => !Number.isFinite(r.rate) || r.rate < 0))
                 throw new Error('Rates must be numbers of 0 or more.')
+            if (rates.some(r => r.capAmount.trim() !== '' && !(Number(r.capAmount) > 0)))
+                throw new Error('A limit must be an amount above $0, or left empty.')
             await apiClient.put(`/rewards/cards/${accountId}`, { kind, baseRate: base, rates: parsed })
         },
         onSuccess: () => { haptics.success(); setEditing(false); refresh() },
@@ -73,7 +82,7 @@ export function CardRatesSheet({ accountId, onClose }: Props) {
         haptics.light()
         setKind(data.kind)
         setBaseRate(String(data.baseRate))
-        setRates(data.lines.map(l => ({ key: l.key, rate: String(l.rate) })))
+        setRates(data.lines.map(l => ({ key: l.key, rate: String(l.rate), capAmount: l.capAmount ? String(l.capAmount) : '', capPeriod: l.capPeriod ?? 'MONTH' })))
         setEditing(true)
     }
 
@@ -84,6 +93,14 @@ export function CardRatesSheet({ accountId, onClose }: Props) {
         Alert.alert('Use published rates?', `${data?.catalogCard?.name ?? 'This card'} goes back to its published rates. Your changes are removed.`, [
             { text: 'Cancel', style: 'cancel' },
             { text: 'Use published', style: 'destructive', onPress: () => reset() },
+        ])
+    }
+
+    const confirmOff = () => {
+        haptics.warning()
+        Alert.alert('Turn off debit rewards?', 'This account stops counting in your rewards and the rates you entered are removed.', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Turn off', style: 'destructive', onPress: () => setCard(null) },
         ])
     }
 
@@ -116,6 +133,19 @@ export function CardRatesSheet({ accountId, onClose }: Props) {
                     ) : (
                         <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
                             <View className="px-4 pt-5 pb-10 gap-y-4">
+                                {data.isDebit && !data.enabled ? (
+                                    <Card className="p-4 gap-y-3">
+                                        <Text className="text-brand-text text-base font-semibold">Debit card rewards are off</Text>
+                                        <Text className="text-brand-muted text-sm leading-relaxed">
+                                            Does the debit card on this account pay rewards? Turn it on and its purchases count with your credit cards.
+                                        </Text>
+                                        {data.canEdit ? (
+                                            <TouchableOpacity onPress={() => { haptics.light(); setPicker('card') }} disabled={busy} className="h-11 rounded-xl bg-brand-accent items-center justify-center">
+                                                <Text className="text-white font-semibold">Turn on debit rewards</Text>
+                                            </TouchableOpacity>
+                                        ) : <Text className="text-brand-muted text-xs">Only the owner or an editor can turn this on.</Text>}
+                                    </Card>
+                                ) : (<>
                                 {/* Which card */}
                                 <Card className="p-4 gap-y-2">
                                     <Text className="text-brand-text text-base font-semibold">
@@ -123,7 +153,7 @@ export function CardRatesSheet({ accountId, onClose }: Props) {
                                     </Text>
                                     <Text className="text-brand-muted text-xs">
                                         {data.catalogCard ? `${data.catalogCard.issuer} · ` : ''}
-                                        {data.match === 'CONFIRMED' ? 'Confirmed by you'
+                                        {data.isDebit ? 'Debit card' : data.match === 'CONFIRMED' ? 'Confirmed by you'
                                             : data.match === 'AUTO' ? 'Detected from the account name'
                                             : data.customized ? 'Using your rates' : 'Counted as 1% back until you add its rates'}
                                     </Text>
@@ -139,10 +169,17 @@ export function CardRatesSheet({ accountId, onClose }: Props) {
                                             <ChevronDown size={14} color={colors.accent} />
                                         </TouchableOpacity>
                                     )}
+                                    {data.notes ? <Text className="text-brand-muted text-xs leading-relaxed mt-1">{data.notes}</Text> : null}
                                 </Card>
 
                                 {!editing ? (
                                     <>
+                                        {data.isDebit && data.lines.length === 0 && data.userPick && (
+                                            <Text className="text-brand-muted text-xs leading-relaxed px-1">
+                                                You choose the {data.userPick.rate}% category yourself. Add it under Edit rates and we’ll count it
+                                                {data.userPick.cap ? ` up to $${data.userPick.cap.amount.toLocaleString('en-US')}/${PERIOD_NAME[data.userPick.cap.period]}` : ''}.
+                                            </Text>
+                                        )}
                                         <View>
                                             <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest mb-3 px-1">Rates</Text>
                                             <Card className="p-0 overflow-hidden">
@@ -189,7 +226,12 @@ export function CardRatesSheet({ accountId, onClose }: Props) {
                                                     <Pencil size={15} color="#fff" />
                                                     <Text className="text-white font-semibold">{data.catalogCard || data.customized ? 'Edit rates' : 'Add this card’s rates'}</Text>
                                                 </TouchableOpacity>
-                                                {data.customized && data.catalogCard && (
+                                                {data.isDebit && (
+                                                    <TouchableOpacity onPress={confirmOff} disabled={busy} className="h-11 rounded-xl border border-brand-border items-center justify-center">
+                                                        <Text className="text-brand-muted font-semibold">Turn off rewards</Text>
+                                                    </TouchableOpacity>
+                                                )}
+                                                {data.customized && data.catalogCard && !data.isDebit && (
                                                     <TouchableOpacity onPress={confirmReset} disabled={busy} className="h-11 rounded-xl border border-brand-border flex-row items-center justify-center gap-x-2">
                                                         {resetting ? <ActivityIndicator size="small" color={colors.muted} /> : <RotateCcw size={15} color={colors.text} />}
                                                         <Text className="text-brand-text font-semibold">Use published rates</Text>
@@ -226,7 +268,8 @@ export function CardRatesSheet({ accountId, onClose }: Props) {
                                             {rates.map((r, i) => {
                                                 const published = publishedFor(r.key)
                                                 return (
-                                                    <View key={r.key} className={`flex-row items-center px-4 py-2.5 ${i > 0 ? 'border-t border-brand-border' : ''}`}>
+                                                    <View key={r.key} className={`px-4 py-2.5 ${i > 0 ? 'border-t border-brand-border' : ''}`}>
+                                                      <View className="flex-row items-center">
                                                         <View className="flex-1 pr-2">
                                                             <Text className="text-brand-text text-sm" numberOfLines={1}>{labelFor(r.key)}</Text>
                                                             {published !== null && Number(r.rate) !== published && (
@@ -243,6 +286,25 @@ export function CardRatesSheet({ accountId, onClose }: Props) {
                                                         <TouchableOpacity onPress={() => { haptics.light(); setRates(prev => prev.filter((_, j) => j !== i)) }} hitSlop={8} className="w-7 items-end">
                                                             <X size={16} color={colors.muted} />
                                                         </TouchableOpacity>
+                                                      </View>
+                                                      <View className="flex-row items-center gap-x-2 mt-2">
+                                                        <Text className="text-brand-muted text-xs">Limit: first $</Text>
+                                                        <TextInput
+                                                            className="bg-brand-elevated border border-brand-border rounded-lg px-2 h-8 w-24 text-brand-text text-xs text-right"
+                                                            value={r.capAmount}
+                                                            placeholder="no limit"
+                                                            placeholderTextColor={colors.muted}
+                                                            onChangeText={(t) => setRates(prev => prev.map((x, j) => (j === i ? { ...x, capAmount: t } : x)))}
+                                                            keyboardType="decimal-pad"
+                                                        />
+                                                        <Text className="text-brand-muted text-xs">per</Text>
+                                                        <TouchableOpacity
+                                                            onPress={() => { haptics.light(); setRates(prev => prev.map((x, j) => (j === i ? { ...x, capPeriod: NEXT_PERIOD[x.capPeriod] } : x))) }}
+                                                            className="px-2.5 h-8 rounded-lg bg-brand-surface border border-brand-border items-center justify-center"
+                                                        >
+                                                            <Text className="text-brand-text text-xs font-semibold">{PERIOD_NAME[r.capPeriod]}</Text>
+                                                        </TouchableOpacity>
+                                                      </View>
                                                     </View>
                                                 )
                                             })}
@@ -273,6 +335,7 @@ export function CardRatesSheet({ accountId, onClose }: Props) {
                                         </TouchableOpacity>
                                     </>
                                 )}
+                                </>)}
                             </View>
                         </ScrollView>
                     )}
@@ -282,14 +345,14 @@ export function CardRatesSheet({ accountId, onClose }: Props) {
                     <>
                         <OptionPicker
                             visible={picker === 'card'}
-                            title="Which card is this?"
-                            noneLabel="Detect automatically"
+                            title={data.isDebit ? 'Which debit card?' : 'Which card is this?'}
+                            noneLabel={data.isDebit ? 'Cancel' : 'Detect automatically'}
                             selectedValue={data.match === 'CONFIRMED' ? data.catalogCard?.id ?? null : null}
                             options={[
-                                { label: 'My card isn’t listed', value: 'OTHER' },
+                                { label: data.isDebit ? 'My debit card isn’t listed' : 'My card isn’t listed', value: 'OTHER' },
                                 ...data.catalog.map(c => ({ label: `${c.name} · ${c.issuer}`, value: c.id })),
                             ]}
-                            onSelect={(v) => setCard(v)}
+                            onSelect={(v) => { if (v || !data.isDebit) setCard(v) }}
                             onClose={() => setPicker(null)}
                         />
                         <OptionPicker
@@ -298,7 +361,14 @@ export function CardRatesSheet({ accountId, onClose }: Props) {
                             noneLabel="Cancel"
                             selectedValue=""
                             options={data.keys.filter(k => !used.has(k.key)).map(k => ({ label: k.label, value: k.key }))}
-                            onSelect={(v) => { if (v) setRates(prev => [...prev, { key: v, rate: baseRate || '1' }]) }}
+                            onSelect={(v) => {
+                                if (!v) return
+                                const pick = data.userPick
+                                setRates(prev => [...prev, {
+                                    key: v, rate: pick ? String(pick.rate) : baseRate || '1',
+                                    capAmount: pick?.cap ? String(pick.cap.amount) : '', capPeriod: pick?.cap?.period ?? 'MONTH',
+                                }])
+                            }}
                             onClose={() => setPicker(null)}
                         />
                     </>

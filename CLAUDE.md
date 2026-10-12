@@ -41,7 +41,7 @@ Five visible tabs: **Home (`index`), Transactions, Accounts (`accounts/index`), 
 
 Home is one scroll with sticky section chips (Overview · Spending · Investments · Bills · Goals · Activity) that jump to each section; sections with no data hide along with their chip. Each section is a summary card that links to its full screen.
 
-Hidden tab screens (pushed, tab bar hidden, own back button): `insights` (month picker, trends, net worth, merchants — Home's "More insights"), `investments` (portfolio value, allocation, holdings, dividends), `rewards` (card rewards: earnings, "Which card should I use?" search, your cards with an editable rates sheet, new-card suggestions — opened from Settings → Money → Card Rewards), `settings`, `assistant` (AI chat), `subscriptions` (recurring), `rules`, `family/index` (kids list, opened from Settings → Money) and `family/[id]` (a kid's Today checklist, daily goals, chores and wallet).
+Hidden tab screens (pushed, tab bar hidden, own back button): `insights` (month picker, trends, net worth, merchants — Home's "More insights"), `investments` (portfolio value, allocation, holdings, dividends), `rewards` (card rewards, including opt-in debit cards that pay rewards and per-rate limits like "up to $1,000/month": earnings, "Which card should I use?" search, your cards with an editable rates sheet, new-card suggestions — opened from Settings → Money → Card Rewards), `settings`, `assistant` (AI chat), `subscriptions` (recurring), `rules`, `family/index` (kids list, opened from Settings → Money) and `family/[id]` (a kid's Today checklist, daily goals, chores and wallet).
 Auth group `(auth)`: `login`, `mfa`. Tokenless users are redirected to login by the app layout.
 
 ### App Lock
