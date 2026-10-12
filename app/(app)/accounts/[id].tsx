@@ -103,7 +103,7 @@ export default function AccountDetailScreen() {
             await apiClient.delete(`/plaid/items/${itemId}`)
         },
         onSuccess: () => {
-            for (const key of ['accounts', 'account-detail', 'dashboard', 'transactions', 'budgets', 'insights', 'investments']) {
+            for (const key of ['accounts', 'dashboard', 'transactions', 'budgets', 'insights', 'investments']) {
                 queryClient.invalidateQueries({ queryKey: [key] })
             }
             router.back()
