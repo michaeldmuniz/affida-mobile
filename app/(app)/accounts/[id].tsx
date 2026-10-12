@@ -21,6 +21,9 @@ interface AccountDetail {
     plaidLinked: boolean
     lastSyncAt: string | null
     needsReconnect: boolean
+    /** The owner's bank connection, and the names of every account that disconnecting it removes */
+    disconnectItemId: string | null
+    disconnectAccountNames: string[]
     /** Set for the owner when the bank connection needs reconnecting */
     reconnectItemId: string | null
     updatedAt: string
@@ -95,7 +98,34 @@ export default function AccountDetailScreen() {
         onError: () => Alert.alert('Error', 'Failed to delete account.'),
     })
 
+    const { mutate: disconnectBank, isPending: isDisconnecting } = useMutation({
+        mutationFn: async (itemId: string) => {
+            await apiClient.delete(`/plaid/items/${itemId}`)
+        },
+        onSuccess: () => {
+            for (const key of ['accounts', 'account-detail', 'dashboard', 'transactions', 'budgets', 'insights', 'investments']) {
+                queryClient.invalidateQueries({ queryKey: [key] })
+            }
+            router.back()
+        },
+        onError: (err: any) => Alert.alert('Error', err?.response?.data?.error ?? 'Failed to disconnect bank.'),
+    })
+
     const handleDelete = () => {
+        const itemId = data?.account.disconnectItemId
+        if (data?.account.plaidLinked) {
+            if (!itemId) return
+            const names = data.account.disconnectAccountNames
+            Alert.alert(
+                `Disconnect ${data.account.institutionName}?`,
+                `This removes the bank connection and permanently deletes ${names.length > 1 ? `all ${names.length} of its accounts (${names.join(', ')})` : `"${names[0] ?? data.account.name}"`} and every transaction in ${names.length > 1 ? 'them' : 'it'}. This cannot be undone. To use the bank again you would need to reconnect it.`,
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Disconnect', style: 'destructive', onPress: () => disconnectBank(itemId) },
+                ]
+            )
+            return
+        }
         Alert.alert(
             'Delete Account',
             `Delete "${data?.account.name}"? This will also delete all associated transactions. This cannot be undone.`,
@@ -129,8 +159,8 @@ export default function AccountDetailScreen() {
                     {account?.name ?? ''}
                 </Text>
                 {account && !account.isShared ? (
-                    <TouchableOpacity onPress={handleDelete} hitSlop={8} className="w-8 items-end" disabled={isDeleting}>
-                        {isDeleting
+                    <TouchableOpacity onPress={handleDelete} hitSlop={8} className="w-8 items-end" disabled={isDeleting || isDisconnecting}>
+                        {isDeleting || isDisconnecting
                             ? <ActivityIndicator size="small" color={colors.destructive} />
                             : <Trash2 size={18} color={colors.destructive} strokeWidth={1.8} />
                         }
