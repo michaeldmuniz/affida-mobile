@@ -30,8 +30,13 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
     const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null)
     const [cropQuad, setCropQuad] = useState<CropQuad | null>(null)
     const [result, setResult] = useState<Receipt | null>(null)
+    // True from the moment an upload succeeds until the detail sheet opens, so the
+    // scan modal is fully dismissed before the next one presents (two iOS modals
+    // transitioning at once crashed the Fabric UIManager).
+    const [finishing, setFinishing] = useState(false)
 
     const reset = () => {
+        setFinishing(false)
         setStep('pick')
         setImageUri(null)
         setNaturalSize(null)
@@ -55,6 +60,8 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
             if (status === 'success' && scannedImages && scannedImages.length > 0) {
                 const uri = scannedImages[0]
                 setImageUri(uri)
+                // Let the native scanner finish dismissing before we touch the UI.
+                await new Promise((resolve) => setTimeout(resolve, 500))
                 upload({ uri, cropQuad: null })
             }
         } catch {
@@ -117,7 +124,8 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
         onMutate: () => setStep('uploading'),
         onSuccess: (data) => {
             if (!data) return
-            setResult(data)
+            setFinishing(true)
+            setTimeout(() => setResult(data), 500)
             queryClient.invalidateQueries({ queryKey: ['receipts'] })
             if (data.status === 'matched') {
                 queryClient.invalidateQueries({ queryKey: ['transactions'] })
@@ -135,7 +143,7 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
 
     return (
         <>
-            <Modal visible={visible && !result} animationType="slide" presentationStyle="fullScreen" onRequestClose={handleClose}>
+            <Modal visible={visible && !result && !finishing} animationType="slide" presentationStyle="fullScreen" onRequestClose={handleClose}>
                 <SafeAreaView className="flex-1 bg-brand-bg" edges={['top', 'bottom']}>
                     <View className="flex-row items-center px-4 py-3 border-b border-brand-border">
                         <TouchableOpacity onPress={handleClose} hitSlop={8} className="w-8">
