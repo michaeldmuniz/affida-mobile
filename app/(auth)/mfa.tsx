@@ -46,7 +46,25 @@ export default function MfaScreen() {
     }, [resendCooldown])
 
     const handleDigit = (text: string, index: number) => {
-        const clean = text.replace(/\D/g, '').slice(-1)
+        const all = text.replace(/\D/g, '')
+
+        // A pasted (or autofilled) code arrives as several digits at once: spread it across the boxes
+        if (all.length > 2) {
+            const pasted = all.slice(0, CODE_LENGTH).split('')
+            const filled = Array(CODE_LENGTH).fill('')
+            pasted.forEach((d, i) => { filled[i] = d })
+            setDigits(filled)
+            setError(null)
+            if (pasted.length === CODE_LENGTH) {
+                refs.current[CODE_LENGTH - 1]?.blur()
+                handleVerify(pasted.join(''))
+            } else {
+                refs.current[pasted.length]?.focus()
+            }
+            return
+        }
+
+        const clean = all.slice(-1)
         const next = [...digits]
         next[index] = clean
         setDigits(next)
@@ -159,7 +177,8 @@ export default function MfaScreen() {
                                 onChangeText={(t) => handleDigit(t, i)}
                                 onKeyPress={(e) => handleKeyPress(e, i)}
                                 keyboardType="number-pad"
-                                maxLength={1}
+                                textContentType={i === 0 ? 'oneTimeCode' : 'none'}
+                                autoComplete={i === 0 ? 'sms-otp' : 'off'}
                                 selectTextOnFocus
                             />
                         ))}
