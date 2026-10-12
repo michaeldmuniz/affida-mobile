@@ -4,7 +4,7 @@ import {
     ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { X, Flag, ChevronRight, Tag, Zap, ReceiptText, CheckCircle } from 'lucide-react-native'
+import { X, Flag, ChevronRight, Tag, Zap, ReceiptText, CheckCircle, SplitSquareHorizontal } from 'lucide-react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { CategoryPicker } from './CategoryPicker'
@@ -15,6 +15,8 @@ import { haptics } from '@/lib/haptics'
 import { shortDay } from '@/lib/format'
 import { DatePickerSheet } from '@/components/family/DatePickerSheet'
 import { TransactionDetails, SyncedSummary } from './TransactionDetails'
+import { TransactionPicker } from './TransactionPicker'
+import { SplitSheet } from './SplitSheet'
 
 interface EditState {
     merchantName: string
@@ -38,9 +40,13 @@ export function EditSheet({ transaction, onClose }: Props) {
     const [showCategoryPicker, setShowCategoryPicker] = useState(false)
     const [createRule, setCreateRule] = useState(false)
     const [pickingDate, setPickingDate] = useState(false)
+    const [picking, setPicking] = useState<'link' | 'refund' | null>(null)
+    const [splitting, setSplitting] = useState(false)
 
     useEffect(() => {
         setCreateRule(false)
+        setPicking(null)
+        setSplitting(false)
         if (transaction) {
             setForm({
                 merchantName: transaction.merchantName ?? transaction.description,
@@ -123,6 +129,48 @@ export function EditSheet({ transaction, onClose }: Props) {
         },
     })
 
+    // Link / unlink / refund: change the connection, then refresh this transaction's detail
+    const { mutate: connect, isPending: isConnecting } = useMutation({
+        mutationFn: async (a: { method: 'post' | 'delete'; path: 'link' | 'refund'; body?: Record<string, string> }) => {
+            await apiClient.request({ method: a.method, url: `/transactions/${transaction!.id}/${a.path}`, data: a.body })
+        },
+        onSuccess: () => {
+            haptics.success()
+            queryClient.invalidateQueries({ queryKey: ['transaction'] })
+            queryClient.invalidateQueries({ queryKey: ['transactions'] })
+        },
+        onError: (err: any) => {
+            Alert.alert('Error', err?.response?.data?.error ?? 'Something went wrong. Please try again.')
+        },
+    })
+
+    const { mutate: unsplit, isPending: isUnsplitting } = useMutation({
+        mutationFn: async () => {
+            await apiClient.delete(`/transactions/${transaction!.id}/split`)
+        },
+        onSuccess: () => {
+            haptics.success()
+            queryClient.invalidateQueries({ queryKey: ['transactions'] })
+            queryClient.invalidateQueries({ queryKey: ['transaction'] })
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+            onClose()
+        },
+        onError: (err: any) => {
+            Alert.alert('Error', err?.response?.data?.error ?? 'Failed to unsplit transaction.')
+        },
+    })
+
+    const handleUnsplit = () => {
+        Alert.alert(
+            'Unsplit Transaction',
+            'This deletes all the split pieces and restores the original amount.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Unsplit', style: 'destructive', onPress: () => unsplit() },
+            ]
+        )
+    }
+
     const { mutate: applySplit, isPending: isSplitting } = useMutation({
         mutationFn: async () => {
             await apiClient.post(`/receipts/${receipt!.id}/split`)
@@ -170,6 +218,8 @@ export function EditSheet({ transaction, onClose }: Props) {
     }
 
     if (!transaction || !form) return null
+
+    const isSplit = !!detail && (detail.splitInto.length > 0 || detail.splitFrom !== null)
 
     return (
         <>
@@ -306,7 +356,16 @@ export function EditSheet({ transaction, onClose }: Props) {
                             </View>
 
                             {/* Location, payment, counterparties, links, refunds and splits */}
-                            {detail && <TransactionDetails detail={detail} />}
+                            {detail && (
+                                <TransactionDetails
+                                    detail={detail}
+                                    busy={isConnecting}
+                                    onLink={() => setPicking('link')}
+                                    onUnlink={() => connect({ method: 'delete', path: 'link' })}
+                                    onMarkRefund={() => setPicking('refund')}
+                                    onRemoveRefund={() => connect({ method: 'delete', path: 'refund' })}
+                                />
+                            )}
 
                             {/* Linked receipt */}
                             {receipt && (
@@ -360,6 +419,32 @@ export function EditSheet({ transaction, onClose }: Props) {
                                 </View>
                             )}
 
+                            {/* Split by category, or put a split back together */}
+                            {detail && (
+                                <View className="px-4 pt-5 pb-2">
+                                    {isSplit ? (
+                                        <TouchableOpacity
+                                            className="flex-row items-center gap-x-3 bg-brand-surface border border-brand-border rounded-xl px-4 h-12"
+                                            onPress={handleUnsplit}
+                                            disabled={isUnsplitting}
+                                            activeOpacity={0.7}
+                                        >
+                                            <SplitSquareHorizontal size={16} color={colors.muted} />
+                                            <Text className="text-brand-muted text-base">{isUnsplitting ? 'Unsplitting…' : 'Unsplit transaction'}</Text>
+                                        </TouchableOpacity>
+                                    ) : (
+                                        <TouchableOpacity
+                                            className="flex-row items-center gap-x-3 bg-brand-surface border border-brand-border rounded-xl px-4 h-12"
+                                            onPress={() => { haptics.light(); setSplitting(true) }}
+                                            activeOpacity={0.7}
+                                        >
+                                            <SplitSquareHorizontal size={16} color={colors.accent} />
+                                            <Text className="text-brand-text text-base">Split by category</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            )}
+
                             {/* Flag */}
                             <View className="px-4 pt-5 pb-2">
                                 <TouchableOpacity
@@ -378,8 +463,8 @@ export function EditSheet({ transaction, onClose }: Props) {
                                 </TouchableOpacity>
                             </View>
 
-                            {/* Delete (manual only) */}
-                            {transaction.isManual && (
+                            {/* Delete (manual only; split pieces are removed by unsplitting) */}
+                            {transaction.isManual && !isSplit && (
                                 <View className="px-4 pt-6 pb-2">
                                     <TouchableOpacity
                                         className="h-12 rounded-xl border border-brand-negative/30 items-center justify-center"
@@ -402,6 +487,24 @@ export function EditSheet({ transaction, onClose }: Props) {
                     selectedId={form.categoryId}
                     onSelect={(id, name) => setForm(f => f ? { ...f, categoryId: id, categoryName: name } : f)}
                     onClose={() => setShowCategoryPicker(false)}
+                />
+                <TransactionPicker
+                    visible={picking !== null}
+                    title={picking === 'refund' ? 'Which charge is this a refund of?' : 'Link a related transaction'}
+                    excludeId={transaction.id}
+                    onPick={(tx) => {
+                        const mode = picking
+                        setPicking(null)
+                        if (mode === 'refund') connect({ method: 'post', path: 'refund', body: { refundForId: tx.id } })
+                        else if (mode === 'link') connect({ method: 'post', path: 'link', body: { targetId: tx.id } })
+                    }}
+                    onClose={() => setPicking(null)}
+                />
+                <SplitSheet
+                    transaction={splitting ? transaction : null}
+                    categories={categories}
+                    onClose={() => setSplitting(false)}
+                    onSplit={() => { setSplitting(false); onClose() }}
                 />
                 <DatePickerSheet
                     visible={pickingDate}

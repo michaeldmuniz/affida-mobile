@@ -1,5 +1,5 @@
 import { View, Text, Image, TouchableOpacity, Linking } from 'react-native'
-import { ExternalLink, MapPin, Landmark } from 'lucide-react-native'
+import { ExternalLink, MapPin, Landmark, Link2, RotateCcw } from 'lucide-react-native'
 import { AmountText } from '@/components/ui/AmountText'
 import { colors } from '@/lib/colors'
 import { shortDay } from '@/lib/format'
@@ -40,8 +40,34 @@ function Connected({ tag, tx }: { tag: string; tx: ConnectedTransaction }) {
     )
 }
 
+function ActionButton({ icon, label, onPress, disabled, quiet }: {
+    icon?: React.ReactNode; label: string; onPress: () => void; disabled?: boolean; quiet?: boolean
+}) {
+    return (
+        <TouchableOpacity
+            onPress={onPress}
+            disabled={disabled}
+            activeOpacity={0.7}
+            className={`flex-row items-center gap-x-1.5 rounded-lg px-3 h-9 ${quiet ? '' : 'border border-brand-border bg-brand-surface'} ${disabled ? 'opacity-50' : ''}`}
+        >
+            {icon}
+            <Text className={`text-sm font-medium ${quiet ? 'text-brand-muted' : 'text-brand-text'}`}>{label}</Text>
+        </TouchableOpacity>
+    )
+}
+
+interface DetailsProps {
+    detail: TransactionDetail
+    /** A link/refund change is in flight. */
+    busy?: boolean
+    onLink: () => void
+    onUnlink: () => void
+    onMarkRefund: () => void
+    onRemoveRefund: () => void
+}
+
 /** The bank-synced summary, location, payment, counterparties, links/refunds and splits: the same sections as the web dialog. */
-export function TransactionDetails({ detail }: { detail: TransactionDetail }) {
+export function TransactionDetails({ detail, busy, onLink, onUnlink, onMarkRefund, onRemoveRefund }: DetailsProps) {
     const loc = detail.location
     const hasLocation = !!(loc.address || loc.city)
     const hasPayment = !!(detail.payment.method || detail.payment.processor || detail.payment.reference)
@@ -73,6 +99,13 @@ export function TransactionDetails({ detail }: { detail: TransactionDetail }) {
                 ) : (
                     <Text className="text-brand-muted text-sm">Not connected to any other transaction.</Text>
                 )}
+                <View className="flex-row flex-wrap gap-2 mt-3">
+                    <ActionButton icon={<Link2 size={14} color={colors.muted} />} label="Link related transaction" onPress={onLink} disabled={busy} />
+                    {detail.linked.length > 0 && <ActionButton label="Unlink" onPress={onUnlink} disabled={busy} quiet />}
+                    {detail.refundOf
+                        ? <ActionButton label="Remove refund link" onPress={onRemoveRefund} disabled={busy} quiet />
+                        : <ActionButton icon={<RotateCcw size={14} color={colors.muted} />} label="Mark as refund of…" onPress={onMarkRefund} disabled={busy} />}
+                </View>
             </View>
 
             {/* Bank details */}
