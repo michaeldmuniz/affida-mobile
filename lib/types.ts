@@ -371,3 +371,102 @@ export interface FamilyCalendar {
     members: CalendarMember[]
     items: CalendarItem[]
 }
+
+// ── Card rewards ──────────────────────────────────────────────────────────────
+
+export type RewardKind = 'CASHBACK' | 'POINTS' | 'MILES'
+
+export interface RewardWalletAccount {
+    accountId: string
+    accountName: string
+    institutionName: string
+    match: 'CONFIRMED' | 'AUTO' | 'UNKNOWN'
+    canEdit: boolean
+    /** False when the card is a partner's, shared with you. */
+    mine: boolean
+    card: { id: string; name: string; issuer: string } | null
+    /** The card id the engine used (matches feeChecks). */
+    walletCardId: string
+    /** You've set some of this card's rates yourself. */
+    customized: boolean
+    carriesBalance: boolean
+    annualSpend: number
+    annualRewards: number
+}
+
+export interface RewardLookupEntry {
+    key: string
+    label: string
+    kind: 'category' | 'merchant' | 'other'
+    cardName: string
+    accountName: string
+    mine: boolean
+    returnPct: number
+    capped: boolean
+    /** Any of your cards pays the same here. */
+    tied: boolean
+}
+
+export interface RewardSuggestion {
+    card: { id: string; name: string; issuer: string; annualFee: number; requirement: string | null }
+    extraRewards: number
+    netGain: number
+    breakdown: { category: string; merchant?: string; amount: number; rate: number; returnPct: number; gain: number }[]
+}
+
+/** GET /rewards — same numbers as the web Rewards page. */
+export interface RewardsOverview {
+    monthsOfData: number
+    enoughData: boolean
+    annualSpend: number
+    currentRewards: number
+    optimalRewards: number
+    wallet: RewardWalletAccount[]
+    partnerName: string | null
+    /** Best usable card for every category and store. */
+    lookup: RewardLookupEntry[]
+    feeChecks: { cardId: string; cardName: string; annualFee: number; marginalRewards: number; worthIt: boolean }[]
+    carryingBalance: boolean
+    ownCarryingBalance: boolean
+    carriedCards: string[]
+    interestVsRewards: {
+        window: 'LAST_12_MONTHS' | 'ANNUALIZED'
+        monthsOfData: number
+        interestPerYear: number
+        rewardsPerYear: number
+        interestExceedsRewards: boolean
+        interestEstimated: boolean
+    } | null
+    suggestions: RewardSuggestion[]
+}
+
+export interface RewardRateLine {
+    key: string
+    label: string
+    rate: number
+    /** Percent back after the program's point value. */
+    returnPct: number
+    cap: string | null
+    /** Your rate rather than the published one. */
+    custom: boolean
+    publishedRate: number | null
+}
+
+/** GET /rewards/cards/:accountId — a card's published rates plus your own. */
+export interface CardRewardsDetail {
+    accountId: string
+    accountName: string
+    canEdit: boolean
+    match: 'CONFIRMED' | 'AUTO' | 'UNKNOWN'
+    catalogCard: { id: string; name: string; issuer: string; annualFee: number; sourceUrl: string; verifiedAt: string } | null
+    customized: boolean
+    kind: RewardKind
+    pointValueCents: number
+    baseRate: number
+    publishedBaseRate: number | null
+    baseCustom: boolean
+    lines: RewardRateLine[]
+    choices: { label: string; pick: number; options: string[]; rate: number; returnPct: number }[]
+    keys: { key: string; label: string; kind: 'category' | 'merchant' }[]
+    catalog: { id: string; name: string; issuer: string }[]
+}

@@ -173,6 +173,10 @@ export default function AppLayout() {
                 options={HIDDEN_SCREEN_OPTIONS}
             />
             <Tabs.Screen
+                name="rewards"
+                options={HIDDEN_SCREEN_OPTIONS}
+            />
+            <Tabs.Screen
                 name="rules"
                 options={{
                     tabBarButton: () => null,
