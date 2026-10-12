@@ -75,7 +75,8 @@ export default function BudgetsScreen() {
         enabled: true,
     })
 
-    const totalBudgeted = budgets?.reduce((s, b) => s + b.amount, 0) ?? 0
+    // Total available, like the web's Total Budgeted: budget + rollover + refunds + goal rewards
+    const totalBudgeted = budgets?.reduce((s, b) => s + b.remaining + b.spent, 0) ?? 0
     const totalSpent = budgets?.reduce((s, b) => s + b.spent, 0) ?? 0
     const isHousehold = budgets?.some(b => b.isHousehold) ?? false
 

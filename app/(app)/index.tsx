@@ -183,13 +183,16 @@ export default function DashboardScreen() {
         .sort((a, b) => new Date(a.nextDate).getTime() - new Date(b.nextDate).getTime())
         .slice(0, 3)
 
-    const ownBudgets = (budgets ?? []).filter(b => !b.partnerOnly)
-    const totalBudgeted = ownBudgets.reduce((s, b) => s + b.amount, 0)
+    // Every row the Budgets tab shows, including the partner's own categories, but only those
+    // with a budget above $0 (no budget = no limit). The limit is the total available
+    // (budget + rollover + refunds + goal rewards = remaining + spent), like the web dashboard.
+    const ownBudgets = (budgets ?? []).filter(b => b.amount > 0)
+    const totalBudgeted = ownBudgets.reduce((s, b) => s + b.remaining + b.spent, 0)
     const totalSpent = ownBudgets.reduce((s, b) => s + b.spent, 0)
     const budgetPct = totalBudgeted > 0 ? Math.min((totalSpent / totalBudgeted) * 100, 100) : 0
     // Same test as the web dashboard banner and Budgets page: Remaining (which counts
     // rollover) below zero. A category with no budget (or $0) has no limit, so it never counts.
-    const overBudgetCount = ownBudgets.filter((b) => b.amount > 0 && b.remaining < 0).length
+    const overBudgetCount = ownBudgets.filter((b) => b.remaining < 0).length
 
     const topGoals = (goals ?? []).slice(0, 2)
 
