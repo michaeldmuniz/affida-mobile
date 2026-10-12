@@ -136,7 +136,7 @@ export default function ReportsScreen() {
                             {/* Summary */}
                             <Card className="p-5">
                                 <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest mb-4">
-                                    Cash Flow
+                                    Income & Expenses
                                 </Text>
                                 <View className="flex-row justify-between">
                                     <View className="flex-1 items-center">
