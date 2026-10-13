@@ -68,3 +68,23 @@ Keep this app and the web app (`my-awesome-app`) consistent — any feature, cop
 ## Cost Efficiency
 
 Never call a paid external API (OpenAI via chat, Plaid) in a loop; the backend already batches. Cache with react-query `staleTime` instead of refetching aggressively.
+
+## Testing on the iPhone without an EAS build (local Release build)
+
+Free (doesn't use one of the 15 monthly EAS iOS builds). Builds a Release app, installs it over the TestFlight copy, and streams the console. Works over USB or the same Wi-Fi network once the phone is paired. Reinstall from TestFlight afterward to get the normal copy back.
+
+**One-time setup (already done on Mike's Mac):** phone paired (`xcrun devicectl manage pair --device <id>`), Developer Mode on, Xcode signed in, Team "Michael Muniz" selected under Signing & Capabilities in `ios/Affida.xcworkspace` (the `ios/` folder is generated; don't commit it unless asked).
+
+Device: "Mike's iPhone" (iPhone 16 Pro) — CoreDevice id `AF813FBF-4C48-5251-8F42-48C49B19CEDF`, UDID `00008140-000865DC113B001C`. Check it's reachable with `xcrun devicectl list devices` (state must be `connected`; the phone must be unlocked to launch).
+
+1. **Unlock the keychain for the terminal** (otherwise signing fails with `errSecInternalComponent`, or hangs on `codesign`). The user types this themselves in the prompt, since it asks for the Mac password: `! security unlock-keychain ~/Library/Keychains/login.keychain-db`. Needed again after a reboot/lock.
+2. **Typecheck:** `npx tsc --noEmit`.
+3. **Build:** `cd ios && xcodebuild -workspace Affida.xcworkspace -scheme Affida -configuration Release -destination 'id=00008140-000865DC113B001C' -allowProvisioningUpdates build > <scratchpad>/xcb.txt 2>&1`. Incremental rebuilds take a few minutes. Look for `** BUILD SUCCEEDED **`.
+4. **Install:** `APP=$(ls -d ~/Library/Developer/Xcode/DerivedData/Affida-*/Build/Products/Release-iphoneos/Affida.app | head -1); xcrun devicectl device install app --device AF813FBF-4C48-5251-8F42-48C49B19CEDF "$APP"`
+5. **Launch with console** (run in the background; it ends when the app exits or crashes): `xcrun devicectl device process launch --console --terminate-existing --device AF813FBF-4C48-5251-8F42-48C49B19CEDF com.affida.app > console.txt 2>&1`. Fails with "device was not, or could not be, unlocked" if the phone is locked. macOS has no `timeout` command.
+6. **Reproduce the problem on the phone**, then read `console.txt`. For a crash (`App terminated due to signal 11`), pull the report: list with `xcrun devicectl device info files --device <id> --domain-type systemCrashLogs | grep Affida`, then `xcrun devicectl device copy from --device <id> --domain-type systemCrashLogs --source <name>.ips --destination <dir>/crash.ips` (destination must be a file path, not a directory; the report can take a minute to appear). Parse the faulting thread's frames from the JSON (`python3 -I`).
+
+Notes:
+- A Hermes `SIGSEGV` whose stack contains `convertNSExceptionToJSError` / `performVoidMethodInvocation` means a native void method (e.g. `Alert.alert`) threw an NSException on iOS and React Native crashed converting it. Avoid presenting a native `Alert` while a Modal/scanner/Plaid sheet is presenting or dismissing; show errors inline instead.
+- Expo Go / the QR code can't run this app: it uses custom native code (Plaid SDK, document scanner), so use this local build or a dev-client build.
+- The web API changes the app calls must be deployed (pushed to the web repo's `main`) before testing the app against production.
