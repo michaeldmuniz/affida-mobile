@@ -14,8 +14,8 @@ import { colorForIndex } from '@/components/charts/palette'
 import { haptics } from '@/lib/haptics'
 import { formatShortDate, compactUsd, signedPct } from '@/lib/format'
 import { amountOwed, debtAccounts } from '@/lib/account-types'
-import type { DashboardStats, Account, SubscriptionsResponse, Budget, Goal, Insights, Investments } from '@/lib/types'
-import { colors } from '@/lib/colors'
+import type { DashboardStats, Account, SubscriptionsResponse, Budget, Goal, Insights, Investments, RewardsOverview, Child } from '@/lib/types'
+import { colors, kidColor } from '@/lib/colors'
 import { PendingBadge } from '@/components/transactions/PendingBadge'
 
 interface AlertItem {
@@ -25,15 +25,17 @@ interface AlertItem {
     severity: 'warning' | 'destructive'
 }
 
-type SectionId = 'overview' | 'spending' | 'debt' | 'investments' | 'bills' | 'goals' | 'activity'
+type SectionId = 'overview' | 'spending' | 'debt' | 'investments' | 'rewards' | 'bills' | 'goals' | 'family' | 'activity'
 
 const SECTION_LABELS: Record<SectionId, string> = {
     overview: 'Overview',
     spending: 'Spending',
     debt: 'Debt',
     investments: 'Investments',
+    rewards: 'Rewards',
     bills: 'Bills',
     goals: 'Goals',
+    family: 'Family',
     activity: 'Activity',
 }
 
@@ -113,6 +115,20 @@ export default function DashboardScreen() {
         queryKey: ['investments'],
         queryFn: async () => (await apiClient.get('/investments')).data.data,
         staleTime: 5 * 60 * 1000,
+    })
+
+    const { data: rewards } = useQuery<RewardsOverview>({
+        queryKey: ['rewards'],
+        queryFn: async () => (await apiClient.get('/rewards')).data.data,
+        staleTime: 5 * 60 * 1000,
+        retry: 0,
+    })
+
+    const { data: kids } = useQuery<Child[]>({
+        queryKey: ['family'],
+        queryFn: async () => (await apiClient.get('/family/children')).data.data,
+        staleTime: 60 * 1000,
+        retry: 0,
     })
 
     // Section chips: tap to scroll to a section; the active chip follows the scroll.
@@ -212,13 +228,20 @@ export default function DashboardScreen() {
     const hasInvestments = !!investments?.hasInvestments
     const debts = debtAccounts(accounts ?? []).sort((a, b) => amountOwed(b) - amountOwed(a))
     const totalOwed = debts.reduce((s, a) => s + amountOwed(a), 0)
+    const hasRewards = (rewards?.wallet.length ?? 0) > 0
+    const rewardsMissed = rewards ? Math.max(0, rewards.optimalRewards - rewards.currentRewards) : 0
+    const topRewardCards = [...(rewards?.wallet ?? [])].sort((a, b) => b.annualRewards - a.annualRewards).slice(0, 3)
+    const hasKids = (kids?.length ?? 0) > 0
+    const kidsTotal = (kids ?? []).reduce((s, k) => s + k.balance, 0)
     const visibleSections: SectionId[] = [
         'overview',
         ...(!isFirstRun ? ['spending' as const] : []),
         ...(debts.length > 0 ? ['debt' as const] : []),
         ...(hasInvestments ? ['investments' as const] : []),
+        ...(hasRewards ? ['rewards' as const] : []),
         ...(upcomingBills.length > 0 ? ['bills' as const] : []),
         ...(topGoals.length > 0 ? ['goals' as const] : []),
+        ...(hasKids ? ['family' as const] : []),
         'activity',
     ]
 
@@ -562,6 +585,51 @@ export default function DashboardScreen() {
                         </View>
                     )}
 
+                    {hasRewards && rewards && (
+                        <View ref={trackSection('rewards')} className="gap-y-4">
+                            <TouchableOpacity activeOpacity={0.85} onPress={() => { haptics.light(); router.push('/(app)/rewards' as any) }}>
+                                <Card className="p-5">
+                                    <View className="flex-row items-center justify-between mb-3">
+                                        <Text className="text-brand-muted text-xs font-medium uppercase tracking-widest">Rewards</Text>
+                                        <ChevronRight size={16} color={colors.muted} strokeWidth={2} />
+                                    </View>
+                                    {rewards.enoughData ? (
+                                        <>
+                                            <Text className="text-brand-text text-2xl font-bold">
+                                                {wholeUsd(rewards.currentRewards)}
+                                                <Text className="text-brand-muted text-sm font-normal"> / year earned</Text>
+                                            </Text>
+                                            {rewardsMissed >= 5 && (
+                                                <Text className="text-xs font-medium mt-1" style={{ color: colors.positive }}>
+                                                    Up to {wholeUsd(rewardsMissed)} more with the best card for each purchase
+                                                </Text>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <Text className="text-brand-muted text-sm">
+                                            Tap to see which card to use for each purchase. Estimates appear after a few months of history.
+                                        </Text>
+                                    )}
+                                    <View className="mt-4 gap-y-2.5">
+                                        {topRewardCards.map((w) => (
+                                            <View key={w.accountId} className="flex-row items-center justify-between">
+                                                <Text className="text-brand-text text-sm flex-1 mr-3" numberOfLines={1}>
+                                                    {w.card?.name ?? w.accountName}
+                                                </Text>
+                                                {rewards.enoughData && (
+                                                    <Text className="text-brand-muted text-sm font-mono">{wholeUsd(w.annualRewards)}/yr</Text>
+                                                )}
+                                            </View>
+                                        ))}
+                                        {rewards.wallet.length > 3 && (
+                                            <Text className="text-brand-muted text-xs">+{rewards.wallet.length - 3} more</Text>
+                                        )}
+                                    </View>
+                                </Card>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+
                     {upcomingBills.length > 0 && (
                         <View ref={trackSection('bills')} className="gap-y-4">
                             <TouchableOpacity activeOpacity={0.85} onPress={() => { haptics.light(); router.push('/(app)/subscriptions' as any) }}>
@@ -612,6 +680,39 @@ export default function DashboardScreen() {
                                 })}
                             </Card>
                         </TouchableOpacity>
+                        </View>
+                    )}
+
+                    {hasKids && kids && (
+                        <View ref={trackSection('family')} className="gap-y-4">
+                            <TouchableOpacity activeOpacity={0.85} onPress={() => { haptics.light(); router.push('/(app)/family' as any) }}>
+                                <Card className="p-5">
+                                    <View className="flex-row items-center justify-between mb-3">
+                                        <Text className="text-brand-muted text-xs font-medium uppercase tracking-widest">Family</Text>
+                                        <ChevronRight size={16} color={colors.muted} strokeWidth={2} />
+                                    </View>
+                                    <Text className="text-brand-text text-2xl font-bold">{`$${kidsTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</Text>
+                                    <Text className="text-brand-muted text-xs mt-0.5">
+                                        in {kids.length} kid wallet{kids.length === 1 ? '' : 's'}
+                                    </Text>
+                                    <View className="mt-4 gap-y-2.5">
+                                        {kids.slice(0, 4).map((k) => (
+                                            <View key={k.id} className="flex-row items-center justify-between">
+                                                <View className="flex-row items-center gap-x-2 flex-1 mr-3">
+                                                    <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: kidColor(k.color) }} />
+                                                    <Text className="text-brand-text text-sm" numberOfLines={1}>{k.name}</Text>
+                                                </View>
+                                                <Text className="text-brand-muted text-sm font-mono">
+                                                    {`$${k.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                                                </Text>
+                                            </View>
+                                        ))}
+                                        {kids.length > 4 && (
+                                            <Text className="text-brand-muted text-xs">+{kids.length - 4} more</Text>
+                                        )}
+                                    </View>
+                                </Card>
+                            </TouchableOpacity>
                         </View>
                     )}
 
