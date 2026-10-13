@@ -27,3 +27,13 @@ export function computeNetWorth(accounts: { balance: number; type: string; exclu
 export function canEditAccount(a: { isShared?: boolean; role?: 'VIEWER' | 'EDITOR' | null }): boolean {
     return !a.isShared || a.role === 'EDITOR'
 }
+
+/** What you owe on a debt account (positive number), with the same sign rules as net worth. */
+export function amountOwed(a: { balance: number; plaidLinked: boolean }): number {
+    return a.plaidLinked ? a.balance : Math.abs(a.balance)
+}
+
+/** The debt accounts that count toward what you owe (hidden/excluded ones are left out, like net worth). */
+export function debtAccounts<T extends { type: string; excludeFromNetWorth: boolean; hideFromGlobal?: boolean }>(accounts: T[]): T[] {
+    return accounts.filter((a) => DEBT_TYPES.has(a.type) && !a.excludeFromNetWorth && !a.hideFromGlobal)
+}

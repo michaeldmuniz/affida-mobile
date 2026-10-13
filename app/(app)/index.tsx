@@ -13,6 +13,7 @@ import { DonutChart } from '@/components/charts/DonutChart'
 import { colorForIndex } from '@/components/charts/palette'
 import { haptics } from '@/lib/haptics'
 import { formatShortDate, compactUsd, signedPct } from '@/lib/format'
+import { amountOwed, debtAccounts } from '@/lib/account-types'
 import type { DashboardStats, Account, SubscriptionsResponse, Budget, Goal, Insights, Investments } from '@/lib/types'
 import { colors } from '@/lib/colors'
 import { PendingBadge } from '@/components/transactions/PendingBadge'
@@ -24,11 +25,12 @@ interface AlertItem {
     severity: 'warning' | 'destructive'
 }
 
-type SectionId = 'overview' | 'spending' | 'investments' | 'bills' | 'goals' | 'activity'
+type SectionId = 'overview' | 'spending' | 'debt' | 'investments' | 'bills' | 'goals' | 'activity'
 
 const SECTION_LABELS: Record<SectionId, string> = {
     overview: 'Overview',
     spending: 'Spending',
+    debt: 'Debt',
     investments: 'Investments',
     bills: 'Bills',
     goals: 'Goals',
@@ -208,9 +210,12 @@ export default function DashboardScreen() {
     const savingsRate = insights?.trend?.length ? insights.trend[insights.trend.length - 1] : null
 
     const hasInvestments = !!investments?.hasInvestments
+    const debts = debtAccounts(accounts ?? []).sort((a, b) => amountOwed(b) - amountOwed(a))
+    const totalOwed = debts.reduce((s, a) => s + amountOwed(a), 0)
     const visibleSections: SectionId[] = [
         'overview',
         ...(!isFirstRun ? ['spending' as const] : []),
+        ...(debts.length > 0 ? ['debt' as const] : []),
         ...(hasInvestments ? ['investments' as const] : []),
         ...(upcomingBills.length > 0 ? ['bills' as const] : []),
         ...(topGoals.length > 0 ? ['goals' as const] : []),
@@ -460,6 +465,34 @@ export default function DashboardScreen() {
                                     </TouchableOpacity>
                                 )}
                             </Card>
+                        </View>
+                    )}
+
+                    {debts.length > 0 && (
+                        <View ref={trackSection('debt')} className="gap-y-4">
+                            <TouchableOpacity activeOpacity={0.85} onPress={() => { haptics.light(); router.push('/(app)/debts' as any) }}>
+                                <Card className="p-5">
+                                    <View className="flex-row items-center justify-between mb-3">
+                                        <Text className="text-brand-muted text-xs font-medium uppercase tracking-widest">Debt</Text>
+                                        <ChevronRight size={16} color={colors.muted} strokeWidth={2} />
+                                    </View>
+                                    <Text className="text-2xl font-bold" style={{ color: colors.negative }}>{wholeUsd(totalOwed)}</Text>
+                                    <Text className="text-brand-muted text-xs mt-0.5">
+                                        owed across {debts.length} account{debts.length === 1 ? '' : 's'}
+                                    </Text>
+                                    <View className="mt-4 gap-y-2.5">
+                                        {debts.slice(0, 3).map((a) => (
+                                            <View key={a.id} className="flex-row items-center justify-between">
+                                                <Text className="text-brand-text text-sm flex-1 mr-3" numberOfLines={1}>{a.name}</Text>
+                                                <Text className="text-brand-muted text-sm font-mono">{wholeUsd(amountOwed(a))}</Text>
+                                            </View>
+                                        ))}
+                                        {debts.length > 3 && (
+                                            <Text className="text-brand-muted text-xs">+{debts.length - 3} more</Text>
+                                        )}
+                                    </View>
+                                </Card>
+                            </TouchableOpacity>
                         </View>
                     )}
 
