@@ -197,6 +197,8 @@ export interface Goal {
     notes?: string | null
     accounts: Array<{ id: string; name: string }>
     contributions?: GoalContribution[]
+    // Household goal shared by a partner (read-only on mobile)
+    shared?: boolean
 }
 
 export interface CategoryBreakdownItem {

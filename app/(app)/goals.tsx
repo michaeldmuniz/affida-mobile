@@ -40,9 +40,9 @@ export default function GoalsScreen() {
     const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
 
     const { data: goals, isLoading, refetch, isRefetching } = useQuery<Goal[]>({
-        queryKey: ['goals'],
+        queryKey: ['goals', 'all'],
         queryFn: async () => {
-            const res = await apiClient.get('/goals')
+            const res = await apiClient.get('/goals', { params: { include: 'all' } })
             return res.data.data
         },
     })
@@ -57,8 +57,11 @@ export default function GoalsScreen() {
         onError: () => Alert.alert('Error', 'Failed to delete goal.'),
     })
 
-    const totalTarget = (goals ?? []).reduce((s, g) => s + g.targetAmount, 0)
-    const totalSaved = (goals ?? []).reduce((s, g) => s + g.currentAmount, 0)
+    const mine = (goals ?? []).filter((g) => !g.shared && g.status !== 'COMPLETED')
+    const household = (goals ?? []).filter((g) => g.shared && g.status !== 'COMPLETED')
+    const completed = (goals ?? []).filter((g) => g.status === 'COMPLETED')
+    const totalTarget = [...mine, ...household].reduce((s, g) => s + g.targetAmount, 0)
+    const totalSaved = [...mine, ...household].reduce((s, g) => s + g.currentAmount, 0)
 
     const handleLongPress = (goal: Goal) => {
         Alert.alert('Delete Goal', `Delete "${goal.name}"? This cannot be undone.`, [
@@ -101,13 +104,26 @@ export default function GoalsScreen() {
                         [1, 2, 3].map((i) => <GoalCardSkeleton key={i} />)
                     ) : goals?.length ? (
                         <>
-                            {goals.map((goal) => (
-                                <GoalCard
-                                    key={goal.id}
-                                    goal={goal}
-                                    onPress={() => setEditingGoal(goal)}
-                                    onLongPress={() => handleLongPress(goal)}
-                                />
+                            {[
+                                { title: null, items: mine },
+                                { title: 'Household', items: household },
+                                { title: 'Completed', items: completed },
+                            ].map(({ title, items }) => items.length > 0 && (
+                                <View key={title ?? 'mine'} className="gap-y-3">
+                                    {title && (
+                                        <Text className="text-brand-muted text-xs font-semibold uppercase tracking-wide mt-3">
+                                            {title}
+                                        </Text>
+                                    )}
+                                    {items.map((goal) => (
+                                        <GoalCard
+                                            key={goal.id}
+                                            goal={goal}
+                                            onPress={() => !goal.shared && setEditingGoal(goal)}
+                                            onLongPress={() => !goal.shared && handleLongPress(goal)}
+                                        />
+                                    ))}
+                                </View>
                             ))}
                             <Text className="text-brand-muted text-xs text-center mt-1">
                                 Long press a goal to delete it
