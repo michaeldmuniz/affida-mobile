@@ -21,6 +21,28 @@ const ACCOUNT_ICONS: Record<string, any> = {
     INVESTMENT: TrendingUp,
 }
 
+type Group = { key: string; title: string; debt: boolean; test: (a: Account) => boolean }
+
+// Grouped by what the account is, in this order. Anything unrecognised lands in "Other".
+const GROUPS: Group[] = [
+    { key: 'cash', title: 'Cash', debt: false, test: (a) => ['CHECKING', 'SAVINGS', 'CASH', 'MONEY_MARKET'].includes(a.type) },
+    { key: 'invest', title: 'Investments', debt: false, test: (a) => /INVEST|BROKER|RETIRE|401|IRA|CRYPTO|HSA/.test(a.type) },
+    { key: 'cards', title: 'Credit Cards', debt: true, test: (a) => a.type === 'CREDIT_CARD' || a.type === 'LINE_OF_CREDIT' },
+    { key: 'loans', title: 'Loans', debt: true, test: (a) => DEBT_TYPES.has(a.type) },
+    { key: 'other', title: 'Other', debt: false, test: () => true },
+]
+
+/** What an account contributes to its group's total, same sign rules as net worth. */
+function counted(a: Account, debt: boolean) {
+    if (a.excludeFromNetWorth || a.hideFromGlobal) return 0
+    if (debt) return a.plaidLinked ? a.balance : Math.abs(a.balance)
+    return a.balance
+}
+
+function money(n: number) {
+    return `${n < 0 ? '-' : ''}$${Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+}
+
 function AccountIcon({ type }: { type: string }) {
     const Icon = ACCOUNT_ICONS[type] ?? Wallet
     return (
@@ -45,8 +67,14 @@ export default function AccountsScreen() {
 
     const netWorth = computeNetWorth(accounts ?? [])
 
-    const assets = accounts?.filter((a) => !DEBT_TYPES.has(a.type) && a.balance > 0) ?? []
-    const liabilities = accounts?.filter((a) => DEBT_TYPES.has(a.type) || a.balance < 0) ?? []
+    // Each account goes in the first group that claims it
+    const grouped = GROUPS.map((g) => ({ ...g, items: [] as Account[] }))
+    for (const acct of accounts ?? []) {
+        grouped.find((g) => g.test(acct))!.items.push(acct)
+    }
+    const sections = grouped.filter((g) => g.items.length > 0)
+    const totalAssets = grouped.filter((g) => !g.debt).reduce((sum, g) => sum + g.items.reduce((s2, a) => s2 + counted(a, false), 0), 0)
+    const totalOwed = grouped.filter((g) => g.debt).reduce((sum, g) => sum + g.items.reduce((s2, a) => s2 + counted(a, true), 0), 0)
 
     return (
         <SafeAreaView className="flex-1 bg-brand-bg" edges={['top']}>
@@ -73,38 +101,48 @@ export default function AccountsScreen() {
                     <Card className="p-5">
                         <Text className="text-brand-muted text-xs uppercase tracking-widest mb-3">Net Worth</Text>
                         <AmountText amount={netWorth} size="lg" neutral className="text-brand-text" />
+                        {!isLoading && (accounts?.length ?? 0) > 0 && (
+                            <View className="flex-row justify-between mt-4 pt-4 border-t border-brand-border">
+                                <View>
+                                    <Text className="text-brand-muted text-xs mb-0.5">You have</Text>
+                                    <Text className="text-brand-text text-base font-semibold">{money(totalAssets)}</Text>
+                                </View>
+                                <View className="items-end">
+                                    <Text className="text-brand-muted text-xs mb-0.5">You owe</Text>
+                                    <Text className="text-base font-semibold" style={{ color: totalOwed > 0 ? colors.negative : colors.text }}>
+                                        {money(totalOwed)}
+                                    </Text>
+                                </View>
+                            </View>
+                        )}
                     </Card>
 
-                    {/* Assets */}
-                    {(assets.length > 0 || isLoading) && (
-                        <View>
-                            <Text className="text-brand-muted text-xs font-medium uppercase tracking-widest mb-3 px-1">
-                                Assets
-                            </Text>
-                            <View className="gap-y-2">
-                                {isLoading
-                                    ? [1, 2, 3].map((i) => <AccountRowSkeleton key={i} />)
-                                    : assets.map((account) => (
-                                        <AccountRow key={account.id} account={account} onPress={() => router.push(`/(app)/accounts/${account.id}`)} />
-                                    ))
-                                }
-                            </View>
+                    {isLoading && (
+                        <View className="gap-y-2">
+                            {[1, 2, 3].map((i) => <AccountRowSkeleton key={i} />)}
                         </View>
                     )}
 
-                    {/* Liabilities */}
-                    {liabilities.length > 0 && (
-                        <View>
-                            <Text className="text-brand-muted text-xs font-medium uppercase tracking-widest mb-3 px-1">
-                                Liabilities
-                            </Text>
-                            <View className="gap-y-2">
-                                {liabilities.map((account) => (
-                                    <AccountRow key={account.id} account={account} onPress={() => router.push(`/(app)/accounts/${account.id}`)} />
-                                ))}
+                    {!isLoading && sections.map((g) => {
+                        const total = g.items.reduce((sum, a) => sum + counted(a, g.debt), 0)
+                        return (
+                            <View key={g.key}>
+                                <View className="flex-row items-baseline justify-between mb-3 px-1">
+                                    <Text className="text-brand-muted text-xs font-medium uppercase tracking-widest">
+                                        {g.title}
+                                    </Text>
+                                    <Text className="text-brand-muted text-xs font-mono">
+                                        {g.debt ? `${money(total)} owed` : money(total)}
+                                    </Text>
+                                </View>
+                                <View className="gap-y-2">
+                                    {g.items.map((account) => (
+                                        <AccountRow key={account.id} account={account} onPress={() => router.push(`/(app)/accounts/${account.id}`)} />
+                                    ))}
+                                </View>
                             </View>
-                        </View>
-                    )}
+                        )
+                    })}
 
                     {!isLoading && (accounts?.length ?? 0) === 0 && (
                         <EmptyState />
