@@ -64,6 +64,9 @@ export default function AccountDetailScreen() {
     const queryClient = useQueryClient()
     const [showUpdateBalance, setShowUpdateBalance] = useState(false)
     const [newBalance, setNewBalance] = useState('')
+    const [editingLimit, setEditingLimit] = useState(false)
+    const [limitText, setLimitText] = useState('')
+    const [limitError, setLimitError] = useState<string | null>(null)
 
     const { data, isLoading, refetch, isRefetching } = useQuery({
         queryKey: ['account-detail', id],
@@ -86,6 +89,30 @@ export default function AccountDetailScreen() {
         },
         onError: () => Alert.alert('Error', 'Failed to update balance.'),
     })
+
+    // Credit limit is edited inline (no pop-up), so errors show in place.
+    const { mutate: saveLimit, isPending: isSavingLimit } = useMutation({
+        mutationFn: async (creditLimit: number) => {
+            await apiClient.patch(`/accounts/${id}`, { creditLimit })
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['account-detail', id] })
+            queryClient.invalidateQueries({ queryKey: ['accounts'] })
+            setEditingLimit(false)
+            setLimitError(null)
+        },
+        onError: () => setLimitError('Could not save the credit limit. Please try again.'),
+    })
+
+    const submitLimit = () => {
+        const parsed = parseFloat(limitText.replace(/[$,\s]/g, ''))
+        if (isNaN(parsed) || parsed <= 0) {
+            setLimitError('Enter your credit limit as a number greater than 0.')
+            return
+        }
+        setLimitError(null)
+        saveLimit(parsed)
+    }
 
     const { mutate: deleteAccount, isPending: isDeleting } = useMutation({
         mutationFn: async () => {
@@ -195,6 +222,83 @@ export default function AccountDetailScreen() {
                                     <Text className="text-brand-muted text-xs mt-1">
                                         Shared by {account.ownerName?.split(' ')[0] ?? 'your partner'}{account.canEdit ? '' : ' · view only'}
                                     </Text>
+                                )}
+
+                                {(account.type === 'CREDIT_CARD' || account.type === 'LINE_OF_CREDIT') && (
+                                    <View className="mt-4 pt-4 border-t border-brand-border">
+                                        {editingLimit ? (
+                                            <View className="gap-y-2">
+                                                <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest">Credit limit</Text>
+                                                <View className="flex-row items-center bg-brand-elevated border border-brand-border rounded-xl px-4 h-12">
+                                                    <Text className="text-brand-muted text-lg mr-1">$</Text>
+                                                    <TextInput
+                                                        className="flex-1 text-brand-text text-lg font-semibold"
+                                                        value={limitText}
+                                                        onChangeText={setLimitText}
+                                                        keyboardType="decimal-pad"
+                                                        placeholder="5000"
+                                                        placeholderTextColor={colors.muted}
+                                                        autoFocus
+                                                    />
+                                                </View>
+                                                {limitError && <Text className="text-brand-negative text-xs">{limitError}</Text>}
+                                                <View className="flex-row gap-x-2">
+                                                    <TouchableOpacity
+                                                        className="flex-1 h-10 rounded-xl border border-brand-border items-center justify-center"
+                                                        onPress={() => { setEditingLimit(false); setLimitError(null) }}
+                                                        disabled={isSavingLimit}
+                                                        activeOpacity={0.7}
+                                                    >
+                                                        <Text className="text-brand-text text-sm font-medium">Cancel</Text>
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity
+                                                        className="flex-1 h-10 rounded-xl bg-brand-accent items-center justify-center"
+                                                        onPress={submitLimit}
+                                                        disabled={isSavingLimit}
+                                                        activeOpacity={0.8}
+                                                    >
+                                                        {isSavingLimit
+                                                            ? <ActivityIndicator size="small" color="#fff" />
+                                                            : <Text className="text-white text-sm font-semibold">Save</Text>}
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </View>
+                                        ) : (
+                                            <View>
+                                                <View className="flex-row items-center justify-between">
+                                                    <View>
+                                                        <Text className="text-brand-muted text-xs uppercase tracking-widest mb-0.5">Credit limit</Text>
+                                                        <Text className="text-brand-text text-base font-semibold">
+                                                            {account.creditLimit ? `$${account.creditLimit.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : 'Not set'}
+                                                        </Text>
+                                                    </View>
+                                                    {account.canEdit && (
+                                                        <TouchableOpacity
+                                                            className="flex-row items-center gap-x-2 bg-brand-elevated border border-brand-border rounded-xl px-4 h-9"
+                                                            onPress={() => { setLimitText(account.creditLimit ? String(account.creditLimit) : ''); setLimitError(null); setEditingLimit(true) }}
+                                                            activeOpacity={0.7}
+                                                        >
+                                                            <Pencil size={13} color={colors.muted} />
+                                                            <Text className="text-brand-muted text-sm font-medium">{account.creditLimit ? 'Edit' : 'Set limit'}</Text>
+                                                        </TouchableOpacity>
+                                                    )}
+                                                </View>
+                                                {!!account.creditLimit && account.creditLimit > 0 && (() => {
+                                                    const owed = account.plaidLinked ? account.balance : Math.abs(account.balance)
+                                                    const pct = Math.max(0, (owed / account.creditLimit) * 100)
+                                                    const color = pct >= 70 ? colors.negative : pct >= 30 ? '#F5AE39' : colors.positive
+                                                    return (
+                                                        <View className="mt-3">
+                                                            <View className="h-2 bg-brand-elevated rounded-full overflow-hidden">
+                                                                <View className="h-full rounded-full" style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: color }} />
+                                                            </View>
+                                                            <Text className="text-brand-muted text-xs mt-1.5">{pct.toFixed(0)}% of your limit used</Text>
+                                                        </View>
+                                                    )
+                                                })()}
+                                            </View>
+                                        )}
+                                    </View>
                                 )}
 
                                 {account.reconnectItemId && <ReconnectBankButton plaidItemId={account.reconnectItemId} />}

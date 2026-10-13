@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl, type NativeSyntheticEvent, type NativeScrollEvent } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { TrendingUp, TrendingDown, ChevronRight, AlertTriangle, AlertCircle, Sparkles, Settings, PlusCircle } from 'lucide-react-native'
@@ -139,6 +139,17 @@ export default function DashboardScreen() {
     const sectionRefs = useRef<Partial<Record<SectionId, View | null>>>({})
     const sectionY = useRef<Partial<Record<SectionId, number>>>({})
     const [activeSection, setActiveSection] = useState<SectionId>('overview')
+
+    // Keep the highlighted chip in view: with many sections the row scrolls sideways, so
+    // slide it to center the active chip whenever the active section changes.
+    const chipRowRef = useRef<ScrollView>(null)
+    const chipRowWidth = useRef(0)
+    const chipLayouts = useRef<Partial<Record<SectionId, { x: number; width: number }>>>({})
+    useEffect(() => {
+        const chip = chipLayouts.current[activeSection]
+        if (!chip || !chipRowWidth.current) return
+        chipRowRef.current?.scrollTo({ x: Math.max(0, chip.x - (chipRowWidth.current - chip.width) / 2), animated: true })
+    }, [activeSection])
 
     const trackSection = (id: SectionId) => (el: View | null) => {
         sectionRefs.current[id] = el
@@ -293,10 +304,17 @@ export default function DashboardScreen() {
                     className="bg-brand-bg pb-3"
                     onLayout={(e) => { chipsHeight.current = e.nativeEvent.layout.height }}
                 >
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 24, gap: 8 }}>
+                    <ScrollView
+                        ref={chipRowRef}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ paddingHorizontal: 24, gap: 8 }}
+                        onLayout={(e) => { chipRowWidth.current = e.nativeEvent.layout.width }}
+                    >
                         {visibleSections.map((id) => (
                             <TouchableOpacity
                                 key={id}
+                                onLayout={(e) => { chipLayouts.current[id] = { x: e.nativeEvent.layout.x, width: e.nativeEvent.layout.width } }}
                                 onPress={() => scrollToSection(id)}
                                 activeOpacity={0.7}
                                 className={`px-3.5 h-8 rounded-full items-center justify-center border ${activeSection === id ? 'bg-brand-accent border-brand-accent' : 'bg-brand-surface border-brand-border'}`}
