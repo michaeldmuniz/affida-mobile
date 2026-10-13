@@ -10,6 +10,7 @@ import { AmountText } from '@/components/ui/AmountText'
 import { colors } from '@/lib/colors'
 import { syncStatusLabel } from '@/lib/sync'
 import { ReconnectBankButton } from '@/components/accounts/ReconnectBankButton'
+import { PendingBadge } from '@/components/transactions/PendingBadge'
 
 interface AccountDetail {
     id: string
@@ -248,12 +249,14 @@ export default function AccountDetailScreen() {
                                                 className={`flex-row items-center px-4 py-3.5 ${i > 0 ? 'border-t border-brand-border' : ''}`}
                                             >
                                                 <View className="flex-1 pr-3">
-                                                    <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>
-                                                        {tx.merchantName ?? tx.description}
-                                                    </Text>
+                                                    <View className="flex-row items-center gap-x-1.5">
+                                                        <Text className="text-brand-text text-sm font-medium flex-shrink" numberOfLines={1}>
+                                                            {tx.merchantName ?? tx.description}
+                                                        </Text>
+                                                        {tx.pending && <PendingBadge />}
+                                                    </View>
                                                     <Text className="text-brand-muted text-xs mt-0.5">
                                                         {tx.categoryName ?? 'Uncategorized'} · {formatShort(tx.date)}
-                                                        {tx.pending ? ' · Pending' : ''}
                                                     </Text>
                                                 </View>
                                                 <AmountText amount={tx.amount} size="sm" showSign />

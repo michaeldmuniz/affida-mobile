@@ -15,6 +15,7 @@ import { haptics } from '@/lib/haptics'
 import type { Transaction, Receipt, PaginatedResponse } from '@/lib/types'
 import type { TransactionFilters } from '@/components/transactions/FilterSheet'
 import { colors } from '@/lib/colors'
+import { PendingBadge } from '@/components/transactions/PendingBadge'
 
 const PAGE_SIZE = 50
 
@@ -244,6 +245,7 @@ export default function TransactionsScreen() {
                                                         <Text className="text-brand-text text-sm font-medium flex-shrink" numberOfLines={1}>
                                                             {tx.merchantName ?? tx.description}
                                                         </Text>
+                                                        {tx.pending && <PendingBadge />}
                                                         {tx.flagged && (
                                                             <Flag size={11} color={colors.negative} fill={colors.negative} />
                                                         )}

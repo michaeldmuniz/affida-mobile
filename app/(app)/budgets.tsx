@@ -106,13 +106,18 @@ export default function BudgetsScreen() {
     })
 
     // Total available, like the web's Total Budgeted: budget + rollover + refunds + goal rewards
-    const totalBudgeted = budgets?.reduce((s, b) => s + b.remaining + b.spent, 0) ?? 0
-    const totalSpent = budgets?.reduce((s, b) => s + b.spent, 0) ?? 0
+    // Only categories that actually have a budget count toward the totals and the ring.
+    // Spending in a category with no budget is listed separately ("No budget set") so it
+    // never turns the month red on its own — set a budget on it or disable it.
+    const budgeted = (budgets ?? []).filter((b) => b.amount > 0)
+    const unbudgeted = (budgets ?? []).filter((b) => !(b.amount > 0))
+    const totalBudgeted = budgeted.reduce((s, b) => s + b.remaining + b.spent, 0)
+    const totalSpent = budgeted.reduce((s, b) => s + b.spent, 0)
     const isHousehold = budgets?.some(b => b.isHousehold) ?? false
     const totalLeft = totalBudgeted - totalSpent
-    const overCount = budgets?.filter(b => (b.remaining ?? b.amount - b.spent) < 0).length ?? 0
+    const overCount = budgeted.filter(b => (b.remaining ?? b.amount - b.spent) < 0).length
     // Closest to (or past) the limit first, so what needs attention is at the top
-    const sorted = [...(budgets ?? [])].sort((a, b) => {
+    const sorted = [...budgeted].sort((a, b) => {
         const ra = a.remaining + a.spent > 0 ? a.spent / (a.remaining + a.spent) : a.spent > 0 ? 2 : 0
         const rb = b.remaining + b.spent > 0 ? b.spent / (b.remaining + b.spent) : b.spent > 0 ? 2 : 0
         return rb - ra
@@ -188,7 +193,7 @@ export default function BudgetsScreen() {
             >
                 <View className="px-6 gap-y-4 pb-8 pt-4">
                     {/* Summary */}
-                    {budgets && budgets.length > 0 && (
+                    {budgeted.length > 0 && (
                         <Card className="p-5 items-center">
                             <ProgressRing
                                 progress={totalBudgeted > 0 ? totalSpent / totalBudgeted : totalSpent > 0 ? 1 : 0}
@@ -251,15 +256,38 @@ export default function BudgetsScreen() {
                             {[1, 2, 3, 4, 5].map((i) => <BudgetRowSkeleton key={i} />)}
                         </View>
                     ) : budgets?.length ? (
-                        <View className="gap-y-2">
-                            {sorted.map((b) => (
-                                <BudgetRow
-                                    key={b.id}
-                                    budget={b}
-                                    onEdit={b.partnerOnly ? undefined : () => { haptics.light(); setEditing(b) }}
-                                />
-                            ))}
-                        </View>
+                        <>
+                            {sorted.length > 0 && (
+                                <View className="gap-y-2">
+                                    {sorted.map((b) => (
+                                        <BudgetRow
+                                            key={b.id}
+                                            budget={b}
+                                            onEdit={b.partnerOnly ? undefined : () => { haptics.light(); setEditing(b) }}
+                                        />
+                                    ))}
+                                </View>
+                            )}
+                            {unbudgeted.length > 0 && (
+                                <View className="gap-y-2">
+                                    <View className="mt-2">
+                                        <Text className="text-brand-muted text-xs font-semibold uppercase tracking-wide">
+                                            No budget set
+                                        </Text>
+                                        <Text className="text-brand-muted text-xs mt-0.5">
+                                            Not counted in your totals. Tap one to set a budget or disable it.
+                                        </Text>
+                                    </View>
+                                    {unbudgeted.map((b) => (
+                                        <UnbudgetedRow
+                                            key={b.id}
+                                            budget={b}
+                                            onEdit={b.partnerOnly ? undefined : () => { haptics.light(); setEditing(b) }}
+                                        />
+                                    ))}
+                                </View>
+                            )}
+                        </>
                     ) : (
                         <EmptyState onCreate={() => { haptics.medium(); setShowAdd(true) }} />
                     )}
@@ -360,6 +388,23 @@ function BudgetRow({ budget, onEdit }: { budget: Budget; onEdit?: () => void }) 
             {row}
         </TouchableOpacity>
     )
+}
+
+function UnbudgetedRow({ budget, onEdit }: { budget: Budget; onEdit?: () => void }) {
+    const row = (
+        <Card className="p-4">
+            <View className="flex-row items-center justify-between">
+                <Text className="text-brand-text text-sm font-medium flex-1 mr-2" numberOfLines={1}>
+                    {budget.categoryName}
+                </Text>
+                <Text className="text-brand-muted text-sm font-mono">
+                    ${budget.spent.toLocaleString('en-US', { maximumFractionDigits: 0 })} spent
+                </Text>
+            </View>
+        </Card>
+    )
+    if (!onEdit) return row
+    return <TouchableOpacity activeOpacity={0.7} onPress={onEdit}>{row}</TouchableOpacity>
 }
 
 function BudgetRowSkeleton() {

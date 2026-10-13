@@ -145,8 +145,8 @@ export function BudgetEditSheet({ budget, month, onClose }: Props) {
                             />
                         </View>
 
-                        {/* Disable budget — only when one is set (a category with spending but no budget has nothing to disable) */}
-                        {budget.budgetId !== null && !confirmingDisable && (
+                        {/* Disable budget — also for a category with spending but no budget set */}
+                        {!confirmingDisable && (
                             <TouchableOpacity
                                 className="h-12 rounded-xl border border-brand-negative/30 items-center justify-center mt-2"
                                 onPress={() => { setDisableError(null); setConfirmingDisable(true) }}
@@ -155,7 +155,7 @@ export function BudgetEditSheet({ budget, month, onClose }: Props) {
                                 <Text className="text-brand-negative text-sm font-medium">Disable Budget</Text>
                             </TouchableOpacity>
                         )}
-                        {budget.budgetId !== null && confirmingDisable && (
+                        {confirmingDisable && (
                             <View className="rounded-xl border border-brand-border bg-brand-surface p-4 mt-2 gap-y-3">
                                 <Text className="text-brand-text text-sm leading-relaxed">
                                     Disable the {budget.categoryName} budget from this month on? It will stop showing in

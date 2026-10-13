@@ -15,6 +15,7 @@ import { haptics } from '@/lib/haptics'
 import { formatShortDate, compactUsd, signedPct } from '@/lib/format'
 import type { DashboardStats, Account, SubscriptionsResponse, Budget, Goal, Insights, Investments } from '@/lib/types'
 import { colors } from '@/lib/colors'
+import { PendingBadge } from '@/components/transactions/PendingBadge'
 
 interface AlertItem {
     id: string
@@ -593,9 +594,12 @@ export default function DashboardScreen() {
                                 {data.recentTransactions.map((tx, i) => (
                                     <View key={tx.id} className={`flex-row items-center px-4 py-3.5 ${i > 0 ? 'border-t border-brand-border' : ''}`}>
                                         <View className="flex-1 pr-3">
-                                            <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>
-                                                {tx.merchantName ?? tx.description}
-                                            </Text>
+                                            <View className="flex-row items-center gap-x-1.5">
+                                                <Text className="text-brand-text text-sm font-medium flex-shrink" numberOfLines={1}>
+                                                    {tx.merchantName ?? tx.description}
+                                                </Text>
+                                                {tx.pending && <PendingBadge />}
+                                            </View>
                                             <Text className="text-brand-muted text-xs mt-0.5">
                                                 {tx.categoryName ?? 'Uncategorized'} · {formatShortDate(tx.date)}
                                             </Text>
