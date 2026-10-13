@@ -1,6 +1,6 @@
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity, Alert, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { ChevronLeft, ChevronRight, Plus, Copy, Users, Calculator, ArrowLeft } from 'lucide-react-native'
+import { ChevronLeft, ChevronRight, ChevronDown, Plus, Copy, Users, Calculator, ArrowLeft } from 'lucide-react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { apiClient } from '@/lib/api-client'
@@ -10,6 +10,22 @@ import { AddBudgetSheet } from '@/components/budgets/AddSheet'
 import type { Budget } from '@/lib/types'
 import { colors } from '@/lib/colors'
 import { haptics } from '@/lib/haptics'
+import { ProgressRing } from '@/components/charts/ProgressRing'
+
+const WARN = '#F5AE39'
+
+/** Green-ish accent while comfortable, amber near the limit, red once over. */
+function statusColor(spent: number, total: number) {
+    if (total <= 0) return spent > 0 ? colors.negative : colors.accent
+    const ratio = spent / total
+    if (ratio > 1) return colors.negative
+    if (ratio >= 0.8) return WARN
+    return colors.positive
+}
+
+function money(n: number) {
+    return `$${Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+}
 
 function toMonthKey(d: Date) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
@@ -20,13 +36,12 @@ function formatMonth(d: Date) {
 }
 
 function BudgetBar({ spent, total }: { spent: number; total: number }) {
-    const pct = total > 0 ? Math.min((spent / total) * 100, 100) : 0
-    const over = spent > total
+    const pct = total > 0 ? Math.min((spent / total) * 100, 100) : spent > 0 ? 100 : 0
     return (
-        <View className="h-1.5 bg-brand-elevated rounded-full overflow-hidden mt-3">
+        <View className="h-2.5 bg-brand-elevated rounded-full overflow-hidden mt-3">
             <View
-                className={`h-full rounded-full ${over ? 'bg-brand-negative' : 'bg-brand-accent'}`}
-                style={{ width: `${pct}%` }}
+                className="h-full rounded-full"
+                style={{ width: `${pct}%`, backgroundColor: statusColor(spent, total) }}
             />
         </View>
     )
@@ -37,6 +52,7 @@ export default function BudgetsScreen() {
     const [offset, setOffset] = useState(0)
     const [editing, setEditing] = useState<Budget | null>(null)
     const [showAdd, setShowAdd] = useState(false)
+    const [showDisabled, setShowDisabled] = useState(false)
     const activeDate = new Date()
     activeDate.setMonth(activeDate.getMonth() + offset)
     const month = toMonthKey(activeDate)
@@ -75,10 +91,38 @@ export default function BudgetsScreen() {
         enabled: true,
     })
 
+    // Budgets switched off as of this month (the web's "Inactive categories")
+    const { data: disabled } = useQuery<{ id: string; name: string; inactiveFrom: string | null }[]>({
+        queryKey: ['budgets', 'disabled', month],
+        queryFn: async () => (await apiClient.get('/budgets/inactive', { params: { month } })).data.data,
+    })
+
+    const { mutate: turnOn, isPending: isTurningOn } = useMutation({
+        mutationFn: async (categoryId: string) => {
+            await apiClient.post('/budgets/inactive', { categoryId, fromMonth: null })
+        },
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['budgets'] }),
+        onError: () => Alert.alert('Error', 'Could not turn this budget back on.'),
+    })
+
     // Total available, like the web's Total Budgeted: budget + rollover + refunds + goal rewards
     const totalBudgeted = budgets?.reduce((s, b) => s + b.remaining + b.spent, 0) ?? 0
     const totalSpent = budgets?.reduce((s, b) => s + b.spent, 0) ?? 0
     const isHousehold = budgets?.some(b => b.isHousehold) ?? false
+    const totalLeft = totalBudgeted - totalSpent
+    const overCount = budgets?.filter(b => (b.remaining ?? b.amount - b.spent) < 0).length ?? 0
+    // Closest to (or past) the limit first, so what needs attention is at the top
+    const sorted = [...(budgets ?? [])].sort((a, b) => {
+        const ra = a.remaining + a.spent > 0 ? a.spent / (a.remaining + a.spent) : a.spent > 0 ? 2 : 0
+        const rb = b.remaining + b.spent > 0 ? b.spent / (b.remaining + b.spent) : b.spent > 0 ? 2 : 0
+        return rb - ra
+    })
+    // Pace guidance only for the current month
+    const now = new Date()
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+    const daysLeft = daysInMonth - now.getDate() + 1
+    const perDay = offset === 0 && totalLeft > 0 ? totalLeft / daysLeft : null
+    const ringColor = statusColor(totalSpent, totalBudgeted)
 
     return (
         <SafeAreaView className="flex-1 bg-brand-bg" edges={['top']}>
@@ -144,20 +188,54 @@ export default function BudgetsScreen() {
             >
                 <View className="px-6 gap-y-4 pb-8 pt-4">
                     {/* Summary */}
-                    <Card className="flex-row justify-between p-5">
-                        <View>
-                            <Text className="text-brand-muted text-xs uppercase tracking-widest mb-1">Spent</Text>
-                            <Text className="text-brand-text text-xl font-bold">
-                                ${totalSpent.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                            </Text>
-                        </View>
-                        <View className="items-end">
-                            <Text className="text-brand-muted text-xs uppercase tracking-widest mb-1">Budgeted</Text>
-                            <Text className="text-brand-muted text-xl font-semibold">
-                                ${totalBudgeted.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                            </Text>
-                        </View>
-                    </Card>
+                    {budgets && budgets.length > 0 && (
+                        <Card className="p-5 items-center">
+                            <ProgressRing
+                                progress={totalBudgeted > 0 ? totalSpent / totalBudgeted : totalSpent > 0 ? 1 : 0}
+                                color={ringColor}
+                                size={170}
+                                strokeWidth={16}
+                            >
+                                <Text className="text-brand-muted text-xs uppercase tracking-widest">
+                                    {totalLeft < 0 ? 'Over by' : 'Left'}
+                                </Text>
+                                <Text
+                                    className="text-3xl font-bold"
+                                    style={{ color: totalLeft < 0 ? colors.negative : colors.text }}
+                                >
+                                    {money(totalLeft)}
+                                </Text>
+                                <Text className="text-brand-muted text-xs mt-0.5">
+                                    {totalBudgeted > 0 ? Math.round((totalSpent / totalBudgeted) * 100) : 0}% used
+                                </Text>
+                            </ProgressRing>
+                            <View className="flex-row justify-between w-full mt-5">
+                                <View>
+                                    <Text className="text-brand-muted text-xs uppercase tracking-widest mb-1">Spent</Text>
+                                    <Text className="text-brand-text text-lg font-bold">{money(totalSpent)}</Text>
+                                </View>
+                                <View className="items-end">
+                                    <Text className="text-brand-muted text-xs uppercase tracking-widest mb-1">Budgeted</Text>
+                                    <Text className="text-brand-muted text-lg font-semibold">{money(totalBudgeted)}</Text>
+                                </View>
+                            </View>
+                            {(perDay !== null || overCount > 0) && (
+                                <View className="w-full mt-4 pt-4 border-t border-brand-border gap-y-1">
+                                    {perDay !== null && (
+                                        <Text className="text-brand-muted text-sm">
+                                            <Text className="text-brand-text font-semibold">{money(perDay)}/day</Text>
+                                            {` to spend over the next ${daysLeft} day${daysLeft === 1 ? '' : 's'}`}
+                                        </Text>
+                                    )}
+                                    {overCount > 0 && (
+                                        <Text className="text-sm" style={{ color: colors.negative }}>
+                                            {overCount} categor{overCount === 1 ? 'y is' : 'ies are'} over budget
+                                        </Text>
+                                    )}
+                                </View>
+                            )}
+                        </Card>
+                    )}
 
                     {/* Household badge */}
                     {isHousehold && (
@@ -174,7 +252,7 @@ export default function BudgetsScreen() {
                         </View>
                     ) : budgets?.length ? (
                         <View className="gap-y-2">
-                            {budgets.map((b) => (
+                            {sorted.map((b) => (
                                 <BudgetRow
                                     key={b.id}
                                     budget={b}
@@ -184,6 +262,44 @@ export default function BudgetsScreen() {
                         </View>
                     ) : (
                         <EmptyState onCreate={() => { haptics.medium(); setShowAdd(true) }} />
+                    )}
+
+                    {/* Disabled budgets */}
+                    {disabled && disabled.length > 0 && (
+                        <Card className="overflow-hidden">
+                            <TouchableOpacity
+                                className="flex-row items-center justify-between px-4 py-3"
+                                onPress={() => { haptics.light(); setShowDisabled((v) => !v) }}
+                                activeOpacity={0.7}
+                            >
+                                <Text className="text-brand-muted text-sm font-medium">
+                                    Disabled budgets ({disabled.length})
+                                </Text>
+                                <ChevronDown
+                                    size={16}
+                                    color={colors.muted}
+                                    style={{ transform: [{ rotate: showDisabled ? '180deg' : '0deg' }] }}
+                                />
+                            </TouchableOpacity>
+                            {showDisabled && disabled.map((c) => (
+                                <View key={c.id} className="flex-row items-center justify-between px-4 py-3 border-t border-brand-border">
+                                    <View className="flex-1 mr-3">
+                                        <Text className="text-brand-text text-sm" numberOfLines={1}>{c.name}</Text>
+                                        {c.inactiveFrom && (
+                                            <Text className="text-brand-muted text-xs">off from {c.inactiveFrom}</Text>
+                                        )}
+                                    </View>
+                                    <TouchableOpacity
+                                        className="h-8 px-3 rounded-lg bg-brand-accent/15 items-center justify-center"
+                                        onPress={() => { haptics.light(); turnOn(c.id) }}
+                                        disabled={isTurningOn}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text className="text-brand-accent text-xs font-semibold">Turn on</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
+                        </Card>
                     )}
                 </View>
             </ScrollView>
@@ -220,7 +336,7 @@ function BudgetRow({ budget, onEdit }: { budget: Budget; onEdit?: () => void }) 
                         <ArrowLeft size={11} color={colors.muted} strokeWidth={2.5} />
                     )}
                 </View>
-                <Text className={`text-sm font-semibold font-mono ${over ? 'text-brand-negative' : 'text-brand-muted'}`}>
+                <Text className="text-sm font-semibold font-mono" style={{ color: statusColor(budget.spent, total) }}>
                     ${Math.abs(remaining).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     <Text className="text-brand-muted font-normal"> {over ? 'over' : 'left'}</Text>
                 </Text>
@@ -231,7 +347,7 @@ function BudgetRow({ budget, onEdit }: { budget: Budget; onEdit?: () => void }) 
                     ${budget.spent.toLocaleString('en-US', { minimumFractionDigits: 0 })} spent
                 </Text>
                 <Text className="text-brand-muted text-xs">
-                    of ${total.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                    {total > 0 ? Math.round((budget.spent / total) * 100) : 0}% of ${total.toLocaleString('en-US', { minimumFractionDigits: 0 })}
                 </Text>
             </View>
         </Card>

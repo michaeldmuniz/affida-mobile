@@ -20,12 +20,16 @@ export function BudgetEditSheet({ budget, month, onClose }: Props) {
     const queryClient = useQueryClient()
     const [amount, setAmount] = useState('')
     const [rollover, setRollover] = useState(false)
+    const [confirmingDisable, setConfirmingDisable] = useState(false)
+    const [disableError, setDisableError] = useState<string | null>(null)
 
     useEffect(() => {
         if (budget) {
             setAmount(budget.amount.toFixed(0))
             setRollover(budget.rollover ?? false)
         }
+        setConfirmingDisable(false)
+        setDisableError(null)
     }, [budget])
 
     const { mutate: save, isPending } = useMutation({
@@ -49,22 +53,18 @@ export function BudgetEditSheet({ budget, month, onClose }: Props) {
         },
     })
 
-    const handleDelete = () => {
-        Alert.alert('Remove Budget', `Remove the budget for ${budget?.categoryName}?`, [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Remove', style: 'destructive', onPress: async () => {
-                    try {
-                        await apiClient.delete('/budgets', { data: { id: budget!.id } })
-                        queryClient.invalidateQueries({ queryKey: ['budgets', month] })
-                        onClose()
-                    } catch {
-                        Alert.alert('Error', 'Failed to remove budget.')
-                    }
-                },
-            },
-        ])
-    }
+    // Disables from this month on (the web's "stop using"): the amount and earlier months are
+    // kept, and it can be turned back on from "Disabled budgets" on the Budgets screen.
+    const { mutate: disable, isPending: isDisabling } = useMutation({
+        mutationFn: async () => {
+            await apiClient.post('/budgets/inactive', { categoryId: budget!.categoryId, fromMonth: month })
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['budgets'] })
+            onClose()
+        },
+        onError: () => setDisableError('Could not disable this budget. Please try again.'),
+    })
 
     if (!budget) return null
 
@@ -145,15 +145,46 @@ export function BudgetEditSheet({ budget, month, onClose }: Props) {
                             />
                         </View>
 
-                        {/* Remove budget — only when one is set (a category with spending but no budget has nothing to remove) */}
-                        {budget.budgetId !== null && (
+                        {/* Disable budget — only when one is set (a category with spending but no budget has nothing to disable) */}
+                        {budget.budgetId !== null && !confirmingDisable && (
                             <TouchableOpacity
                                 className="h-12 rounded-xl border border-brand-negative/30 items-center justify-center mt-2"
-                                onPress={handleDelete}
+                                onPress={() => { setDisableError(null); setConfirmingDisable(true) }}
                                 activeOpacity={0.7}
                             >
-                                <Text className="text-brand-negative text-sm font-medium">Remove Budget</Text>
+                                <Text className="text-brand-negative text-sm font-medium">Disable Budget</Text>
                             </TouchableOpacity>
+                        )}
+                        {budget.budgetId !== null && confirmingDisable && (
+                            <View className="rounded-xl border border-brand-border bg-brand-surface p-4 mt-2 gap-y-3">
+                                <Text className="text-brand-text text-sm leading-relaxed">
+                                    Disable the {budget.categoryName} budget from this month on? It will stop showing in
+                                    your budgets. Your spending isn't deleted, earlier months stay as they were, and you
+                                    can turn it back on any time under "Disabled budgets".
+                                </Text>
+                                {disableError && <Text className="text-brand-negative text-sm">{disableError}</Text>}
+                                <View className="flex-row gap-x-2">
+                                    <TouchableOpacity
+                                        className="flex-1 h-11 rounded-xl border border-brand-border items-center justify-center"
+                                        onPress={() => setConfirmingDisable(false)}
+                                        disabled={isDisabling}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text className="text-brand-text text-sm font-medium">Cancel</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        className="flex-1 h-11 rounded-xl bg-brand-negative/15 border border-brand-negative/30 items-center justify-center"
+                                        onPress={() => disable()}
+                                        disabled={isDisabling}
+                                        activeOpacity={0.7}
+                                    >
+                                        {isDisabling
+                                            ? <ActivityIndicator size="small" color={colors.negative} />
+                                            : <Text className="text-brand-negative text-sm font-semibold">Disable</Text>
+                                        }
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
                         )}
                     </View>
                 </KeyboardAvoidingView>
