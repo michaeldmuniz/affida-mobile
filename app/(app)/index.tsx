@@ -174,6 +174,7 @@ export default function DashboardScreen() {
     // A tapped chip stays highlighted while its scroll animates, and at the bottom of the
     // page (where the last sections can't reach the top) until the user scrolls away.
     const tapped = useRef<{ id: SectionId; until: number } | null>(null)
+    const lastMeasure = useRef(0)
 
     const scrollToSection = (id: SectionId) => {
         haptics.light()
@@ -193,15 +194,44 @@ export default function DashboardScreen() {
         if (tap && (Date.now() < tap.until || atBottom)) return
         tapped.current = null
 
+        // Sections load in late (bills, rewards, family) and shift everything below them, so
+        // re-measure while scrolling rather than trusting the layout from first render.
+        if (Date.now() - lastMeasure.current > 400) {
+            lastMeasure.current = Date.now()
+            measureSections()
+        }
+
+        const maxOffset = Math.max(0, contentSize.height - layoutMeasurement.height)
+        const targetOf = (id: SectionId) => {
+            const y = sectionY.current[id]
+            return y === undefined ? undefined : contentTop.current + y - chipsHeight.current - 8
+        }
+        // Sections near the bottom can't be scrolled to the top of the screen (the page runs
+        // out first), so a plain "which one is under the top edge" test skips right past them.
+        // Starting at the last section that can reach the top, spread the remaining scroll
+        // distance evenly across it and the sections that can't.
+        const firstStuck = visibleSections.findIndex((id) => {
+            const t = targetOf(id)
+            return t !== undefined && t > maxOffset - 24
+        })
+
         let current: SectionId = 'overview'
-        if (atBottom) {
-            current = visibleSections[visibleSections.length - 1]
-        } else {
-            const probe = contentOffset.y + chipsHeight.current + 24
-            for (const id of visibleSections) {
-                const y = sectionY.current[id]
-                if (y !== undefined && contentTop.current + y <= probe) current = id
+        const probe = contentOffset.y + chipsHeight.current + 24
+        for (const id of visibleSections) {
+            const y = sectionY.current[id]
+            if (y !== undefined && contentTop.current + y <= probe) current = id
+        }
+        if (firstStuck !== -1) {
+            const group = visibleSections.slice(Math.max(firstStuck - 1, 0))
+            const start = targetOf(group[0]) ?? maxOffset
+            if (contentOffset.y > start && maxOffset > start) {
+                const t = Math.min(1, (contentOffset.y - start) / (maxOffset - start))
+                current = group[Math.min(group.length - 1, Math.floor(t * group.length))]
+            } else if (atBottom) {
+                current = group[group.length - 1]
             }
+        } else if (atBottom) {
+            current = visibleSections[visibleSections.length - 1]
         }
         if (current !== activeSection) setActiveSection(current)
     }

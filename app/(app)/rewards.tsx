@@ -11,6 +11,8 @@ import { haptics } from '@/lib/haptics'
 import { pctText, rewardLabel } from '@/lib/rewards'
 import { Card } from '@/components/ui/Card'
 import { CardRatesSheet } from '@/components/rewards/CardRatesSheet'
+import { ProgressRing } from '@/components/charts/ProgressRing'
+import { colorForIndex } from '@/components/charts/palette'
 
 const usd = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`
 
@@ -34,6 +36,10 @@ export default function RewardsScreen() {
         : []
     const quick = data ? QUICK_PICKS.map(k => data.lookup.find(l => l.key === k)).filter((l): l is NonNullable<typeof l> => !!l) : []
     const missed = data ? Math.max(0, data.optimalRewards - data.currentRewards) : 0
+    // How much of the best-case rewards you're actually capturing
+    const capture = data && data.optimalRewards > 0 ? Math.min(1, data.currentRewards / data.optimalRewards) : 1
+    const captureColor = capture >= 0.9 ? colors.positive : '#F5AE39'
+    const walletTotal = data?.wallet.reduce((sum, w) => sum + w.annualRewards, 0) ?? 0
     const feeByCard = new Map((data?.feeChecks ?? []).map(f => [f.cardId, f]))
     const partner = data?.partnerName ?? 'your partner'
     const cardLabel = (name: string, mine: boolean) => (mine ? name : `${name} (${partner}’s)`)
@@ -118,14 +124,20 @@ export default function RewardsScreen() {
                             {/* Summary */}
                             {data.enoughData ? (
                                 <Card className="p-5">
-                                    <View className="flex-row">
-                                        <View className="flex-1">
-                                            <Text className="text-brand-muted text-xs uppercase tracking-widest mb-2">Earning now</Text>
-                                            <Text className="text-brand-text text-2xl font-bold">{usd(data.currentRewards)}<Text className="text-brand-muted text-sm font-normal">/yr</Text></Text>
-                                        </View>
-                                        <View className="flex-1">
-                                            <Text className="text-brand-muted text-xs uppercase tracking-widest mb-2">Could earn</Text>
-                                            <Text className="text-brand-positive text-2xl font-bold">{usd(data.optimalRewards)}<Text className="text-brand-muted text-sm font-normal">/yr</Text></Text>
+                                    <View className="flex-row items-center gap-x-5">
+                                        <ProgressRing progress={capture} color={captureColor} size={118} strokeWidth={12}>
+                                            <Text className="text-brand-text text-2xl font-bold">{Math.round(capture * 100)}%</Text>
+                                            <Text className="text-brand-muted text-[10px] uppercase tracking-widest">captured</Text>
+                                        </ProgressRing>
+                                        <View className="flex-1 gap-y-3">
+                                            <View>
+                                                <Text className="text-brand-muted text-xs uppercase tracking-widest mb-1">Earning now</Text>
+                                                <Text className="text-brand-text text-2xl font-bold">{usd(data.currentRewards)}<Text className="text-brand-muted text-sm font-normal">/yr</Text></Text>
+                                            </View>
+                                            <View>
+                                                <Text className="text-brand-muted text-xs uppercase tracking-widest mb-1">Could earn</Text>
+                                                <Text className="text-brand-positive text-xl font-bold">{usd(data.optimalRewards)}<Text className="text-brand-muted text-sm font-normal">/yr</Text></Text>
+                                            </View>
                                         </View>
                                     </View>
                                     <Text className="text-brand-muted text-xs mt-3 leading-relaxed">
@@ -184,15 +196,24 @@ export default function RewardsScreen() {
 
                                     {!query ? (
                                         <View className="flex-row flex-wrap gap-2">
-                                            {quick.map(l => (
-                                                <TouchableOpacity
-                                                    key={l.key}
-                                                    onPress={() => { haptics.light(); setQ(l.label) }}
-                                                    className="px-3.5 h-8 rounded-full bg-brand-surface border border-brand-border items-center justify-center"
-                                                >
-                                                    <Text className="text-brand-muted text-xs font-semibold">{l.label}</Text>
-                                                </TouchableOpacity>
-                                            ))}
+                                            {quick.map(l => {
+                                                const any = l.tied && l.returnPct <= 1.5
+                                                return (
+                                                    <TouchableOpacity
+                                                        key={l.key}
+                                                        onPress={() => { haptics.light(); setQ(l.label) }}
+                                                        activeOpacity={0.7}
+                                                        className="rounded-xl bg-brand-elevated border border-brand-border p-3"
+                                                        style={{ width: '48.5%' }}
+                                                    >
+                                                        <Text className="text-brand-muted text-xs" numberOfLines={1}>{l.label}</Text>
+                                                        <Text className="text-brand-positive text-xl font-bold mt-0.5">{pctText(l.returnPct).replace(' back', '')}</Text>
+                                                        <Text className="text-brand-text text-xs mt-0.5" numberOfLines={1}>
+                                                            {any ? 'Any card' : l.accountName}
+                                                        </Text>
+                                                    </TouchableOpacity>
+                                                )
+                                            })}
                                         </View>
                                     ) : results.length === 0 ? (
                                         <Text className="text-brand-muted text-sm text-center py-3">No match. Try a category like Dining or a store like Costco.</Text>
@@ -226,6 +247,19 @@ export default function RewardsScreen() {
                                     Make sure each card and its rates are right: every rewards estimate uses them.
                                 </Text>
                                 <Card className="p-0 overflow-hidden">
+                                    {walletTotal > 0 && (
+                                        <View className="px-4 pt-4 pb-2">
+                                            <View className="flex-row h-2.5 rounded-full overflow-hidden bg-brand-elevated gap-x-0.5">
+                                                {data.wallet.filter(w => w.annualRewards > 0).map((w) => (
+                                                    <View
+                                                        key={w.accountId}
+                                                        style={{ flex: w.annualRewards, backgroundColor: colorForIndex(data.wallet.indexOf(w)) }}
+                                                    />
+                                                ))}
+                                            </View>
+                                            <Text className="text-brand-muted text-xs mt-2">Share of the rewards you earn, by card</Text>
+                                        </View>
+                                    )}
                                     {data.wallet.map((w, i) => {
                                         const fee = feeByCard.get(w.walletCardId)
                                         return (
@@ -233,8 +267,9 @@ export default function RewardsScreen() {
                                                 key={w.accountId}
                                                 activeOpacity={0.7}
                                                 onPress={() => { haptics.light(); setOpenCard(w.accountId) }}
-                                                className={`flex-row items-center px-4 py-3.5 ${i > 0 ? 'border-t border-brand-border' : ''}`}
+                                                className={`flex-row items-center px-4 py-3.5 ${i > 0 || walletTotal > 0 ? 'border-t border-brand-border' : ''}`}
                                             >
+                                                <View className="w-2.5 h-9 rounded-full mr-3" style={{ backgroundColor: colorForIndex(i) }} />
                                                 <View className="flex-1 pr-3 gap-y-0.5">
                                                     <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>{w.accountName}</Text>
                                                     <Text className="text-brand-muted text-xs" numberOfLines={2}>
