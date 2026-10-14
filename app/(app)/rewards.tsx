@@ -174,15 +174,17 @@ export default function RewardsScreen() {
                                     <AlertTriangle size={16} color={colors.destructive} style={{ marginTop: 1 }} />
                                     <View className="flex-1 gap-y-1">
                                         <Text className="text-brand-negative text-sm font-semibold">
-                                            {data.interestVsRewards?.interestExceedsRewards ? 'Interest is costing more than rewards earn' : 'Interest is eating into your rewards'}
+                                            {!data.interestVsRewards || data.interestVsRewards.interestEstimated
+                                                ? 'You’re carrying a balance'
+                                                : data.interestVsRewards.interestExceedsRewards ? 'Interest is costing more than rewards earn' : 'Interest is eating into your rewards'}
                                         </Text>
-                                        {data.interestVsRewards && (
+                                        {data.interestVsRewards && (data.interestVsRewards.interestPerYear > 0 || !data.interestVsRewards.interestEstimated) && (
                                             <Text className="text-brand-text text-xs leading-relaxed">
-                                                {usd(data.interestVsRewards.interestPerYear)}/yr {data.interestVsRewards.interestEstimated ? 'estimated interest' : 'interest'} vs {usd(data.interestVsRewards.rewardsPerYear)}/yr rewards
+                                                {usd(data.interestVsRewards.interestPerYear)}/yr {data.interestVsRewards.interestEstimated ? 'estimated interest (none charged yet)' : 'interest charged'} vs {usd(data.interestVsRewards.rewardsPerYear)}/yr rewards
                                             </Text>
                                         )}
                                         <Text className="text-brand-muted text-xs leading-relaxed">
-                                            You’re carrying a balance on {data.carriedCards.join(', ')}. New purchases there are charged interest right away, so advice here skips {data.carriedCards.length === 1 ? 'it' : 'them'}.
+                                            You’re carrying a balance on {data.carriedCards.join(', ')}. New purchases there usually start accruing interest right away, so advice here skips {data.carriedCards.length === 1 ? 'it' : 'them'}.
                                         </Text>
                                     </View>
                                 </View>
@@ -297,7 +299,7 @@ export default function RewardsScreen() {
                                                     {w.carriesBalance && <Text className="text-brand-negative text-xs">Carries a balance: avoid new purchases</Text>}
                                                     {fee && !fee.worthIt && (
                                                         <Text className="text-brand-negative text-xs">
-                                                            Earns {usd(fee.marginalRewards)}/yr more than your other cards, less than its {usd(fee.annualFee)} fee
+                                                            Earns {usd(w.annualRewards)}/yr, but only {usd(fee.marginalRewards)}/yr more than your other cards would, less than its {usd(fee.annualFee)} fee
                                                         </Text>
                                                     )}
                                                     {w.match === 'UNKNOWN' && !w.customized && w.canEdit && (
