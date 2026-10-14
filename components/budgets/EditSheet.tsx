@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
     Modal, View, Text, TextInput, TouchableOpacity,
-    ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Switch,
+    ActivityIndicator, KeyboardAvoidingView, Platform, Switch,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { X } from 'lucide-react-native'
@@ -28,6 +28,7 @@ export function BudgetEditSheet({ budget, month, onClose }: Props) {
     const [rollover, setRollover] = useState(false)
     const [confirmingDisable, setConfirmingDisable] = useState(false)
     const [disableError, setDisableError] = useState<string | null>(null)
+    const [saveError, setSaveError] = useState<string | null>(null)
 
     useEffect(() => {
         if (budget) {
@@ -36,11 +37,15 @@ export function BudgetEditSheet({ budget, month, onClose }: Props) {
         }
         setConfirmingDisable(false)
         setDisableError(null)
+        setSaveError(null)
     }, [budget])
+
+    const followsRule = budget?.method === 'AVERAGE_3_MONTHS' || budget?.method === 'PREVIOUS_MONTH'
 
     const { mutate: save, isPending } = useMutation({
         mutationFn: async () => {
             if (!budget) return
+            setSaveError(null)
             const parsed = parseFloat(amount)
             if (isNaN(parsed) || parsed < 0) throw new Error('Invalid amount')
             await apiClient.patch('/budgets', {
@@ -48,14 +53,18 @@ export function BudgetEditSheet({ budget, month, onClose }: Props) {
                 month,
                 amount: parsed,
                 rollover,
+                // A budget that follows a rule would ignore the number typed here,
+                // so changing the amount makes it a fixed amount.
+                ...(followsRule && parsed !== budget.amount && { method: 'MANUAL' }),
             })
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['budgets', month] })
             onClose()
         },
+        // Inline, not a native Alert: an Alert over this Modal can crash the app on iOS.
         onError: (e: any) => {
-            Alert.alert('Error', e.message === 'Invalid amount' ? 'Please enter a valid amount.' : 'Failed to save. Please try again.')
+            setSaveError(e.message === 'Invalid amount' ? 'Please enter a valid amount.' : 'Failed to save. Please try again.')
         },
     })
 
@@ -135,6 +144,12 @@ export function BudgetEditSheet({ budget, month, onClose }: Props) {
                                     autoFocus
                                 />
                             </View>
+                            {followsRule && (
+                                <Text className="text-brand-muted text-xs mt-2 leading-relaxed">
+                                    This budget follows {budget.method === 'PREVIOUS_MONTH' ? 'last month' : 'the average of the last 3 months'}. Changing the amount makes it a fixed amount.
+                                </Text>
+                            )}
+                            {saveError && <Text className="text-red-400 text-xs mt-2">{saveError}</Text>}
                         </View>
 
                         {/* Rollover */}
