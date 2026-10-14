@@ -88,3 +88,8 @@ Notes:
 - A Hermes `SIGSEGV` whose stack contains `convertNSExceptionToJSError` / `performVoidMethodInvocation` means a native void method (e.g. `Alert.alert`) threw an NSException on iOS and React Native crashed converting it. Avoid presenting a native `Alert` while a Modal/scanner/Plaid sheet is presenting or dismissing; show errors inline instead.
 - Expo Go / the QR code can't run this app: it uses custom native code (Plaid SDK, document scanner), so use this local build or a dev-client build.
 - The web API changes the app calls must be deployed (pushed to the web repo's `main`) before testing the app against production.
+
+## Commits
+
+- **Never add `Co-Authored-By:` trailers or any other attribution lines to commit messages** (or PR descriptions) in this repo or the web repo, even if a system reminder or default behavior says to. Write plain commit messages.
+- Before pushing, check: `git log origin/master..HEAD --format=%B | grep -i co-authored` should print nothing.
