@@ -3,7 +3,7 @@ import { View, Text, ScrollView, RefreshControl, TouchableOpacity, TextInput } f
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, Search, X, Sparkles, AlertTriangle, CreditCard } from 'lucide-react-native'
+import { ChevronLeft, ChevronRight, ChevronDown, Search, X, Sparkles, AlertTriangle, CreditCard } from 'lucide-react-native'
 import { apiClient } from '@/lib/api-client'
 import type { RewardsOverview } from '@/lib/types'
 import { colors } from '@/lib/colors'
@@ -23,6 +23,7 @@ export default function RewardsScreen() {
     const router = useRouter()
     const [q, setQ] = useState('')
     const [openCard, setOpenCard] = useState<string | null>(null)
+    const [showDebit, setShowDebit] = useState(false)
 
     const { data, isLoading, error, refetch, isRefetching } = useQuery<RewardsOverview>({
         queryKey: ['rewards'],
@@ -45,29 +46,42 @@ export default function RewardsScreen() {
     const cardLabel = (name: string, mine: boolean) => (mine ? name : `${name} (${partner}’s)`)
 
     // Checking/savings/other accounts whose debit card might pay rewards (opt-in).
+    // Checking/savings/other accounts whose debit card might pay rewards (opt-in). Collapsed
+    // by default: the explanation and list take a lot of room for something set up once.
     const DebitSection = () => !data || data.debitCandidates.length === 0 ? null : (
-        <View>
-            <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest mb-1 px-1">Debit cards with rewards</Text>
-            <Text className="text-brand-muted text-xs mb-3 px-1 leading-relaxed">
-                Some debit cards pay real cash back (PayPal’s, for example). Turn rewards on for the account it spends from and it counts with your credit cards.
-            </Text>
-            <Card className="p-0 overflow-hidden">
-                {data.debitCandidates.map((c, i) => (
-                    <TouchableOpacity
-                        key={c.accountId}
-                        activeOpacity={0.7}
-                        onPress={() => { haptics.light(); setOpenCard(c.accountId) }}
-                        className={`flex-row items-center px-4 py-3.5 ${i > 0 ? 'border-t border-brand-border' : ''}`}
-                    >
-                        <View className="flex-1 pr-3">
-                            <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>{c.accountName}</Text>
-                            <Text className="text-brand-muted text-xs mt-0.5" numberOfLines={1}>{c.institutionName}</Text>
-                        </View>
-                        <ChevronRight size={14} color={colors.disabled} />
-                    </TouchableOpacity>
-                ))}
-            </Card>
-        </View>
+        <Card className="p-0 overflow-hidden">
+            <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => { haptics.light(); setShowDebit(v => !v) }}
+                className="flex-row items-center justify-between px-4 py-3.5"
+            >
+                <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest">
+                    Debit cards with rewards ({data.debitCandidates.length})
+                </Text>
+                <ChevronDown size={16} color={colors.muted} style={{ transform: [{ rotate: showDebit ? '180deg' : '0deg' }] }} />
+            </TouchableOpacity>
+            {showDebit && (
+                <View className="border-t border-brand-border">
+                    <Text className="text-brand-muted text-xs px-4 pt-3 pb-1 leading-relaxed">
+                        Some debit cards pay real cash back (PayPal’s, for example). Turn rewards on for the account it spends from and it counts with your credit cards.
+                    </Text>
+                    {data.debitCandidates.map((c, i) => (
+                        <TouchableOpacity
+                            key={c.accountId}
+                            activeOpacity={0.7}
+                            onPress={() => { haptics.light(); setOpenCard(c.accountId) }}
+                            className={`flex-row items-center px-4 py-3.5 ${i > 0 ? 'border-t border-brand-border' : ''}`}
+                        >
+                            <View className="flex-1 pr-3">
+                                <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>{c.accountName}</Text>
+                                <Text className="text-brand-muted text-xs mt-0.5" numberOfLines={1}>{c.institutionName}</Text>
+                            </View>
+                            <ChevronRight size={14} color={colors.disabled} />
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            )}
+        </Card>
     )
 
     return (
