@@ -203,10 +203,16 @@ export interface Goal {
     savingsRate?: number | null
     startDate?: string | null
     startAmount?: number | null
-    /** Typical monthly income (3-month average) the savings rate applies to */
-    monthlyIncome?: number
-    /** Deposited into this goal's linked accounts so far this month */
-    monthlyDeposits?: number
+    /** The "% of income" plan for this month, with earlier months' shortfalls carried in (null without a savings rate) */
+    plan?: {
+        monthTarget: number
+        carryOver: number
+        ahead: number
+        dueThisMonth: number
+        depositedThisMonth: number
+        leftThisMonth: number
+        sinceMonth: string
+    } | null
 }
 
 export interface CategoryBreakdownItem {
