@@ -15,6 +15,12 @@ import { ProgressRing } from '@/components/charts/ProgressRing'
 const WARN = '#F5AE39'
 
 /** Green-ish accent while comfortable, amber near the limit, red once over. */
+/** Whole dollars when exact, otherwise always two decimals ($71.10, never $71.1). */
+function dollars(n: number) {
+    const d = Number.isInteger(n) ? 0 : 2
+    return `$${n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })}`
+}
+
 function statusColor(spent: number, total: number) {
     if (total <= 0) return spent > 0 ? colors.negative : colors.accent
     const ratio = spent / total
@@ -372,10 +378,10 @@ function BudgetRow({ budget, onEdit }: { budget: Budget; onEdit?: () => void }) 
             <BudgetBar spent={budget.spent} total={total} />
             <View className="flex-row justify-between mt-1.5">
                 <Text className="text-brand-muted text-xs">
-                    ${budget.spent.toLocaleString('en-US', { minimumFractionDigits: 0 })} spent
+                    {dollars(budget.spent)} spent
                 </Text>
                 <Text className="text-brand-muted text-xs">
-                    {total > 0 ? Math.round((budget.spent / total) * 100) : 0}% of ${total.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                    {total > 0 ? Math.round((budget.spent / total) * 100) : 0}% of {dollars(total)}
                 </Text>
             </View>
         </Card>
@@ -398,7 +404,7 @@ function UnbudgetedRow({ budget, onEdit }: { budget: Budget; onEdit?: () => void
                     {budget.categoryName}
                 </Text>
                 <Text className="text-brand-muted text-sm font-mono">
-                    ${budget.spent.toLocaleString('en-US', { maximumFractionDigits: 0 })} spent
+                    {dollars(budget.spent)} spent
                 </Text>
             </View>
         </Card>

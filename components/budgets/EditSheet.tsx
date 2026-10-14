@@ -10,6 +10,12 @@ import { apiClient } from '@/lib/api-client'
 import type { Budget } from '@/lib/types'
 import { colors } from '@/lib/colors'
 
+/** Whole dollars when exact, otherwise always two decimals ($71.10, never $71.1). */
+function dollars(n: number) {
+    const d = Number.isInteger(n) ? 0 : 2
+    return `$${n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })}`
+}
+
 interface Props {
     budget: Budget | null
     month: string
@@ -102,13 +108,13 @@ export function BudgetEditSheet({ budget, month, onClose }: Props) {
                             <View className="flex-1 items-center py-4 border-r border-brand-border">
                                 <Text className="text-brand-muted text-xs uppercase tracking-widest mb-1">Spent</Text>
                                 <Text className="text-brand-text text-lg font-bold">
-                                    ${budget.spent.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                                    {dollars(budget.spent)}
                                 </Text>
                             </View>
                             <View className="flex-1 items-center py-4">
                                 <Text className="text-brand-muted text-xs uppercase tracking-widest mb-1">Remaining</Text>
                                 <Text className={`text-lg font-bold ${budget.remaining < 0 ? 'text-brand-negative' : 'text-brand-text'}`}>
-                                    ${Math.abs(budget.remaining).toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                                    {dollars(Math.abs(budget.remaining))}
                                 </Text>
                             </View>
                         </View>
