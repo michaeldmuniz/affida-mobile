@@ -164,6 +164,14 @@ function GoalCard({ goal, onPress, onLongPress }: { goal: Goal; onPress: () => v
     const lastContribution = goal.contributions?.[0]
     const toGo = Math.max(0, goal.targetAmount - goal.currentAmount)
     const perMonth = monthlyNeeded(goal.currentAmount, goal.targetAmount, goal.deadline)
+    // The "% of income" plan, like the web: this month's target, what's been added, what's left.
+    const rate = goal.savingsRate && goal.savingsRate > 0 ? goal.savingsRate : null
+    const income = goal.monthlyIncome ?? 0
+    const monthlyTarget = rate && income > 0 ? (income * rate) / 100 : null
+    const deposited = goal.monthlyDeposits ?? 0
+    const monthName = new Date().toLocaleString('en-US', { month: 'long' })
+    const targetAccount = goal.accounts.length === 1 ? goal.accounts[0].name : null
+    const planDone = monthlyTarget !== null && deposited >= monthlyTarget
 
     return (
         <TouchableOpacity activeOpacity={0.85} onPress={onPress} onLongPress={onLongPress} delayLongPress={400}>
@@ -222,6 +230,36 @@ function GoalCard({ goal, onPress, onLongPress }: { goal: Goal; onPress: () => v
                             </>
                         )}
                     </Text>
+                )}
+
+                {rate && goal.status !== 'COMPLETED' && (
+                    <View className="mt-3">
+                        <Text className="text-brand-positive text-xs">
+                            Committing {rate}% of income
+                            {monthlyTarget !== null && (
+                                <Text className="font-semibold"> · est. {usd(monthlyTarget)}/mo</Text>
+                            )}
+                        </Text>
+                        {monthlyTarget !== null && (
+                            <View className="mt-2 rounded-lg border border-brand-accent/30 bg-brand-accent/10 px-3 py-2.5">
+                                <View className="flex-row items-center justify-between">
+                                    <Text className="text-brand-accent text-xs font-semibold flex-1 pr-2" numberOfLines={1}>
+                                        {monthName} target{targetAccount ? ` → ${targetAccount}` : ''}: {usd(monthlyTarget)}
+                                    </Text>
+                                    <Text className={`text-xs font-semibold ${planDone ? 'text-brand-positive' : 'text-brand-accent'}`}>
+                                        {planDone ? 'Done' : `${usd(monthlyTarget - deposited)} left`}
+                                    </Text>
+                                </View>
+                                <View className="h-1.5 bg-brand-elevated rounded-full overflow-hidden mt-2">
+                                    <View
+                                        className={`h-full rounded-full ${planDone ? 'bg-brand-positive' : 'bg-brand-accent'}`}
+                                        style={{ width: `${Math.min(100, (deposited / monthlyTarget) * 100)}%` }}
+                                    />
+                                </View>
+                                <Text className="text-brand-muted text-xs mt-1.5">${Math.round(deposited).toLocaleString('en-US')} deposited this month</Text>
+                            </View>
+                        )}
+                    </View>
                 )}
             </Card>
         </TouchableOpacity>

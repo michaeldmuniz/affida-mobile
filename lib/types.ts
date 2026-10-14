@@ -199,6 +199,14 @@ export interface Goal {
     contributions?: GoalContribution[]
     // Household goal shared by a partner (read-only on mobile)
     shared?: boolean
+    /** % of income committed to this goal (web: "Committing X% of income") */
+    savingsRate?: number | null
+    startDate?: string | null
+    startAmount?: number | null
+    /** Typical monthly income (3-month average) the savings rate applies to */
+    monthlyIncome?: number
+    /** Deposited into this goal's linked accounts so far this month */
+    monthlyDeposits?: number
 }
 
 export interface CategoryBreakdownItem {
