@@ -21,6 +21,20 @@ function daysUntil(dateStr: string | null) {
     return `${days} days left`
 }
 
+/** What to put aside each month to reach the target by the deadline (same math as the web). */
+function monthlyNeeded(current: number, target: number, deadline: string | null): number | null {
+    if (!deadline) return null
+    const ms = new Date(deadline).getTime() - Date.now()
+    const remaining = target - current
+    if (ms <= 0 || remaining <= 0) return null
+    const months = Math.max(0.5, ms / (1000 * 60 * 60 * 24) / 30.44)
+    return remaining / months
+}
+
+function usd(n: number) {
+    return `$${Math.ceil(n).toLocaleString('en-US')}`
+}
+
 function GoalProgressBar({ current, target }: { current: number; target: number }) {
     const pct = target > 0 ? Math.min((current / target) * 100, 100) : 0
     const done = pct >= 100
@@ -148,6 +162,8 @@ function GoalCard({ goal, onPress, onLongPress }: { goal: Goal; onPress: () => v
     const deadline = daysUntil(goal.deadline)
     const isLinked = goal.accounts.length > 0
     const lastContribution = goal.contributions?.[0]
+    const toGo = Math.max(0, goal.targetAmount - goal.currentAmount)
+    const perMonth = monthlyNeeded(goal.currentAmount, goal.targetAmount, goal.deadline)
 
     return (
         <TouchableOpacity activeOpacity={0.85} onPress={onPress} onLongPress={onLongPress} delayLongPress={400}>
@@ -195,6 +211,18 @@ function GoalCard({ goal, onPress, onLongPress }: { goal: Goal; onPress: () => v
                         </Text>
                     )}
                 </View>
+
+                {toGo > 0 && (
+                    <Text className="text-brand-muted text-xs mt-2">
+                        <Text className="text-brand-text font-semibold">{usd(toGo)}</Text> to go
+                        {perMonth !== null && (
+                            <>
+                                {' · '}
+                                <Text className="text-brand-accent font-semibold">{usd(perMonth)}/mo</Text> to hit your deadline
+                            </>
+                        )}
+                    </Text>
+                )}
             </Card>
         </TouchableOpacity>
     )
