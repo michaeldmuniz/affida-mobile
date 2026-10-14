@@ -6,16 +6,14 @@ import { apiClient } from '@/lib/api-client'
 import type { CalendarItem, CalendarMember, FamilyCalendar as CalendarData } from '@/lib/types'
 import { colors, kidColor } from '@/lib/colors'
 import { haptics } from '@/lib/haptics'
-import { addDaysTo, localDay } from '@/lib/format'
+import { localDay } from '@/lib/format'
 import { Card } from '@/components/ui/Card'
 import { MonthGrid, gridDays, monthOf } from '@/components/family/MonthGrid'
 
 // A month calendar of chores and goals (whole days, like Google Calendar's
 // month view). One person's, or the whole household's with a color per person.
-// Pick a day to see and check off what's on it; days up to a week back can
-// still be checked off, like on Today. Same as the web's FamilyCalendar.
-
-const CATCH_UP_DAYS = 7
+// Pick a day to see and check off what's on it: any day, past or future, can be
+// checked off (or undone). Same as the web's FamilyCalendar.
 
 const STATUS_LABEL: Record<CalendarItem['status'], string> = {
     done: 'Done', missed: 'Missed', due: 'Today', overdue: 'Overdue', upcoming: 'Upcoming',
@@ -72,9 +70,8 @@ export function FamilyCalendar({ owner, onAddOnDay }: Props) {
         return colors.accent
     }
 
-    const catchUpFrom = addDaysTo(today, -CATCH_UP_DAYS)
-    const canToggle = (item: CalendarItem) =>
-        !item.archived && (item.status === 'overdue' || (item.status !== 'upcoming' && item.day >= catchUpFrom && item.day <= today))
+    // Any day can be checked off; only a deleted task is history-only.
+    const canToggle = (item: CalendarItem) => !item.archived
 
     const [busyKey, setBusyKey] = useState<string | null>(null)
     const { mutate: toggle } = useMutation({
