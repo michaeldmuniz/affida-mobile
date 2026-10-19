@@ -19,10 +19,10 @@ const EVERY_DAY = [0, 1, 2, 3, 4, 5, 6]
 const WEEKDAYS = [1, 2, 3, 4, 5]
 
 interface Props {
-    /** A kid (reward pays into their wallet) or a parent (reward is added to a budget category). */
-    owner: { childId: string } | { adultId: string }
+    /** A kid (reward pays into their wallet), a parent (reward is added to a budget category), or anyone (unassigned: whoever does it gets the reward). */
+    owner: { childId: string } | { adultId: string } | { household: true }
     ownerName: string
-    /** Parents: budget categories the reward can be added to. */
+    /** Budget categories the reward can be added to. */
     rewardCategories?: { id: string; name: string }[]
     /** 'CHORE' / 'HABIT' to create that kind, a task to edit it, null when closed. */
     task: ChildTask | TaskKind | null
@@ -35,6 +35,7 @@ export function TaskEditSheet({ owner, ownerName, rewardCategories = [], task, i
     const queryClient = useQueryClient()
     const existing = task && typeof task === 'object' ? task : null
     const isAdult = 'adultId' in owner
+    const isAnyone = 'household' in owner
     const [rewardCategoryId, setRewardCategoryId] = useState<string | null>(null)
     const [pickingCategory, setPickingCategory] = useState(false)
     const [title, setTitle] = useState('')
@@ -102,7 +103,7 @@ export function TaskEditSheet({ owner, ownerName, rewardCategories = [], task, i
                 bonusAmount: repeating && bonusOn ? Number(bonusAmount) : null,
                 startDate: startDate ?? (repeating && !keepsCreatedStart ? localDay() : null),
                 endDate: repeating && endsOn ? endDate : null,
-                ...(isAdult ? { rewardCategoryId } : {}),
+                rewardCategoryId,
             }
             if (!Number.isFinite(body.reward) || body.reward < 0) throw new Error('Enter a valid reward.')
             if (repeating && days.length === 0) throw new Error('Pick at least one day.')
@@ -112,6 +113,7 @@ export function TaskEditSheet({ owner, ownerName, rewardCategories = [], task, i
             if (repeating && body.endDate && body.startDate && body.endDate < body.startDate)
                 throw new Error("The end date can't be before the start date.")
             if (existing) await apiClient.patch(`/family/tasks/${existing.id}`, body)
+            else if ('household' in owner) await apiClient.post('/family/anyone/tasks', body)
             else if ('adultId' in owner) await apiClient.post(`/family/adults/${owner.adultId}/tasks`, body)
             else await apiClient.post(`/family/children/${owner.childId}/tasks`, body)
         },
@@ -129,7 +131,7 @@ export function TaskEditSheet({ owner, ownerName, rewardCategories = [], task, i
     const handleDelete = () => {
         if (!existing) return
         haptics.warning()
-        Alert.alert(`Delete "${existing.title}"?`, isAdult ? 'It stops showing up. Rewards it already added stay in those budgets.' : 'It stops showing up. Money already earned from it stays in the wallet.', [
+        Alert.alert(`Delete "${existing.title}"?`, isAdult || isAnyone ? 'It stops showing up. Rewards it already added stay in those budgets and wallets.' : 'It stops showing up. Money already earned from it stays in the wallet.', [
             { text: 'Cancel', style: 'cancel' },
             {
                 text: 'Delete', style: 'destructive', onPress: async () => {
@@ -213,7 +215,7 @@ export function TaskEditSheet({ owner, ownerName, rewardCategories = [], task, i
                                 />
                             </View>
 
-                            {isAdult && (
+                            {rewardCategories.length > 0 && (
                                 <View>
                                     <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest mb-2">Add rewards to budget</Text>
                                     <TouchableOpacity
@@ -225,7 +227,9 @@ export function TaskEditSheet({ owner, ownerName, rewardCategories = [], task, i
                                         </Text>
                                         <ChevronRight size={16} color={colors.muted} />
                                     </TouchableOpacity>
-                                    <Text className="text-brand-muted text-xs mt-1.5">Each time it&apos;s done, the reward is added to this category&apos;s budget for that month.</Text>
+                                    <Text className="text-brand-muted text-xs mt-1.5">{isAdult
+                                        ? 'Each time it\'s done, the reward is added to this category\'s budget for that month.'
+                                        : 'The reward still goes to the wallet' + (isAnyone ? ' (when a kid does it)' : '') + ', and the same amount is also added to this category\'s budget for that month.'}</Text>
                                 </View>
                             )}
 

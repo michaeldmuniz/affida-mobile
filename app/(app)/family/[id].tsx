@@ -47,6 +47,12 @@ export default function KidScreen() {
         queryFn: async () => (await apiClient.get(`/family/children/${id}/tasks`, { params: { day } })).data.data,
     })
 
+    const categoriesQuery = useQuery<{ id: string; name: string }[]>({
+        queryKey: ['family', 'reward-categories'],
+        queryFn: async () => (await apiClient.get('/family/reward-categories')).data.data,
+        staleTime: 5 * 60 * 1000,
+    })
+
     const { mutate: toggle } = useMutation({
         mutationFn: async (task: ChildTask) => {
             if (task.doneOnDay) {
@@ -221,7 +227,7 @@ export default function KidScreen() {
             {child && (
                 <>
                     <ChildEditSheet child={editingKid ? child : null} onClose={() => setEditingKid(false)} onRemoved={() => router.back()} />
-                    <TaskEditSheet owner={{ childId: child.id }} ownerName={child.name} task={editingTask} initialDay={newTaskDay} onClose={() => { setEditingTask(null); setNewTaskDay(null) }} />
+                    <TaskEditSheet owner={{ childId: child.id }} ownerName={child.name} rewardCategories={categoriesQuery.data ?? []} task={editingTask} initialDay={newTaskDay} onClose={() => { setEditingTask(null); setNewTaskDay(null) }} />
                     <WalletEntrySheet childId={child.id} childName={child.name} mode={walletMode} onClose={() => setWalletMode(null)} />
                 </>
             )}

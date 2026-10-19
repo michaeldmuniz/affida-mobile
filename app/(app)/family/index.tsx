@@ -1,22 +1,32 @@
 import { useState } from 'react'
-import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-native'
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity, Alert } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Plus, Users } from 'lucide-react-native'
 import { apiClient } from '@/lib/api-client'
-import type { Child, HouseholdAdult } from '@/lib/types'
+import type { Child, ChildTask, HouseholdAdult, TaskKind } from '@/lib/types'
 import { colors } from '@/lib/colors'
 import { haptics } from '@/lib/haptics'
+import { localDay } from '@/lib/format'
 import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
 import { KidAvatar } from '@/components/family/KidAvatar'
 import { ChildEditSheet } from '@/components/family/ChildEditSheet'
 import { FamilyCalendar } from '@/components/family/FamilyCalendar'
+import { TaskEditSheet } from '@/components/family/TaskEditSheet'
+import { TodayTaskRow, TaskSection } from '@/components/family/TaskRows'
+import { OptionPicker } from '@/components/OptionPicker'
 
 export default function FamilyScreen() {
     const router = useRouter()
+    const queryClient = useQueryClient()
     const [editing, setEditing] = useState<Child | 'new' | null>(null)
+    const [day] = useState(() => localDay())
+    const [editingTask, setEditingTask] = useState<ChildTask | TaskKind | null>(null)
+    // An unassigned chore being checked off: pick who did it first.
+    const [pickingDoer, setPickingDoer] = useState<ChildTask | null>(null)
+    const [togglingId, setTogglingId] = useState<string | null>(null)
 
     const { data: kids, isLoading, refetch, isRefetching } = useQuery<Child[]>({
         queryKey: ['family'],
@@ -29,6 +39,44 @@ export default function FamilyScreen() {
         queryFn: async () => (await apiClient.get('/family/adults')).data.data,
         staleTime: 60 * 1000,
     })
+
+    const { data: anyoneTasks } = useQuery<ChildTask[]>({
+        queryKey: ['family', 'anyone', 'tasks', day],
+        queryFn: async () => (await apiClient.get('/family/anyone/tasks', { params: { day } })).data.data,
+    })
+
+    const { data: categories } = useQuery<{ id: string; name: string }[]>({
+        queryKey: ['family', 'reward-categories'],
+        queryFn: async () => (await apiClient.get('/family/reward-categories')).data.data,
+        staleTime: 5 * 60 * 1000,
+    })
+
+    const { mutate: toggleAnyone } = useMutation({
+        mutationFn: async ({ task, doneBy }: { task: ChildTask; doneBy?: { childId: string } | { adultId: string } }) => {
+            if (task.doneOnDay) {
+                await apiClient.delete(`/family/tasks/${task.id}/complete`, { params: { day } })
+                return null
+            }
+            return (await apiClient.post(`/family/tasks/${task.id}/complete`, { day, ...doneBy })).data.data as { earned: number; bonus: number; streak: number; recipientName: string | null }
+        },
+        onMutate: ({ task }) => setTogglingId(task.id),
+        onSuccess: () => haptics.success(),
+        onError: (e: any) => {
+            haptics.error()
+            Alert.alert('Error', e?.response?.data?.error ?? 'Something went wrong.')
+        },
+        onSettled: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['family'] })
+            setTogglingId(null)
+        },
+    })
+
+    const anyoneChores = (anyoneTasks ?? []).filter(t => t.kind === 'CHORE')
+    const anyoneToday = anyoneChores.filter(t => t.dueOnDay)
+    const doerOptions = [
+        ...(adults ?? []).map(a => ({ label: a.isYou ? 'You' : a.name, value: `a:${a.id}` })),
+        ...(kids ?? []).map(k => ({ label: k.name, value: `c:${k.id}` })),
+    ]
 
     const total = kids?.reduce((s, k) => s + k.balance, 0) ?? 0
 
@@ -123,7 +171,12 @@ export default function FamilyScreen() {
                                                 <Text className="text-brand-text text-base font-semibold" numberOfLines={1}>{kid.name}</Text>
                                                 <Text className="text-brand-muted text-xs mt-0.5">{age !== null ? `Age ${age}` : 'Wallet'}</Text>
                                             </View>
-                                            <AmountText amount={kid.balance} size="md" neutral className="font-semibold" />
+                                            <View className="items-end">
+                                                <AmountText amount={kid.balance} size="md" neutral className="font-semibold" />
+                                                {(kid.addedToBudgetsThisMonth ?? 0) > 0 && (
+                                                    <Text className="text-brand-muted text-[10px]">${(kid.addedToBudgetsThisMonth ?? 0).toFixed(2)} to budgets this month</Text>
+                                                )}
+                                            </View>
                                             <ChevronRight size={14} color={colors.disabled} style={{ marginLeft: 4 }} />
                                         </Card>
                                     </TouchableOpacity>
@@ -132,12 +185,60 @@ export default function FamilyScreen() {
                         </>
                     )}
 
+                    <View className="mt-4 gap-y-3">
+                        <View className="flex-row items-center justify-between px-1">
+                            <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest">Anyone can do</Text>
+                        </View>
+                        {anyoneToday.length > 0 && (
+                            <View className="gap-y-2">
+                                {anyoneToday.map(t => (
+                                    <View key={t.id}>
+                                        <TodayTaskRow
+                                            task={t}
+                                            busy={togglingId === t.id}
+                                            onToggle={() => {
+                                                haptics.light()
+                                                if (t.doneOnDay) toggleAnyone({ task: t })
+                                                else setPickingDoer(t)
+                                            }}
+                                        />
+                                        {t.doneOnDay && t.doneByName && (
+                                            <Text className="text-brand-muted text-xs px-2 mt-1">Done by {t.doneByName}</Text>
+                                        )}
+                                    </View>
+                                ))}
+                            </View>
+                        )}
+                        <TaskSection
+                            title="Unassigned chores"
+                            empty="Chores anyone can do. Whoever does one gets the reward."
+                            tasks={anyoneChores}
+                            onAdd={() => setEditingTask('CHORE')}
+                            onEdit={setEditingTask}
+                        />
+                    </View>
+
                     <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest px-1 mt-4">Calendar</Text>
                     <FamilyCalendar />
                 </View>
             </ScrollView>
 
             <ChildEditSheet child={editing} onClose={() => setEditing(null)} />
+            <TaskEditSheet owner={{ household: true }} ownerName="anyone" rewardCategories={categories ?? []} task={editingTask} onClose={() => setEditingTask(null)} />
+            <OptionPicker
+                visible={!!pickingDoer}
+                title="Who did it?"
+                options={doerOptions}
+                selectedValue={null}
+                noneLabel="Cancel"
+                onSelect={(v) => {
+                    const task = pickingDoer
+                    if (!v || !task) return
+                    const doneBy = v.startsWith('c:') ? { childId: v.slice(2) } : { adultId: v.slice(2) }
+                    toggleAnyone({ task, doneBy })
+                }}
+                onClose={() => setPickingDoer(null)}
+            />
         </SafeAreaView>
     )
 }

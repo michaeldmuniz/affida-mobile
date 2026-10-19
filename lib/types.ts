@@ -301,6 +301,8 @@ export interface Child {
     color: string | null
     ownerId: string
     balance: number
+    /** This month's goal rewards also added to a budget category (list only). */
+    addedToBudgetsThisMonth?: number
     createdAt: string
 }
 
@@ -338,9 +340,11 @@ export interface ChildTask {
     endDate: string | null
     bonusEvery: number | null
     bonusAmount: number | null
-    /** Parent goals: the budget category the reward is added to (null for kids, or none picked). */
+    /** The budget category the reward is added to (null if none picked). */
     rewardCategoryId: string | null
     rewardCategoryName: string | null
+    /** Unassigned chores: who did it on the viewed day. */
+    doneByName?: string | null
     dueOnDay: boolean
     doneOnDay: boolean
     lastDone: string | null
