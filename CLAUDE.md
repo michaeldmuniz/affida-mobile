@@ -71,6 +71,8 @@ Never call a paid external API (OpenAI via chat, Plaid) in a loop; the backend a
 
 ## Testing on the iPhone without an EAS build (local Release build)
 
+**This is the default way to test any change on Mike's phone — after a commit, build and install this way without being asked.** Only do an EAS build (`eas build` + `eas submit`) once a change is finalized/verified working locally, or there's a concrete reason to push a TestFlight build to an external tester. Don't spend an EAS build on something still being iterated on — a bug caught locally first is free to fix, a bug caught after an EAS/TestFlight submission isn't.
+
 Free (doesn't use one of the 15 monthly EAS iOS builds). Builds a Release app, installs it over the TestFlight copy, and streams the console. Works over USB or the same Wi-Fi network once the phone is paired. Reinstall from TestFlight afterward to get the normal copy back.
 
 **One-time setup (already done on Mike's Mac):** phone paired (`xcrun devicectl manage pair --device <id>`), Developer Mode on, Xcode signed in, Team "Michael Muniz" selected under Signing & Capabilities in `ios/Affida.xcworkspace` (the `ios/` folder is generated; don't commit it unless asked).
