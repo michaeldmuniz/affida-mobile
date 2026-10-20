@@ -143,12 +143,15 @@ export default function BudgetsScreen() {
         .activeOffsetX([-20, 20])
         .failOffsetY([-10, 10])
         .onEnd((e) => {
+            // Pass a plain number, not an updater function — Reanimated can't
+            // marshal a function argument across the runOnJS thread boundary,
+            // which left `offset` (and every date derived from it) NaN.
             if (e.translationX <= -50) {
                 runOnJS(haptics.light)()
-                runOnJS(setOffset)((o: number) => o + 1)
+                runOnJS(setOffset)(offset + 1)
             } else if (e.translationX >= 50) {
                 runOnJS(haptics.light)()
-                runOnJS(setOffset)((o: number) => o - 1)
+                runOnJS(setOffset)(offset - 1)
             }
         })
 
