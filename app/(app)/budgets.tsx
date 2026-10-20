@@ -3,6 +3,8 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { ChevronLeft, ChevronRight, ChevronDown, Plus, Copy, Users, Calculator, ArrowLeft } from 'lucide-react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { Gesture, GestureDetector } from 'react-native-gesture-handler'
+import { runOnJS } from 'react-native-reanimated'
 import { apiClient } from '@/lib/api-client'
 import { Card } from '@/components/ui/Card'
 import { BudgetEditSheet } from '@/components/budgets/EditSheet'
@@ -135,6 +137,21 @@ export default function BudgetsScreen() {
     const perDay = offset === 0 && totalLeft > 0 ? totalLeft / daysLeft : null
     const ringColor = statusColor(totalSpent, totalBudgeted)
 
+    // Swipe left/right over the list to change months, same as the chevrons.
+    // Only takes over once the gesture is clearly horizontal, so vertical scrolling is untouched.
+    const swipeGesture = Gesture.Pan()
+        .activeOffsetX([-20, 20])
+        .failOffsetY([-10, 10])
+        .onEnd((e) => {
+            if (e.translationX <= -50) {
+                runOnJS(haptics.light)()
+                runOnJS(setOffset)((o: number) => o + 1)
+            } else if (e.translationX >= 50) {
+                runOnJS(haptics.light)()
+                runOnJS(setOffset)((o: number) => o - 1)
+            }
+        })
+
     return (
         <SafeAreaView className="flex-1 bg-brand-bg" edges={['top']}>
             {/* Month Picker + actions */}
@@ -190,6 +207,7 @@ export default function BudgetsScreen() {
                 </TouchableOpacity>
             </View>
 
+            <GestureDetector gesture={swipeGesture}>
             <ScrollView
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
@@ -337,6 +355,7 @@ export default function BudgetsScreen() {
                     )}
                 </View>
             </ScrollView>
+            </GestureDetector>
 
             <BudgetEditSheet budget={editing} month={month} onClose={() => setEditing(null)} />
             <AddBudgetSheet visible={showAdd} month={month} existingBudgets={budgets ?? []} onClose={() => setShowAdd(false)} />
