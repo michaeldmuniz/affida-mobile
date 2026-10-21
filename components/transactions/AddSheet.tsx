@@ -63,6 +63,7 @@ export function TransactionAddSheet({ visible, onClose }: Props) {
         mutationFn: async () => {
             const parsed = parseFloat(amount)
             if (isNaN(parsed) || parsed <= 0) throw new Error('AMOUNT')
+            if (parsed > 1_000_000_000) throw new Error('AMOUNT_MAX')
             if (!description.trim()) throw new Error('DESCRIPTION')
             if (!account) throw new Error('ACCOUNT')
 
@@ -85,6 +86,7 @@ export function TransactionAddSheet({ visible, onClose }: Props) {
         onError: (e: any) => {
             haptics.error()
             if (e.message === 'AMOUNT') Alert.alert('Invalid amount', 'Enter an amount greater than zero.')
+            else if (e.message === 'AMOUNT_MAX') Alert.alert('Amount too large', 'Enter an amount of $1,000,000,000 or less.')
             else if (e.message === 'DESCRIPTION') Alert.alert('Missing description', 'Describe this transaction.')
             else if (e.message === 'ACCOUNT') Alert.alert('Missing account', 'Choose an account.')
             else Alert.alert('Error', 'Failed to add transaction. Please try again.')
