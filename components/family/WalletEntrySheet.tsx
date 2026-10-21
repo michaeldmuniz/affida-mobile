@@ -45,7 +45,7 @@ export function WalletEntrySheet({ childId, childName, mode, onClose }: Props) {
     const { mutate: save, isPending } = useMutation({
         mutationFn: async () => {
             const value = parseFloat(amount)
-            if (!Number.isFinite(value) || value <= 0) throw new Error('invalid')
+            if (!Number.isFinite(value) || Math.round(value * 100) < 1) throw new Error('invalid')
             await apiClient.post(`/family/children/${childId}/entries`, { amount: value, kind, note: note.trim() || null })
         },
         onSuccess: () => {
@@ -55,7 +55,7 @@ export function WalletEntrySheet({ childId, childName, mode, onClose }: Props) {
         },
         onError: (e: any) => {
             haptics.error()
-            Alert.alert('Error', e?.message === 'invalid' ? 'Enter an amount greater than 0.' : e?.response?.data?.error ?? 'Failed to save.')
+            Alert.alert('Error', e?.message === 'invalid' ? 'Enter an amount of at least $0.01.' : e?.response?.data?.error ?? 'Failed to save.')
         },
     })
 
