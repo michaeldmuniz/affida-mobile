@@ -46,7 +46,7 @@ export function CategoryPicker({ visible, categories, selectedId, onSelect, onCl
                 {/* Header */}
                 <View className="flex-row items-center px-4 py-3 border-b border-brand-border">
                     <Text className="flex-1 text-brand-text text-lg font-semibold">Category</Text>
-                    <TouchableOpacity onPress={onClose} hitSlop={8}>
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} hitSlop={8}>
                         <X size={20} color={colors.muted} />
                     </TouchableOpacity>
                 </View>

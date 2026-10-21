@@ -24,7 +24,7 @@ export function OptionPicker({ visible, title, options, selectedValue, onSelect,
             <SafeAreaView className="flex-1 bg-brand-bg">
                 <View className="flex-row items-center px-4 py-3 border-b border-brand-border">
                     <Text className="flex-1 text-brand-text text-lg font-semibold">{title}</Text>
-                    <TouchableOpacity onPress={onClose} hitSlop={8}>
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} hitSlop={8}>
                         <X size={20} color={colors.muted} />
                     </TouchableOpacity>
                 </View>

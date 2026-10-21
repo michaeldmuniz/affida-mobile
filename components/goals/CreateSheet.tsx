@@ -106,7 +106,7 @@ export function GoalCreateSheet({ visible, onClose }: Props) {
 
                     {/* Header */}
                     <View className="flex-row items-center px-4 py-3 border-b border-brand-border">
-                        <TouchableOpacity onPress={handleClose} hitSlop={8} className="w-8">
+                        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={handleClose} hitSlop={8} className="w-8">
                             <X size={20} color={colors.muted} />
                         </TouchableOpacity>
                         <Text className="flex-1 text-center text-brand-text text-base font-semibold">New Goal</Text>

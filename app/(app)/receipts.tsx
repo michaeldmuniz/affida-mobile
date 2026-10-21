@@ -143,7 +143,7 @@ function ReceiptCard({
                             <Link2 size={13} color="#fff" strokeWidth={2} />
                             <Text className="text-white text-xs font-semibold">Link</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity
+                        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Dismiss receipt"
                             className="w-8 h-8 rounded-lg bg-brand-surface border border-brand-border items-center justify-center"
                             onPress={onDismiss}
                             activeOpacity={0.8}

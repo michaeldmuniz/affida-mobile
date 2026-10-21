@@ -49,7 +49,7 @@ export function TransactionPicker({ visible, title, excludeId, onPick, onClose }
         <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
             <SafeAreaView className="flex-1 bg-brand-bg">
                 <View className="flex-row items-center px-4 py-3 border-b border-brand-border">
-                    <TouchableOpacity onPress={onClose} hitSlop={8} className="w-8">
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} hitSlop={8} className="w-8">
                         <X size={20} color={colors.muted} />
                     </TouchableOpacity>
                     <Text className="flex-1 text-center text-brand-text text-base font-semibold" numberOfLines={1}>{title}</Text>

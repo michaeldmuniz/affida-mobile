@@ -148,7 +148,7 @@ export function FilterSheet({ visible, filters, onApply, onClose }: Props) {
                             <Text className="text-brand-muted text-sm">Reset</Text>
                         </TouchableOpacity>
                         <Text className="text-brand-text text-base font-bold">Filters</Text>
-                        <TouchableOpacity onPress={onClose}>
+                        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={onClose}>
                             <X size={20} color={colors.muted} />
                         </TouchableOpacity>
                     </View>
