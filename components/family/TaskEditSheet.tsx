@@ -42,6 +42,8 @@ export function TaskEditSheet({ owner, ownerName, rewardCategories = [], task, i
     const [kind, setKind] = useState<TaskKind>('CHORE')
     const [reward, setReward] = useState('')
     const [repeating, setRepeating] = useState(false)
+    // Once the Repeats switch is touched, switching Chore/Daily goal no longer changes it
+    const [repeatTouched, setRepeatTouched] = useState(false)
     const [days, setDays] = useState<number[]>(EVERY_DAY)
     const [bonusOn, setBonusOn] = useState(false)
     const [bonusEvery, setBonusEvery] = useState('7')
@@ -59,6 +61,7 @@ export function TaskEditSheet({ owner, ownerName, rewardCategories = [], task, i
             setKind(existing.kind)
             setReward(existing.reward ? String(existing.reward) : '')
             setRepeating(existing.frequency === 'REPEATING')
+            setRepeatTouched(true)
             setDays(existing.days.length ? existing.days : EVERY_DAY)
             setBonusOn(!!existing.bonusEvery)
             setBonusEvery(String(existing.bonusEvery ?? 7))
@@ -74,6 +77,7 @@ export function TaskEditSheet({ owner, ownerName, rewardCategories = [], task, i
             setReward('')
             // Daily goals are usually every day; chores are usually one-off.
             setRepeating(k === 'HABIT')
+            setRepeatTouched(false)
             setDays(EVERY_DAY)
             setBonusOn(false)
             setBonusEvery('7')
@@ -180,7 +184,12 @@ export function TaskEditSheet({ owner, ownerName, rewardCategories = [], task, i
                                 {(['CHORE', 'HABIT'] as const).map(k => (
                                     <TouchableOpacity
                                         key={k}
-                                        onPress={() => { haptics.light(); setKind(k) }}
+                                        onPress={() => {
+                                            haptics.light()
+                                            setKind(k)
+                                            // New tasks: daily goals repeat by default, chores are one-off
+                                            if (!existing && !repeatTouched) setRepeating(k === 'HABIT')
+                                        }}
                                         className={`flex-1 h-9 rounded-lg items-center justify-center ${kind === k ? 'bg-brand-accent' : ''}`}
                                     >
                                         <Text className={`text-sm font-semibold ${kind === k ? 'text-white' : 'text-brand-muted'}`}>
@@ -236,7 +245,7 @@ export function TaskEditSheet({ owner, ownerName, rewardCategories = [], task, i
                             <View className="bg-brand-surface border border-brand-border rounded-2xl p-4 gap-y-4">
                                 <View className="flex-row items-center justify-between">
                                     <Text className="text-brand-text text-sm font-medium">Repeats</Text>
-                                    <Switch value={repeating} onValueChange={(v) => { haptics.light(); setRepeating(v) }} trackColor={{ true: colors.accent }} />
+                                    <Switch value={repeating} onValueChange={(v) => { haptics.light(); setRepeating(v); setRepeatTouched(true) }} trackColor={{ true: colors.accent }} />
                                 </View>
 
                                 {!repeating && (
