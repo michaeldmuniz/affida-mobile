@@ -182,6 +182,7 @@ export function TransactionAddSheet({ visible, onClose }: Props) {
                                         placeholderTextColor={colors.muted}
                                         value={description}
                                         onChangeText={setDescription}
+                                        maxLength={300}
                                     />
                                 </View>
 
@@ -230,6 +231,7 @@ export function TransactionAddSheet({ visible, onClose }: Props) {
                                         placeholderTextColor={colors.muted}
                                         value={notes}
                                         onChangeText={setNotes}
+                                        maxLength={2000}
                                         multiline
                                         textAlignVertical="top"
                                     />
