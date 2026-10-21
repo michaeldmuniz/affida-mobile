@@ -144,6 +144,7 @@ export function AddAccountSheet({ visible, onClose }: Props) {
                                     <TextInput
                                         className="text-brand-text text-base"
                                         value={name}
+                                        maxLength={100}
                                         onChangeText={setName}
                                         placeholder="e.g. Chase Checking"
                                         placeholderTextColor={colors.muted}

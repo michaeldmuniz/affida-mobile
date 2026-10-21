@@ -125,6 +125,7 @@ export function AccountEditSheet({ visible, account, onClose, onDeleted }: Props
                                 <TextInput
                                     className="bg-brand-surface border border-brand-border rounded-xl px-4 h-14 text-brand-text text-base"
                                     value={name}
+                                    maxLength={100}
                                     onChangeText={setName}
                                 />
                             </View>

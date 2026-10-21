@@ -161,6 +161,7 @@ export function AddBudgetSheet({ visible, month, existingBudgets, onClose }: Pro
                                                 placeholder="New category name"
                                                 placeholderTextColor={colors.muted}
                                                 value={newCategoryName}
+                                    maxLength={50}
                                                 onChangeText={setNewCategoryName}
                                                 autoFocus
                                                 returnKeyType="done"
