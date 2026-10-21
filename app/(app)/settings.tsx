@@ -113,7 +113,7 @@ export default function SettingsScreen() {
             queryClient.invalidateQueries({ queryKey: ['profile'] })
             setShowEditName(false)
         },
-        onError: () => Alert.alert('Error', 'Failed to update name.'),
+        onError: (e: any) => Alert.alert('Error', e?.response?.data?.error ?? 'Failed to update name.'),
     })
 
     const { data: profile, isLoading } = useQuery<UserProfile>({
@@ -344,6 +344,7 @@ export default function SettingsScreen() {
                                     className="text-brand-text text-base"
                                     value={newName}
                                     onChangeText={setNewName}
+                                    maxLength={100}
                                     placeholder="Your name"
                                     placeholderTextColor={colors.muted}
                                     autoFocus
