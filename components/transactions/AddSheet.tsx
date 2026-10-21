@@ -13,6 +13,7 @@ import { haptics } from '@/lib/haptics'
 import type { Account, Category } from '@/lib/types'
 import { canEditAccount } from '@/lib/account-types'
 import { colors } from '@/lib/colors'
+import { localDay } from '@/lib/format'
 
 interface Props {
     visible: boolean
@@ -70,7 +71,8 @@ export function TransactionAddSheet({ visible, onClose }: Props) {
             await apiClient.post('/transactions', {
                 accountId: account.id,
                 amount: type === 'expense' ? -parsed : parsed,
-                date: new Date().toISOString(),
+                // The user's calendar day at noon UTC, like synced transactions (the raw instant is the wrong day in the evening/morning)
+                date: `${localDay()}T12:00:00.000Z`,
                 description: description.trim(),
                 categoryId: category?.id ?? null,
                 notes: notes.trim() || undefined,
