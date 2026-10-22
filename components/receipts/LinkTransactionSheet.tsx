@@ -1,16 +1,30 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import {
     Modal, View, Text, TextInput, TouchableOpacity,
     ScrollView, ActivityIndicator, Alert,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { X, Search } from 'lucide-react-native'
+import { X, Search, Plus, ChevronDown } from 'lucide-react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { AmountText } from '@/components/ui/AmountText'
 import { haptics } from '@/lib/haptics'
 import { colors } from '@/lib/colors'
-import type { Receipt, Transaction, PaginatedResponse } from '@/lib/types'
+import { OptionPicker } from '@/components/OptionPicker'
+import { CategoryPicker } from '@/components/transactions/CategoryPicker'
+import type { Receipt, Account, Category } from '@/lib/types'
+
+interface Candidate {
+    id: string
+    description: string
+    merchantName: string | null
+    amount: number
+    date: string
+    pending: boolean
+    accountName: string
+    categoryName: string | null
+    suggested: boolean
+}
 
 interface Props {
     receipt: Receipt | null
@@ -21,40 +35,62 @@ export function LinkTransactionSheet({ receipt, onClose }: Props) {
     const queryClient = useQueryClient()
     const [search, setSearch] = useState('')
 
-    const { data: transactions = [], isLoading } = useQuery<Transaction[]>({
-        queryKey: ['transactions-for-linking', receipt?.id, receipt?.date],
+    // Debounced so typing doesn't fire a request per keystroke
+    const [term, setTerm] = useState('')
+    useEffect(() => {
+        const t = setTimeout(() => setTerm(search.trim()), 300)
+        return () => clearTimeout(t)
+    }, [search])
+
+    // Ranked by the server: amount (tip included), date, merchant. Searching drops the date window.
+    const { data: filtered = [], isLoading } = useQuery<Candidate[]>({
+        queryKey: ['receipt-candidates', receipt?.id, term],
         queryFn: async () => {
-            const params: Record<string, string> = {
-                limit: '100',
-                page: '1',
-                sort: 'date',
-                order: 'desc',
-            }
-            // Narrow to within ±7 days of the receipt date when we have one
-            if (receipt?.date) {
-                const d = new Date(receipt.date + 'T00:00:00')
-                const from = new Date(d)
-                from.setDate(from.getDate() - 7)
-                const to = new Date(d)
-                to.setDate(to.getDate() + 3)
-                params.startDate = from.toISOString()
-                params.endDate = to.toISOString()
-            }
-            const res = await apiClient.get('/transactions', { params })
-            const page = res.data.data as PaginatedResponse<Transaction>
-            return page.items
+            const res = await apiClient.get(`/receipts/${receipt!.id}/candidates`, { params: term ? { search: term } : {} })
+            return res.data.data as Candidate[]
         },
         enabled: !!receipt,
         staleTime: 30 * 1000,
     })
 
-    const filtered = useMemo(() => {
-        if (!search.trim()) return transactions
-        const q = search.toLowerCase()
-        return transactions.filter((tx) =>
-            (tx.merchantName ?? tx.description).toLowerCase().includes(q)
-        )
-    }, [transactions, search])
+    const [creating, setCreating] = useState(false)
+    const [account, setAccount] = useState<Account | null>(null)
+    const [category, setCategory] = useState<Category | null>(null)
+    const [showAccountPicker, setShowAccountPicker] = useState(false)
+    const [showCategoryPicker, setShowCategoryPicker] = useState(false)
+
+    const { data: accounts } = useQuery<Account[]>({
+        queryKey: ['accounts'],
+        queryFn: async () => (await apiClient.get('/accounts')).data.data,
+        enabled: !!receipt && creating,
+    })
+    const { data: categories } = useQuery<Category[]>({
+        queryKey: ['categories'],
+        queryFn: async () => (await apiClient.get('/categories')).data.data,
+        enabled: !!receipt && creating,
+        staleTime: 10 * 60 * 1000,
+    })
+    const manualAccounts = accounts?.filter((a) => !a.plaidLinked) ?? []
+
+    const { mutate: createFromReceipt, isPending: isCreating } = useMutation({
+        mutationFn: async () => {
+            await apiClient.post(`/receipts/${receipt!.id}/transaction`, {
+                accountId: account!.id,
+                categoryId: category?.id ?? null,
+            })
+        },
+        onSuccess: () => {
+            haptics.success()
+            queryClient.invalidateQueries({ queryKey: ['receipts'] })
+            queryClient.invalidateQueries({ queryKey: ['transactions'] })
+            queryClient.invalidateQueries({ queryKey: ['accounts'] })
+            queryClient.invalidateQueries({ queryKey: ['budgets'] })
+            handleClose()
+        },
+        onError: (e: any) => {
+            Alert.alert('Error', e?.response?.data?.error ?? 'Failed to create the transaction. Please try again.')
+        },
+    })
 
     const { mutate: link, isPending } = useMutation({
         mutationFn: async (transactionId: string) => {
@@ -73,6 +109,9 @@ export function LinkTransactionSheet({ receipt, onClose }: Props) {
 
     const handleClose = () => {
         setSearch('')
+        setCreating(false)
+        setAccount(null)
+        setCategory(null)
         onClose()
     }
 
@@ -116,13 +155,91 @@ export function LinkTransactionSheet({ receipt, onClose }: Props) {
                             autoCorrect={false}
                         />
                     </View>
-                    {receipt.date && (
-                        <Text className="text-brand-muted text-xs">
-                            Showing transactions within 7 days of the receipt date
-                        </Text>
+                    <Text className="text-brand-muted text-xs">
+                        {term ? 'Searching all dates' : 'Best matches first (amount, date and merchant). Search to look further back.'}
+                    </Text>
+                    {receipt.total != null && receipt.total > 0 && (
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            className="flex-row items-center justify-center gap-x-1.5 h-10 rounded-xl border border-brand-border bg-brand-surface"
+                            onPress={() => { haptics.light(); setCreating(true) }}
+                            activeOpacity={0.7}
+                        >
+                            <Plus size={14} color={colors.accent} strokeWidth={2.5} />
+                            <Text className="text-brand-accent text-sm font-semibold">Create transaction from receipt</Text>
+                        </TouchableOpacity>
                     )}
                 </View>
 
+                {creating ? (
+                    <View className="px-4 py-4 gap-y-3">
+                        <Text className="text-brand-text text-sm">
+                            Adds a ${receipt.total?.toFixed(2)} expense for {receipt.merchantName ?? 'this receipt'} on{' '}
+                            {receipt.date ? new Date(receipt.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'today'}{' '}
+                            to an account you track by hand, and links the receipt to it.
+                        </Text>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            className="flex-row items-center justify-between bg-brand-surface border border-brand-border rounded-xl px-4 h-12"
+                            onPress={() => { haptics.light(); setShowAccountPicker(true) }}
+                        >
+                            <Text className={account ? 'text-brand-text text-sm' : 'text-brand-muted text-sm'}>
+                                {account?.name ?? 'Choose account'}
+                            </Text>
+                            <ChevronDown size={16} color={colors.muted} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            className="flex-row items-center justify-between bg-brand-surface border border-brand-border rounded-xl px-4 h-12"
+                            onPress={() => { haptics.light(); setShowCategoryPicker(true) }}
+                        >
+                            <Text className={category ? 'text-brand-text text-sm' : 'text-brand-muted text-sm'}>
+                                {category?.name ?? 'Category (picked automatically if blank)'}
+                            </Text>
+                            <ChevronDown size={16} color={colors.muted} />
+                        </TouchableOpacity>
+                        {accounts && manualAccounts.length === 0 && (
+                            <Text className="text-brand-muted text-xs">
+                                You have no manual accounts. Add one under Accounts first.
+                            </Text>
+                        )}
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            className={`h-12 rounded-xl items-center justify-center ${account && !isCreating ? 'bg-brand-accent' : 'bg-brand-elevated'}`}
+                            disabled={!account || isCreating}
+                            onPress={() => { haptics.medium(); createFromReceipt() }}
+                        >
+                            {isCreating
+                                ? <ActivityIndicator color="#fff" />
+                                : <Text className={`text-sm font-semibold ${account ? 'text-white' : 'text-brand-muted'}`}>Create &amp; link</Text>}
+                        </TouchableOpacity>
+                        <TouchableOpacity accessibilityRole="button" className="h-10 items-center justify-center" onPress={() => setCreating(false)} disabled={isCreating}>
+                            <Text className="text-brand-muted text-sm">Back to matches</Text>
+                        </TouchableOpacity>
+
+                        <OptionPicker
+                            visible={showAccountPicker}
+                            title="Choose Account"
+                            options={manualAccounts.map((a) => ({ label: a.name, value: a.id }))}
+                            selectedValue={account?.id ?? null}
+                            onSelect={(value) => {
+                                setAccount(manualAccounts.find((a) => a.id === value) ?? null)
+                                setShowAccountPicker(false)
+                            }}
+                            onClose={() => setShowAccountPicker(false)}
+                        />
+                        <CategoryPicker
+                            visible={showCategoryPicker}
+                            categories={categories ?? []}
+                            selectedId={category?.id ?? null}
+                            onSelect={(id) => {
+                                setCategory(id ? categories?.find((c) => c.id === id) ?? null : null)
+                                setShowCategoryPicker(false)
+                            }}
+                            onClose={() => setShowCategoryPicker(false)}
+                        />
+                    </View>
+                ) : (
                 <ScrollView className="flex-1" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                     <View className="px-4 py-3 gap-y-2 pb-8">
                         {isLoading ? (
@@ -151,6 +268,11 @@ export function LinkTransactionSheet({ receipt, onClose }: Props) {
                                         <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>
                                             {tx.merchantName ?? tx.description}
                                         </Text>
+                                        {tx.suggested && (
+                                            <Text className="text-brand-accent text-[10px] font-semibold uppercase tracking-wide mt-0.5">
+                                                Likely match
+                                            </Text>
+                                        )}
                                         <Text className="text-brand-muted text-xs mt-0.5">
                                             {new Date(tx.date.slice(0, 10) + 'T00:00:00').toLocaleDateString('en-US', {
                                                 month: 'short', day: 'numeric',
@@ -166,6 +288,7 @@ export function LinkTransactionSheet({ receipt, onClose }: Props) {
                         )}
                     </View>
                 </ScrollView>
+                )}
             </SafeAreaView>
         </Modal>
     )

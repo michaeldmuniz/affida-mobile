@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl, type NativeSyntheticEvent, type NativeScrollEvent } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { TrendingUp, TrendingDown, ChevronRight, AlertTriangle, AlertCircle, Sparkles, Settings, PlusCircle } from 'lucide-react-native'
+import { TrendingUp, TrendingDown, ChevronRight, AlertTriangle, AlertCircle, Sparkles, Settings, PlusCircle, X } from 'lucide-react-native'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { apiClient } from '@/lib/api-client'
@@ -80,6 +80,17 @@ export default function DashboardScreen() {
         },
         retry: 0,
     })
+
+    // Hide it right away; the server remembers it until next month (same as the web dashboard's X)
+    const dismissAlert = async (id: string) => {
+        haptics.light()
+        queryClient.setQueryData<AlertItem[]>(['alerts'], (prev) => (prev ?? []).filter(a => a.id !== id))
+        try {
+            await apiClient.post('/alerts/dismiss', { id })
+        } catch {
+            queryClient.invalidateQueries({ queryKey: ['alerts'] })
+        }
+    }
 
     const { data: accounts } = useQuery<Account[]>({
         queryKey: ['accounts'],
@@ -373,6 +384,15 @@ export default function DashboardScreen() {
                             <Text className={`flex-1 text-sm leading-relaxed ${alert.severity === 'destructive' ? 'text-brand-negative' : 'text-amber-400'}`}>
                                 {alert.message}
                             </Text>
+                            <TouchableOpacity
+                                onPress={() => dismissAlert(alert.id)}
+                                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                                accessibilityRole="button"
+                                accessibilityLabel="Dismiss alert until next month"
+                                activeOpacity={0.6}
+                            >
+                                <X size={16} color={alert.severity === 'destructive' ? colors.destructive : '#F59E0B'} />
+                            </TouchableOpacity>
                         </View>
                     ))}
 

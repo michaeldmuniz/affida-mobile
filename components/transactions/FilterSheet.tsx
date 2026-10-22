@@ -11,6 +11,8 @@ import { colors } from '@/lib/colors'
 export interface TransactionFilters {
     type: 'all' | 'income' | 'expense'
     dateRange: 'all' | '30d' | '90d' | 'thisMonth' | 'lastMonth'
+    /** A specific month ('YYYY-MM', e.g. from a budget row); wins over dateRange */
+    month?: string | null
     accountId: string | null
     accountName: string | null
     categoryId: string | null
@@ -35,7 +37,7 @@ export const DEFAULT_FILTERS: TransactionFilters = {
 export function activeFilterCount(f: TransactionFilters): number {
     let n = 0
     if (f.type !== 'all') n++
-    if (f.dateRange !== 'all') n++
+    if (f.dateRange !== 'all' || f.month) n++
     if (f.accountId) n++
     if (f.categoryId !== undefined && f.categoryId !== null) n++
     if (f.flagged) n++
@@ -52,7 +54,12 @@ export function filtersToParams(f: TransactionFilters): Record<string, string> {
     p.sort = f.sort
     p.order = f.order
 
-    if (f.dateRange !== 'all') {
+    const m = f.month?.match(/^(\d{4})-(\d{2})$/)
+    if (m) {
+        const y = Number(m[1]); const mo = Number(m[2]) - 1
+        p.startDate = new Date(y, mo, 1).toISOString()
+        p.endDate = new Date(y, mo + 1, 0, 23, 59, 59).toISOString()
+    } else if (f.dateRange !== 'all') {
         const now = new Date()
         if (f.dateRange === 'thisMonth') {
             p.startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()

@@ -1,8 +1,9 @@
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity, Alert, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { ChevronLeft, ChevronRight, ChevronDown, Plus, Copy, Users, Calculator, ArrowLeft } from 'lucide-react-native'
+import { Pencil, ChevronLeft, ChevronRight, ChevronDown, Plus, Copy, Users, Calculator, ArrowLeft } from 'lucide-react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { useRouter } from 'expo-router'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import { runOnJS } from 'react-native-reanimated'
 import { apiClient } from '@/lib/api-client'
@@ -57,6 +58,7 @@ function BudgetBar({ spent, total }: { spent: number; total: number }) {
 
 export default function BudgetsScreen() {
     const queryClient = useQueryClient()
+    const router = useRouter()
     const [offset, setOffset] = useState(0)
     const [editing, setEditing] = useState<Budget | null>(null)
     const [showAdd, setShowAdd] = useState(false)
@@ -290,6 +292,7 @@ export default function BudgetsScreen() {
                                         <BudgetRow
                                             key={b.id}
                                             budget={b}
+                                            onOpen={() => { haptics.light(); router.push({ pathname: '/transactions', params: { categoryId: b.categoryId, categoryName: b.categoryName, month } }) }}
                                             onEdit={b.partnerOnly ? undefined : () => { haptics.light(); setEditing(b) }}
                                         />
                                     ))}
@@ -302,13 +305,14 @@ export default function BudgetsScreen() {
                                             No budget set
                                         </Text>
                                         <Text className="text-brand-muted text-xs mt-0.5">
-                                            Not counted in your totals. Tap one to set a budget or disable it.
+                                            Not counted in your totals. Tap the pencil to set a budget or disable it.
                                         </Text>
                                     </View>
                                     {unbudgeted.map((b) => (
                                         <UnbudgetedRow
                                             key={b.id}
                                             budget={b}
+                                            onOpen={() => { haptics.light(); router.push({ pathname: '/transactions', params: { categoryId: b.categoryId, categoryName: b.categoryName, month } }) }}
                                             onEdit={b.partnerOnly ? undefined : () => { haptics.light(); setEditing(b) }}
                                         />
                                     ))}
@@ -366,7 +370,7 @@ export default function BudgetsScreen() {
     )
 }
 
-function BudgetRow({ budget, onEdit }: { budget: Budget; onEdit?: () => void }) {
+function BudgetRow({ budget, onEdit, onOpen }: { budget: Budget; onEdit?: () => void; onOpen: () => void }) {
     // The server's remaining includes rollover, refunds and family-goal rewards (same as
     // the web), so the bar and "of $X" show the total those add up to.
     const remaining = budget.remaining ?? budget.amount - budget.spent
@@ -392,6 +396,17 @@ function BudgetRow({ budget, onEdit }: { budget: Budget; onEdit?: () => void }) 
                         <ArrowLeft size={11} color={colors.muted} strokeWidth={2.5} />
                     )}
                 </View>
+                {onEdit && (
+                    <TouchableOpacity
+                        onPress={onEdit}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Edit ${budget.categoryName} budget`}
+                        className="p-1.5 mr-1"
+                    >
+                        <Pencil size={14} color={colors.muted} strokeWidth={2.5} />
+                    </TouchableOpacity>
+                )}
                 <Text className="text-sm font-semibold font-mono" style={{ color: statusColor(budget.spent, total) }}>
                     ${Math.abs(remaining).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     <Text className="text-brand-muted font-normal"> {over ? 'over' : 'left'}</Text>
@@ -409,30 +424,38 @@ function BudgetRow({ budget, onEdit }: { budget: Budget; onEdit?: () => void }) 
         </Card>
     )
 
-    if (!onEdit) return row
-
     return (
-        <TouchableOpacity activeOpacity={0.7} onPress={onEdit}>
+        <TouchableOpacity activeOpacity={0.7} onPress={onOpen} accessibilityLabel={`${budget.categoryName} transactions`}>
             {row}
         </TouchableOpacity>
     )
 }
 
-function UnbudgetedRow({ budget, onEdit }: { budget: Budget; onEdit?: () => void }) {
+function UnbudgetedRow({ budget, onEdit, onOpen }: { budget: Budget; onEdit?: () => void; onOpen: () => void }) {
     const row = (
         <Card className="p-4">
             <View className="flex-row items-center justify-between">
                 <Text className="text-brand-text text-sm font-medium flex-1 mr-2" numberOfLines={1}>
                     {budget.categoryName}
                 </Text>
+                {onEdit && (
+                    <TouchableOpacity
+                        onPress={onEdit}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Edit ${budget.categoryName} budget`}
+                        className="p-1.5 mr-1"
+                    >
+                        <Pencil size={14} color={colors.muted} strokeWidth={2.5} />
+                    </TouchableOpacity>
+                )}
                 <Text className="text-brand-muted text-sm font-mono">
                     {dollars(budget.spent)} spent
                 </Text>
             </View>
         </Card>
     )
-    if (!onEdit) return row
-    return <TouchableOpacity activeOpacity={0.7} onPress={onEdit}>{row}</TouchableOpacity>
+    return <TouchableOpacity activeOpacity={0.7} onPress={onOpen} accessibilityLabel={`${budget.categoryName} transactions`}>{row}</TouchableOpacity>
 }
 
 function BudgetRowSkeleton() {

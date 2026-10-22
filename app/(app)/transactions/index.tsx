@@ -21,7 +21,7 @@ const PAGE_SIZE = 50
 
 export default function TransactionsScreen() {
     const router = useRouter()
-    const params = useLocalSearchParams<{ categoryId?: string; categoryName?: string; dateRange?: string }>()
+    const params = useLocalSearchParams<{ categoryId?: string; categoryName?: string; dateRange?: string; month?: string }>()
     const [search, setSearch] = useState('')
     const [editing, setEditing] = useState<Transaction | null>(null)
     const [showFilters, setShowFilters] = useState(false)
@@ -39,11 +39,12 @@ export default function TransactionsScreen() {
                 dateRange: (['thisMonth', 'lastMonth'].includes(params.dateRange ?? '')
                     ? params.dateRange
                     : 'all') as TransactionFilters['dateRange'],
+                month: /^\d{4}-\d{2}$/.test(params.month ?? '') ? params.month : null,
             })
             setSearch('')
-            router.setParams({ categoryId: undefined, categoryName: undefined, dateRange: undefined })
+            router.setParams({ categoryId: undefined, categoryName: undefined, dateRange: undefined, month: undefined })
         }
-    }, [params.categoryId, params.categoryName, params.dateRange])
+    }, [params.categoryId, params.categoryName, params.dateRange, params.month])
 
     const filterCount = activeFilterCount(filters)
     const [showScan, setShowScan] = useState(false)
@@ -174,7 +175,13 @@ export default function TransactionsScreen() {
                             {filters.type !== 'all' && (
                                 <FilterPill label={filters.type === 'income' ? 'Income' : 'Expense'} onRemove={() => setFilters(f => ({ ...f, type: 'all' }))} />
                             )}
-                            {filters.dateRange !== 'all' && (
+                            {filters.month && (
+                                <FilterPill
+                                    label={new Date(Number(filters.month.slice(0, 4)), Number(filters.month.slice(5)) - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                    onRemove={() => setFilters(f => ({ ...f, month: null }))}
+                                />
+                            )}
+                            {!filters.month && filters.dateRange !== 'all' && (
                                 <FilterPill
                                     label={{ thisMonth: 'This month', lastMonth: 'Last month', '30d': 'Last 30d', '90d': 'Last 90d' }[filters.dateRange] ?? filters.dateRange}
                                     onRemove={() => setFilters(f => ({ ...f, dateRange: 'all' }))}
