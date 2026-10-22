@@ -141,6 +141,10 @@ export interface Receipt {
     date: string | null
     total: number | null
     lineItems: ReceiptLineItem[]
+    /** The person's saved choice for how tax/tip is handled when the transaction is split */
+    taxMode?: 'spread' | 'separate'
+    /** False when the receipt can be viewed but not changed (shared account, viewer role) */
+    canEdit?: boolean
     splitApplied: boolean
     matchedTransactionId: string | null
     matchedTransaction: Pick<Transaction, 'id' | 'description' | 'merchantName' | 'amount' | 'date'> | null

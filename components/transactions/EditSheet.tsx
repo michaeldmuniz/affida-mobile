@@ -17,6 +17,7 @@ import { DatePickerSheet } from '@/components/family/DatePickerSheet'
 import { TransactionDetails, SyncedSummary } from './TransactionDetails'
 import { TransactionPicker } from './TransactionPicker'
 import { SplitSheet } from './SplitSheet'
+import { ReceiptDetailSheet } from '@/components/receipts/ReceiptDetailSheet'
 
 interface EditState {
     merchantName: string
@@ -40,6 +41,7 @@ export function EditSheet({ transaction, onClose }: Props) {
     const [showCategoryPicker, setShowCategoryPicker] = useState(false)
     const [createRule, setCreateRule] = useState(false)
     const [pickingDate, setPickingDate] = useState(false)
+    const [editingReceipt, setEditingReceipt] = useState<Receipt | null>(null)
     const [picking, setPicking] = useState<'link' | 'refund' | null>(null)
     const [splitting, setSplitting] = useState(false)
 
@@ -397,6 +399,18 @@ export function EditSheet({ transaction, onClose }: Props) {
                                         ))}
                                     </View>
 
+                                    {receipt.canEdit !== false && (
+                                        <TouchableOpacity
+                                            className="h-11 rounded-xl bg-brand-elevated border border-brand-border items-center justify-center mt-2.5"
+                                            onPress={() => { haptics.light(); setEditingReceipt(receipt) }}
+                                            activeOpacity={0.8}
+                                            accessibilityRole="button"
+                                            accessibilityLabel="Edit receipt"
+                                        >
+                                            <Text className="text-brand-text font-semibold text-sm">Edit receipt: names, amounts, categories</Text>
+                                        </TouchableOpacity>
+                                    )}
+
                                     {receipt.lineItems.length > 0 && (
                                         receipt.splitApplied ? (
                                             <View className="flex-row items-center gap-x-2 mt-2.5 px-1">
@@ -512,6 +526,15 @@ export function EditSheet({ transaction, onClose }: Props) {
                     value={form.day}
                     onPick={(d) => setForm(f => f ? { ...f, day: d } : f)}
                     onClose={() => setPickingDate(false)}
+                />
+                <ReceiptDetailSheet
+                    receipt={editingReceipt}
+                    onClose={() => {
+                        setEditingReceipt(null)
+                        // The receipt may have been corrected and the transaction re-split
+                        queryClient.invalidateQueries({ queryKey: ['receipt'] })
+                        queryClient.invalidateQueries({ queryKey: ['transactions'] })
+                    }}
                 />
         </Modal>
         </>

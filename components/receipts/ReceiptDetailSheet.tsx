@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Modal, View, Text, TouchableOpacity, ScrollView, Alert, Image } from 'react-native'
+import { Modal, View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Image } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { X, CheckCircle, Clock, AlertCircle, ChevronRight } from 'lucide-react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -18,12 +18,28 @@ interface Props {
 
 export function ReceiptDetailSheet({ receipt, onClose }: Props) {
     const queryClient = useQueryClient()
-    const [lineItems, setLineItems] = useState<Receipt['lineItems']>([])
+    type EditItem = { description: string; amountText: string; categoryId: string | null; categoryName: string | null }
+    const toEdit = (r: Receipt): EditItem[] =>
+        r.lineItems.map((i) => ({ description: i.description, amountText: String(i.amount), categoryId: i.categoryId, categoryName: i.categoryName }))
+
+    // `base` is what the server last confirmed; the fields below are the edits on top of it
+    const [base, setBase] = useState<Receipt | null>(receipt)
+    const [items, setItems] = useState<EditItem[]>([])
+    const [totalText, setTotalText] = useState('')
+    const [taxMode, setTaxMode] = useState<'spread' | 'separate'>('spread')
     const [pickingIndex, setPickingIndex] = useState<number | null>(null)
+    const [saveMessage, setSaveMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
 
     useEffect(() => {
-        if (receipt) setLineItems(receipt.lineItems)
+        if (!receipt) return
+        setBase(receipt)
+        setItems(toEdit(receipt))
+        setTotalText(receipt.total != null ? String(receipt.total) : '')
+        setTaxMode(receipt.taxMode ?? 'spread')
+        setSaveMessage(null)
     }, [receipt?.id])
+
+    const editable = receipt?.canEdit !== false
 
     const { data: categories = [] } = useQuery<Category[]>({
         queryKey: ['categories'],
@@ -32,15 +48,51 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
         enabled: !!receipt,
     })
 
-    const { mutate: saveLineItems } = useMutation({
-        mutationFn: async (items: Receipt['lineItems']) => {
-            await apiClient.patch(`/receipts/${receipt!.id}`, { lineItems: items })
+    const parsedItems = items.map((i) => ({ description: i.description, amount: Number(i.amountText), categoryId: i.categoryId }))
+    const itemsValid = items.every((i) => i.description.trim() !== '' && i.amountText.trim() !== '' && Number.isFinite(Number(i.amountText)))
+    const totalValid = totalText.trim() !== '' && Number.isFinite(Number(totalText)) && Number(totalText) > 0
+
+    const dirty = !!base && (
+        taxMode !== (base.taxMode ?? 'spread') ||
+        Number(totalText) !== (base.total ?? NaN) ||
+        items.length !== base.lineItems.length ||
+        items.some((it, i) => {
+            const orig = base.lineItems[i]
+            return it.description !== orig.description || Number(it.amountText) !== orig.amount || (it.categoryId ?? null) !== (orig.categoryId ?? null)
+        })
+    )
+
+    // What the transaction will be split into, asked of the server so the app and the website always agree
+    const previewKey = JSON.stringify([parsedItems, taxMode])
+    const [debouncedKey, setDebouncedKey] = useState(previewKey)
+    useEffect(() => {
+        const t = setTimeout(() => setDebouncedKey(previewKey), 400)
+        return () => clearTimeout(t)
+    }, [previewKey])
+    type Preview = { linked: boolean; splits: { categoryName: string | null; amount: number; isTaxLine: boolean }[] | null }
+    const { data: preview } = useQuery<Preview>({
+        queryKey: ['receipt-preview', receipt?.id, debouncedKey],
+        queryFn: async () => (await apiClient.post(`/receipts/${receipt!.id}/preview`, { lineItems: parsedItems, taxMode })).data.data,
+        enabled: !!receipt && receipt.status === 'matched' && itemsValid && editable,
+    })
+
+    const { mutate: saveChanges, isPending: isSaving } = useMutation({
+        mutationFn: async () => {
+            const res = await apiClient.patch(`/receipts/${receipt!.id}`, { lineItems: parsedItems, total: Number(totalText), taxMode })
+            return res.data.data as Receipt
         },
-        onSuccess: () => {
+        onSuccess: (updated) => {
             haptics.success()
+            setBase(updated)
+            setItems(toEdit(updated))
+            setTotalText(updated.total != null ? String(updated.total) : '')
+            setTaxMode(updated.taxMode ?? taxMode)
+            setSaveMessage({ kind: 'ok', text: updated.splitApplied ? 'Saved. The split follows your changes.' : 'Saved.' })
             queryClient.invalidateQueries({ queryKey: ['receipts'] })
+            queryClient.invalidateQueries({ queryKey: ['transactions'] })
         },
-        onError: () => Alert.alert('Error', 'Failed to save category change.'),
+        // Shown inline: a native Alert while this sheet is presenting can crash on iOS
+        onError: (err: any) => setSaveMessage({ kind: 'error', text: err?.response?.data?.error ?? 'Could not save the receipt. Please try again.' }),
     })
 
     const { mutate: applySplit, isPending: isSplitting } = useMutation({
@@ -100,16 +152,15 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
 
     if (!receipt) return null
 
-    const currentItems = lineItems.length ? lineItems : receipt.lineItems
-
     const handleCategorySelect = (index: number, categoryId: string | null, categoryName: string | null) => {
-        const updated = currentItems.map((item, i) =>
-            i === index ? { ...item, categoryId, categoryName } : item
-        )
-        setLineItems(updated)
+        setItems((prev) => prev.map((item, i) => (i === index ? { ...item, categoryId, categoryName } : item)))
         setPickingIndex(null)
-        saveLineItems(updated)
     }
+
+    const updateItem = (index: number, patch: Partial<EditItem>) =>
+        setItems((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)))
+
+    const currentItems = items
 
     return (
         <Modal
@@ -130,7 +181,7 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
                         <View className="w-8" />
                     </View>
 
-                    <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+                    <ScrollView className="flex-1" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
                         <View className="px-6 py-5 gap-y-4">
                             {receipt.imageUrl && (
                                 <Image
@@ -197,31 +248,79 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
                                             </Text>
                                         )}
                                     </View>
-                                    {receipt.total != null && (
-                                        <AmountText amount={-receipt.total} size="md" showSign />
+                                    {editable ? (
+                                        <View className="flex-row items-center bg-brand-elevated border border-brand-border rounded-xl px-3 h-10">
+                                            <Text className="text-brand-muted text-sm mr-1">$</Text>
+                                            <TextInput
+                                                value={totalText}
+                                                onChangeText={(t) => { setTotalText(t); setSaveMessage(null) }}
+                                                keyboardType="decimal-pad"
+                                                accessibilityLabel="Receipt total"
+                                                className="text-brand-text text-sm font-semibold min-w-[64px] text-right"
+                                                placeholder="0.00"
+                                                placeholderTextColor={colors.muted}
+                                            />
+                                        </View>
+                                    ) : (
+                                        receipt.total != null && <AmountText amount={-receipt.total} size="md" showSign />
                                     )}
                                 </View>
 
-                                {/* Line items */}
+                                {/* Line items: name, amount and category can all be corrected */}
                                 {currentItems.length > 0 ? (
                                     currentItems.map((item, i) => (
-                                        <TouchableOpacity
+                                        <View
                                             key={i}
-                                            className={`flex-row items-center px-4 py-3.5 ${i > 0 ? 'border-t border-brand-border' : ''}`}
-                                            onPress={() => { haptics.light(); setPickingIndex(i) }}
-                                            activeOpacity={0.7}
+                                            className={`px-4 py-3 gap-y-2 ${i > 0 ? 'border-t border-brand-border' : ''}`}
                                         >
-                                            <View className="flex-1 pr-3">
-                                                <Text className="text-brand-text text-sm" numberOfLines={1}>
-                                                    {item.description}
-                                                </Text>
-                                                <Text className="text-brand-accent text-xs mt-0.5">
-                                                    {item.categoryName ?? 'Tap to categorize'}
-                                                </Text>
-                                            </View>
-                                            <AmountText amount={-item.amount} size="sm" showSign />
-                                            <ChevronRight size={14} color={colors.muted} strokeWidth={2} className="ml-2" />
-                                        </TouchableOpacity>
+                                            {editable ? (
+                                                <>
+                                                    <TextInput
+                                                        value={item.description}
+                                                        onChangeText={(t) => { updateItem(i, { description: t }); setSaveMessage(null) }}
+                                                        maxLength={120}
+                                                        accessibilityLabel={`Item ${i + 1} name`}
+                                                        className="text-brand-text text-sm bg-brand-elevated border border-brand-border rounded-xl px-3 h-10"
+                                                        placeholder="Item name"
+                                                        placeholderTextColor={colors.muted}
+                                                    />
+                                                    <View className="flex-row items-center gap-x-2">
+                                                        <TouchableOpacity
+                                                            className="flex-1 flex-row items-center justify-between bg-brand-elevated border border-brand-border rounded-xl px-3 h-10"
+                                                            onPress={() => { haptics.light(); setPickingIndex(i) }}
+                                                            activeOpacity={0.7}
+                                                            accessibilityRole="button"
+                                                            accessibilityLabel={`Item ${i + 1} category`}
+                                                        >
+                                                            <Text className="text-brand-accent text-xs" numberOfLines={1}>
+                                                                {item.categoryName ?? 'Tap to categorize'}
+                                                            </Text>
+                                                            <ChevronRight size={14} color={colors.muted} strokeWidth={2} />
+                                                        </TouchableOpacity>
+                                                        <View className="flex-row items-center bg-brand-elevated border border-brand-border rounded-xl px-3 h-10 w-28">
+                                                            <Text className="text-brand-muted text-sm mr-1">$</Text>
+                                                            <TextInput
+                                                                value={item.amountText}
+                                                                onChangeText={(t) => { updateItem(i, { amountText: t }); setSaveMessage(null) }}
+                                                                keyboardType="decimal-pad"
+                                                                accessibilityLabel={`Item ${i + 1} amount`}
+                                                                className="flex-1 min-w-0 text-brand-text text-sm text-right"
+                                                                placeholder="0.00"
+                                                                placeholderTextColor={colors.muted}
+                                                            />
+                                                        </View>
+                                                    </View>
+                                                </>
+                                            ) : (
+                                                <View className="flex-row items-center">
+                                                    <View className="flex-1 pr-3">
+                                                        <Text className="text-brand-text text-sm" numberOfLines={1}>{item.description}</Text>
+                                                        <Text className="text-brand-muted text-xs mt-0.5">{item.categoryName ?? 'Uncategorized'}</Text>
+                                                    </View>
+                                                    <AmountText amount={-Number(item.amountText)} size="sm" showSign />
+                                                </View>
+                                            )}
+                                        </View>
                                     ))
                                 ) : (
                                     <View className="px-4 py-4">
@@ -229,6 +328,82 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
                                     </View>
                                 )}
                             </View>
+
+                            {/* Tax & tip: how it is handled when the transaction is split. Always offered; the choice is kept for next time */}
+                            {editable && currentItems.length > 0 && (
+                                <View className="bg-brand-surface border border-brand-border rounded-2xl px-4 py-3.5 gap-y-2.5">
+                                    <Text className="text-brand-muted text-xs font-semibold uppercase tracking-wide">Tax &amp; tip when splitting</Text>
+                                    {([
+                                        ['spread', 'Spread it across the categories', 'Each category carries its share, so every split adds up to what you were charged.'],
+                                        ['separate', 'Show it as its own line', 'Each category matches the receipt exactly, with a separate “Tax & tip” split.'],
+                                    ] as const).map(([value, label, hint]) => (
+                                        <TouchableOpacity
+                                            key={value}
+                                            className="flex-row items-start gap-x-3"
+                                            onPress={() => { haptics.light(); setTaxMode(value); setSaveMessage(null) }}
+                                            activeOpacity={0.7}
+                                            accessibilityRole="radio"
+                                            accessibilityState={{ selected: taxMode === value }}
+                                            accessibilityLabel={label}
+                                        >
+                                            <View className={`mt-0.5 w-5 h-5 rounded-full border-2 items-center justify-center ${taxMode === value ? 'border-brand-accent' : 'border-brand-border'}`}>
+                                                {taxMode === value && <View className="w-2.5 h-2.5 rounded-full bg-brand-accent" />}
+                                            </View>
+                                            <View className="flex-1">
+                                                <Text className="text-brand-text text-sm font-medium">{label}</Text>
+                                                <Text className="text-brand-muted text-xs mt-0.5">{hint}</Text>
+                                            </View>
+                                        </TouchableOpacity>
+                                    ))}
+                                    <Text className="text-brand-muted text-xs">Saved as your choice for future receipts. You can change it here every time.</Text>
+                                </View>
+                            )}
+
+                            {/* What the split will look like */}
+                            {editable && receipt.status === 'matched' && itemsValid && preview && (
+                                <View className="bg-brand-elevated rounded-2xl px-4 py-3.5 gap-y-1">
+                                    <Text className="text-brand-muted text-xs font-semibold">The transaction will be split like this</Text>
+                                    {preview.splits ? (
+                                        preview.splits.map((sp, i) => (
+                                            <View key={i} className="flex-row justify-between">
+                                                <Text className="text-brand-text text-sm flex-1 pr-3" numberOfLines={1}>
+                                                    {sp.isTaxLine ? 'Tax & tip' : sp.categoryName ?? 'Uncategorized'}
+                                                </Text>
+                                                <Text className="text-brand-text text-sm font-mono">${sp.amount.toFixed(2)}</Text>
+                                            </View>
+                                        ))
+                                    ) : (
+                                        <Text className="text-brand-muted text-xs">
+                                            These items won't be split automatically: they fall in one category, or they don't add up to the charge.
+                                        </Text>
+                                    )}
+                                </View>
+                            )}
+
+                            {/* Save the corrections (re-splits an already split transaction) */}
+                            {editable && (
+                                <View className="gap-y-2">
+                                    {saveMessage && (
+                                        <Text className={`text-xs ${saveMessage.kind === 'ok' ? 'text-brand-positive' : 'text-brand-negative'}`}>
+                                            {saveMessage.text}
+                                        </Text>
+                                    )}
+                                    <TouchableOpacity
+                                        className={`h-14 rounded-2xl items-center justify-center ${dirty && itemsValid && totalValid && !isSaving ? 'bg-brand-accent' : 'bg-brand-elevated'}`}
+                                        onPress={() => { haptics.medium(); saveChanges() }}
+                                        disabled={!dirty || !itemsValid || !totalValid || isSaving}
+                                        activeOpacity={0.8}
+                                        accessibilityRole="button"
+                                    >
+                                        <Text className={`font-semibold text-base ${dirty && itemsValid && totalValid && !isSaving ? 'text-white' : 'text-brand-muted'}`}>
+                                            {isSaving ? 'Saving…' : 'Save changes'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                    {dirty && (!itemsValid || !totalValid) && (
+                                        <Text className="text-brand-muted text-xs text-center">Every item needs a name and an amount, and the total must be more than 0.</Text>
+                                    )}
+                                </View>
+                            )}
 
                             {/* Apply split to matched transaction */}
                             {receipt.status === 'matched' && currentItems.length > 0 && (
