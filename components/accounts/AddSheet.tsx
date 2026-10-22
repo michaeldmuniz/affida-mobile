@@ -74,7 +74,7 @@ export function AddAccountSheet({ visible, onClose }: Props) {
             reset()
             onClose()
         },
-        onError: (e: any) => Alert.alert('Error', e.message ?? 'Failed to create account.'),
+        onError: (e: any) => Alert.alert('Error', e?.response?.data?.error ?? (e?.isAxiosError ? 'Failed to create account.' : e.message ?? 'Failed to create account.')),
     })
 
     const handleClose = () => {

@@ -63,7 +63,7 @@ export function AddBudgetSheet({ visible, month, existingBudgets, onClose }: Pro
             setShowNewCategory(false)
             setNewCategoryName('')
         },
-        onError: (e: any) => Alert.alert('Error', e.message ?? 'Failed to create category.'),
+        onError: (e: any) => Alert.alert('Error', e?.response?.data?.error ?? (e?.isAxiosError ? 'Failed to create category.' : e.message ?? 'Failed to create category.')),
     })
 
     const { mutate: save, isPending } = useMutation({
@@ -82,7 +82,7 @@ export function AddBudgetSheet({ visible, month, existingBudgets, onClose }: Pro
             queryClient.invalidateQueries({ queryKey: ['budgets', month] })
             onClose()
         },
-        onError: (e: any) => Alert.alert('Error', e.message ?? 'Failed to create budget.'),
+        onError: (e: any) => Alert.alert('Error', e?.response?.data?.error ?? (e?.isAxiosError ? 'Failed to create budget.' : e.message ?? 'Failed to create budget.')),
     })
 
     return (

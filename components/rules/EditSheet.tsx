@@ -164,7 +164,7 @@ export function RuleEditSheet({ rule, onClose }: Props) {
             queryClient.invalidateQueries({ queryKey: ['rules'] })
             onClose()
         },
-        onError: (e: any) => Alert.alert('Error', e.message ?? 'Failed to save rule.'),
+        onError: (e: any) => Alert.alert('Error', e?.response?.data?.error ?? (e?.isAxiosError ? 'Failed to save rule.' : e.message ?? 'Failed to save rule.')),
     })
 
     if (rule === null) return null

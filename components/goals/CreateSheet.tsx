@@ -94,7 +94,7 @@ export function GoalCreateSheet({ visible, onClose }: Props) {
             queryClient.invalidateQueries({ queryKey: ['goals'] })
             handleClose()
         },
-        onError: (e: any) => Alert.alert('Error', e.message ?? 'Failed to create goal.'),
+        onError: (e: any) => Alert.alert('Error', e?.response?.data?.error ?? (e?.isAxiosError ? 'Failed to create goal.' : e.message ?? 'Failed to create goal.')),
     })
 
     const noAccountsLinked = selectedAccountIds.length === 0
