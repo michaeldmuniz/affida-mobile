@@ -220,6 +220,7 @@ export function LinkTransactionSheet({ receipt, onClose }: Props) {
                         <OptionPicker
                             visible={showAccountPicker}
                             title="Choose Account"
+                            noneLabel="Cancel"
                             options={manualAccounts.map((a) => ({ label: a.name, value: a.id }))}
                             selectedValue={account?.id ?? null}
                             onSelect={(value) => {
