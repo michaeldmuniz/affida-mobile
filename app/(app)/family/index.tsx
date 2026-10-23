@@ -26,6 +26,8 @@ export default function FamilyScreen() {
     const [editingTask, setEditingTask] = useState<ChildTask | TaskKind | null>(null)
     // An unassigned chore being checked off: pick who did it first.
     const [pickingDoer, setPickingDoer] = useState<ChildTask | null>(null)
+    // Second step: which budget category that person's reward goes to
+    const [pickingCategory, setPickingCategory] = useState<{ task: ChildTask; doneBy: { childId: string } | { adultId: string } } | null>(null)
     const [togglingId, setTogglingId] = useState<string | null>(null)
 
     const { data: kids, isLoading, refetch, isRefetching } = useQuery<Child[]>({
@@ -52,12 +54,12 @@ export default function FamilyScreen() {
     })
 
     const { mutate: toggleAnyone } = useMutation({
-        mutationFn: async ({ task, doneBy }: { task: ChildTask; doneBy?: { childId: string } | { adultId: string } }) => {
+        mutationFn: async ({ task, doneBy, rewardCategoryId }: { task: ChildTask; doneBy?: { childId: string } | { adultId: string }; rewardCategoryId?: string | null }) => {
             if (task.doneOnDay) {
                 await apiClient.delete(`/family/tasks/${task.id}/complete`, { params: { day } })
                 return null
             }
-            return (await apiClient.post(`/family/tasks/${task.id}/complete`, { day, ...doneBy })).data.data as { earned: number; bonus: number; streak: number; recipientName: string | null }
+            return (await apiClient.post(`/family/tasks/${task.id}/complete`, { day, ...doneBy, ...(rewardCategoryId !== undefined ? { rewardCategoryId } : {}) })).data.data as { earned: number; bonus: number; streak: number; recipientName: string | null }
         },
         onMutate: ({ task }) => setTogglingId(task.id),
         onSuccess: () => haptics.success(),
@@ -235,9 +237,29 @@ export default function FamilyScreen() {
                     const task = pickingDoer
                     if (!v || !task) return
                     const doneBy = v.startsWith('c:') ? { childId: v.slice(2) } : { adultId: v.slice(2) }
-                    toggleAnyone({ task, doneBy })
+                    // With a reward and budget categories to choose from, ask where this person's reward goes
+                    if (task.reward > 0 && (categories ?? []).length > 0) setPickingCategory({ task, doneBy })
+                    else toggleAnyone({ task, doneBy })
                 }}
                 onClose={() => setPickingDoer(null)}
+            />
+            <OptionPicker
+                visible={!!pickingCategory}
+                title="Add the reward to budget"
+                options={(categories ?? []).map(c => ({ label: c.name, value: c.id }))}
+                selectedValue={(() => {
+                    if (!pickingCategory) return null
+                    const { task, doneBy } = pickingCategory
+                    const key = 'childId' in doneBy ? `kid-${doneBy.childId}` : `adult-${doneBy.adultId}`
+                    const own = task.categoryByPerson && key in task.categoryByPerson ? task.categoryByPerson[key] : task.rewardCategoryId
+                    return own && (categories ?? []).some(c => c.id === own) ? own : null
+                })()}
+                noneLabel="No category"
+                onSelect={(v) => {
+                    if (!pickingCategory) return
+                    toggleAnyone({ task: pickingCategory.task, doneBy: pickingCategory.doneBy, rewardCategoryId: v })
+                }}
+                onClose={() => setPickingCategory(null)}
             />
         </SafeAreaView>
     )

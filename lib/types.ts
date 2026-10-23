@@ -347,6 +347,8 @@ export interface ChildTask {
     /** The budget category the reward is added to (null if none picked). */
     rewardCategoryId: string | null
     rewardCategoryName: string | null
+    /** Unassigned chores: each person's own reward category from the last time they did it ("kid-<id>" / "adult-<id>" -> category id, null = none). No entry = the chore's own. */
+    categoryByPerson?: Record<string, string | null>
     /** Unassigned chores: who did it on the viewed day. */
     doneByName?: string | null
     dueOnDay: boolean
