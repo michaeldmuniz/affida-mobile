@@ -794,7 +794,14 @@ export default function DashboardScreen() {
                         {data?.recentTransactions?.length ? (
                             <Card className="overflow-hidden p-0">
                                 {data.recentTransactions.map((tx, i) => (
-                                    <View key={tx.id} className={`flex-row items-center px-4 py-3.5 ${i > 0 ? 'border-t border-brand-border' : ''}`}>
+                                    <TouchableOpacity
+                                        key={tx.id}
+                                        activeOpacity={0.7}
+                                        accessibilityRole="button"
+                                        accessibilityLabel={`${tx.merchantName ?? tx.description}, open in Transactions`}
+                                        onPress={() => { haptics.light(); router.push('/transactions') }}
+                                        className={`flex-row items-center px-4 py-3.5 ${i > 0 ? 'border-t border-brand-border' : ''}`}
+                                    >
                                         <View className="flex-1 pr-3">
                                             <View className="flex-row items-center gap-x-1.5">
                                                 <Text className="text-brand-text text-sm font-medium flex-shrink" numberOfLines={1}>
@@ -807,7 +814,7 @@ export default function DashboardScreen() {
                                             </Text>
                                         </View>
                                         <AmountText amount={tx.amount} size="sm" showSign />
-                                    </View>
+                                    </TouchableOpacity>
                                 ))}
                             </Card>
                         ) : (
