@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity, TextInput, ActivityIndicator, Share, Alert } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { Swipeable } from 'react-native-gesture-handler'
 import { Search, Flag, SlidersHorizontal, Download, Camera, ReceiptText } from 'lucide-react-native'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { useLocalSearchParams, useRouter } from 'expo-router'
@@ -24,6 +25,9 @@ export default function TransactionsScreen() {
     const params = useLocalSearchParams<{ categoryId?: string; categoryName?: string; dateRange?: string; month?: string }>()
     const [search, setSearch] = useState('')
     const [editing, setEditing] = useState<Transaction | null>(null)
+    // Open swipe rows, so one can be closed after its action (or when another opens)
+    const swipeRefs = useRef<Record<string, Swipeable | null>>({})
+    const openSwipe = useRef<string | null>(null)
     const [showFilters, setShowFilters] = useState(false)
     const [showAdd, setShowAdd] = useState(false)
     const [filters, setFilters] = useState<TransactionFilters>(DEFAULT_FILTERS)
@@ -58,6 +62,18 @@ export default function TransactionsScreen() {
         },
         staleTime: 60 * 1000,
     })
+
+    // Swipe a row left to flag it (or take the flag off): the same toggle as the web table
+    const toggleFlag = async (tx: Transaction) => {
+        swipeRefs.current[tx.id]?.close()
+        try {
+            await apiClient.patch(`/transactions/${tx.id}/flag`)
+            haptics.success()
+            await refetch()
+        } catch {
+            Alert.alert('Error', 'Could not update the flag. Please try again.')
+        }
+    }
 
     const handleExport = async () => {
         setIsExporting(true)
@@ -241,9 +257,30 @@ export default function TransactionsScreen() {
                                     </Text>
                                     <Card className="overflow-hidden p-0">
                                         {grouped[date].map((tx, i) => (
-                                            <TouchableOpacity
+                                            <Swipeable
                                                 key={tx.id}
-                                                className={`flex-row items-center px-4 py-3.5 ${i > 0 ? 'border-t border-brand-border' : ''}`}
+                                                ref={(r) => { swipeRefs.current[tx.id] = r }}
+                                                overshootRight={false}
+                                                rightThreshold={40}
+                                                onSwipeableWillOpen={() => {
+                                                    // Only one row stays open at a time
+                                                    if (openSwipe.current && openSwipe.current !== tx.id) swipeRefs.current[openSwipe.current]?.close()
+                                                    openSwipe.current = tx.id
+                                                }}
+                                                renderRightActions={() => (
+                                                    <TouchableOpacity
+                                                        accessibilityRole="button"
+                                                        accessibilityLabel={tx.flagged ? 'Remove flag' : 'Flag transaction'}
+                                                        onPress={() => toggleFlag(tx)}
+                                                        className={`w-24 items-center justify-center ${tx.flagged ? 'bg-brand-muted' : 'bg-brand-negative'}`}
+                                                    >
+                                                        <Flag size={18} color="#fff" fill={tx.flagged ? 'none' : '#fff'} />
+                                                        <Text className="text-white text-xs font-semibold mt-1">{tx.flagged ? 'Unflag' : 'Flag'}</Text>
+                                                    </TouchableOpacity>
+                                                )}
+                                            >
+                                            <TouchableOpacity
+                                                className={`flex-row items-center px-4 py-3.5 bg-brand-surface ${i > 0 ? 'border-t border-brand-border' : ''}`}
                                                 activeOpacity={0.7}
                                                 onPress={() => setEditing(tx)}
                                             >
@@ -266,6 +303,7 @@ export default function TransactionsScreen() {
                                                 </View>
                                                 <AmountText amount={tx.amount} size="sm" showSign />
                                             </TouchableOpacity>
+                                            </Swipeable>
                                         ))}
                                     </Card>
                                 </View>
