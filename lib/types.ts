@@ -42,6 +42,8 @@ export interface Account {
     balance: number
     creditLimit: number | null
     excludeFromNetWorth: boolean
+    /** Personal or Business (your own accounts; sent by newer servers) */
+    purpose?: 'PERSONAL' | 'BUSINESS'
     plaidLinked: boolean
     /** When the bank last synced; null for manual accounts. */
     lastSyncAt: string | null

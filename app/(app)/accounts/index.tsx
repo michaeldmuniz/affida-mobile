@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Plus, Landmark, CreditCard, TrendingUp, Wallet, ExternalLink, ChevronRight } from 'lucide-react-native'
+import { Plus, Landmark, CreditCard, TrendingUp, Wallet, ExternalLink, ChevronRight, ChevronDown } from 'lucide-react-native'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { apiClient } from '@/lib/api-client'
 import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
 import { AddAccountSheet } from '@/components/accounts/AddSheet'
+import { ScopeSheet, useScope, scopeSummary } from '@/components/accounts/ScopeSheet'
 import { getPaymentUrl } from '@/lib/payment-links'
 import { DEBT_TYPES, computeNetWorth } from '@/lib/account-types'
 import { formatAccountType } from '@/lib/format'
@@ -55,6 +56,8 @@ function AccountIcon({ type }: { type: string }) {
 export default function AccountsScreen() {
     const router = useRouter()
     const [showAdd, setShowAdd] = useState(false)
+    const [showScope, setShowScope] = useState(false)
+    const { data: scope } = useScope()
 
     const { data: accounts, isLoading, refetch, isRefetching } = useQuery<Account[]>({
         queryKey: ['accounts'],
@@ -88,6 +91,15 @@ export default function AccountsScreen() {
                 {/* Header */}
                 <View className="flex-row items-center justify-between px-6 pt-4 pb-2">
                     <Text className="text-brand-text text-2xl font-bold">Accounts</Text>
+                    <TouchableOpacity
+                        className="flex-1 mx-3 flex-row items-center justify-end gap-x-1"
+                        onPress={() => setShowScope(true)}
+                        accessibilityRole="button"
+                        accessibilityLabel="Choose which accounts to show"
+                    >
+                        <Text className="text-brand-muted text-sm" numberOfLines={1}>{scopeSummary(scope)}</Text>
+                        <ChevronDown size={14} color={colors.muted} />
+                    </TouchableOpacity>
                     <TouchableOpacity
                         className="w-9 h-9 rounded-full bg-brand-surface border border-brand-border items-center justify-center"
                         onPress={() => setShowAdd(true)}
@@ -151,6 +163,7 @@ export default function AccountsScreen() {
             </ScrollView>
 
             <AddAccountSheet visible={showAdd} onClose={() => setShowAdd(false)} />
+            <ScopeSheet visible={showScope} onClose={() => setShowScope(false)} />
         </SafeAreaView>
     )
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, Text, ScrollView, RefreshControl, TouchableOpacity, Alert, TextInput, Modal, ActivityIndicator } from 'react-native'
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity, Alert, TextInput, Modal, ActivityIndicator, Switch } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { ChevronLeft, Pencil, Trash2 } from 'lucide-react-native'
@@ -8,6 +8,7 @@ import { apiClient } from '@/lib/api-client'
 import { Card } from '@/components/ui/Card'
 import { AmountText } from '@/components/ui/AmountText'
 import { colors } from '@/lib/colors'
+import { haptics } from '@/lib/haptics'
 import { syncStatusLabel } from '@/lib/sync'
 import { ReconnectBankButton } from '@/components/accounts/ReconnectBankButton'
 import { PendingBadge } from '@/components/transactions/PendingBadge'
@@ -19,6 +20,8 @@ interface AccountDetail {
     institutionName: string
     balance: number
     creditLimit: number | null
+    /** Personal or Business: which header choice shows it and which sharing bucket covers it */
+    purpose: 'PERSONAL' | 'BUSINESS'
     plaidLinked: boolean
     lastSyncAt: string | null
     needsReconnect: boolean
@@ -113,6 +116,23 @@ export default function AccountDetailScreen() {
         setLimitError(null)
         saveLimit(parsed)
     }
+
+    // Owner only: Personal <-> Business. A Business account leaves the default (Personal) view.
+    const { mutate: setPurpose, isPending: isSettingPurpose } = useMutation({
+        mutationFn: async (purpose: 'PERSONAL' | 'BUSINESS') => {
+            await apiClient.put(`/accounts/${id}`, { purpose })
+        },
+        onSuccess: () => {
+            haptics.light()
+            queryClient.invalidateQueries({ queryKey: ['account-detail', id] })
+            queryClient.invalidateQueries({ queryKey: ['accounts'] })
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+            queryClient.invalidateQueries({ queryKey: ['transactions'] })
+            queryClient.invalidateQueries({ queryKey: ['budgets'] })
+            queryClient.invalidateQueries({ queryKey: ['scope'] })
+        },
+        onError: () => Alert.alert('Error', 'Could not change the account type. Please try again.'),
+    })
 
     const { mutate: deleteAccount, isPending: isDeleting } = useMutation({
         mutationFn: async () => {
@@ -319,6 +339,26 @@ export default function AccountDetailScreen() {
                                     </TouchableOpacity>
                                 )}
                             </Card>
+
+                            {/* Personal / Business (owner only) */}
+                            {!account.isShared && (
+                                <Card className="p-5">
+                                    <View className="flex-row items-center">
+                                        <View className="flex-1 pr-4">
+                                            <Text className="text-brand-text text-sm font-medium">Business account</Text>
+                                            <Text className="text-brand-muted text-xs mt-1">
+                                                Shows under Business in the scope picker instead of Personal, and is shared separately.
+                                            </Text>
+                                        </View>
+                                        <Switch
+                                            accessibilityLabel="Business account"
+                                            value={account.purpose === 'BUSINESS'}
+                                            disabled={isSettingPurpose}
+                                            onValueChange={(v) => setPurpose(v ? 'BUSINESS' : 'PERSONAL')}
+                                        />
+                                    </View>
+                                </Card>
+                            )}
 
                             {/* Balance history */}
                             {account.snapshots.length > 0 && (
