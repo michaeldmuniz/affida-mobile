@@ -355,7 +355,7 @@ export default function AccountDetailScreen() {
                                             <View className="flex-1 pr-4">
                                                 <Text className="text-brand-text text-sm font-medium">Belongs to</Text>
                                                 <Text className="text-brand-muted text-xs mt-1">
-                                                    Personal, or one of your businesses. Each is shared separately.
+                                                    Personal, or one of your groups. Each is shared separately.
                                                 </Text>
                                             </View>
                                             <Text className="text-brand-accent text-sm font-medium">

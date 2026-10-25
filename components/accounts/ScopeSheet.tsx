@@ -97,7 +97,7 @@ export function ScopeSheet({ visible, onClose }: { visible: boolean; onClose: ()
                     })}
                     {error && <Text className="text-brand-negative text-xs px-4 pt-3">{error}</Text>}
                     <Text className="text-brand-muted text-xs px-4 py-4">
-                        Accounts, transactions, budgets and reports show whatever is ticked here. Move an account to Business from its own screen.
+                        Accounts, transactions, budgets and reports show whatever is ticked here. Move an account into a group from its own screen.
                     </Text>
                 </ScrollView>
             </SafeAreaView>

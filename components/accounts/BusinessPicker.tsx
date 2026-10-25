@@ -6,11 +6,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { colors } from '@/lib/colors'
 
-interface Business { id: string; name: string }
+interface Business { id: string; name: string; kind?: 'PERSONAL' | 'BUSINESS' }
 
 /**
- * Where an account belongs: Personal, or one of the owner's named businesses. A business can be
- * added right here ("+ New business"); each one has its own choice in the scope picker.
+ * Where an account belongs: Personal, or one of the owner's named groups (each Personal or Business).
+ * A group can be added right here ("+ New group"); each one has its own choice in the scope picker.
  */
 export function BusinessPicker({ visible, selectedId, onSelect, onClose }: {
     visible: boolean
@@ -22,6 +22,7 @@ export function BusinessPicker({ visible, selectedId, onSelect, onClose }: {
     const queryClient = useQueryClient()
     const [adding, setAdding] = useState(false)
     const [name, setName] = useState('')
+    const [kind, setKind] = useState<'PERSONAL' | 'BUSINESS'>('BUSINESS')
     const [saving, setSaving] = useState(false)
 
     const { data: businesses = [] } = useQuery<Business[]>({
@@ -36,13 +37,13 @@ export function BusinessPicker({ visible, selectedId, onSelect, onClose }: {
         if (!name.trim() || saving) return
         setSaving(true)
         try {
-            const res = await apiClient.post('/businesses', { name: name.trim() })
+            const res = await apiClient.post('/businesses', { name: name.trim(), kind })
             await queryClient.invalidateQueries({ queryKey: ['businesses'] })
             await queryClient.invalidateQueries({ queryKey: ['scope'] })
             setName(''); setAdding(false)
             pick((res.data.data as Business).id)
         } catch (e: any) {
-            Alert.alert('Could not add the business', e?.response?.data?.error ?? 'Please try again.')
+            Alert.alert('Could not add the group', e?.response?.data?.error ?? 'Please try again.')
         } finally {
             setSaving(false)
         }
@@ -58,13 +59,13 @@ export function BusinessPicker({ visible, selectedId, onSelect, onClose }: {
                     </TouchableOpacity>
                 </View>
                 <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
-                    {[{ id: null as string | null, name: 'Personal' }, ...businesses].map((b, i) => (
+                    {[{ id: null as string | null, name: 'Personal', kind: undefined as Business['kind'] }, ...businesses].map((b, i) => (
                         <TouchableOpacity
                             key={b.id ?? 'personal'}
                             className={`flex-row items-center px-4 py-3.5 ${i < businesses.length ? 'border-b border-brand-border' : ''}`}
                             onPress={() => pick(b.id)}
                         >
-                            <Text className="flex-1 text-brand-text text-sm">{b.name}</Text>
+                            <Text className="flex-1 text-brand-text text-sm">{b.name}{b.kind ? ` (${b.kind === 'BUSINESS' ? 'Business' : 'Personal'})` : ''}</Text>
                             {selectedId === b.id && <Check size={16} color={colors.accent} />}
                         </TouchableOpacity>
                     ))}
@@ -72,11 +73,21 @@ export function BusinessPicker({ visible, selectedId, onSelect, onClose }: {
                         <View className="px-4 py-3 gap-y-2 border-t border-brand-border">
                             <TextInput
                                 className="bg-brand-surface border border-brand-border rounded-xl px-3 h-11 text-brand-text text-sm"
-                                placeholder="Business name, e.g. Acme LLC"
+                                placeholder="Group name, e.g. Acme LLC"
                                 placeholderTextColor={colors.muted}
                                 value={name} onChangeText={setName} maxLength={60} autoFocus
                                 onSubmitEditing={create} returnKeyType="done"
                             />
+                            <View className="flex-row gap-x-2">
+                                {(['BUSINESS', 'PERSONAL'] as const).map(k => (
+                                    <TouchableOpacity
+                                        key={k} accessibilityRole="button" accessibilityState={{ selected: kind === k }} onPress={() => setKind(k)}
+                                        className={`flex-1 h-10 rounded-xl items-center justify-center border ${kind === k ? 'bg-brand-accent border-brand-accent' : 'border-brand-border'}`}
+                                    >
+                                        <Text className={`text-sm font-medium ${kind === k ? 'text-white' : 'text-brand-muted'}`}>{k === 'BUSINESS' ? 'Business' : 'Personal'}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
                             <View className="flex-row gap-x-2">
                                 <TouchableOpacity className="flex-1 h-10 rounded-xl bg-brand-accent items-center justify-center" onPress={create} disabled={saving || !name.trim()}>
                                     <Text className="text-white text-sm font-semibold">{saving ? 'Adding…' : 'Add and move here'}</Text>
@@ -89,11 +100,11 @@ export function BusinessPicker({ visible, selectedId, onSelect, onClose }: {
                     ) : (
                         <TouchableOpacity className="flex-row items-center px-4 py-3.5 gap-x-2 border-t border-brand-border" onPress={() => setAdding(true)}>
                             <Plus size={15} color={colors.accent} />
-                            <Text className="text-brand-accent text-sm font-medium">New business</Text>
+                            <Text className="text-brand-accent text-sm font-medium">New group</Text>
                         </TouchableOpacity>
                     )}
                     <Text className="text-brand-muted text-xs px-4 py-4">
-                        Each business shows as its own choice in the scope picker and is shared separately from your personal accounts.
+                        Each group shows as its own choice in the scope picker, has its own dashboards and is shared separately.
                     </Text>
                 </ScrollView>
             </SafeAreaView>
