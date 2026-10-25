@@ -8,6 +8,7 @@ import { X, Flag, ChevronRight, Tag, Zap, ReceiptText, CheckCircle, SplitSquareH
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { CategoryPicker } from './CategoryPicker'
+import { useAccountCategories } from '@/hooks/useAccountCategories'
 import { AmountText } from '@/components/ui/AmountText'
 import type { Transaction, Category, Receipt, TransactionDetail } from '@/lib/types'
 import { colors } from '@/lib/colors'
@@ -84,15 +85,7 @@ export function EditSheet({ transaction, onClose }: Props) {
         staleTime: 5 * 60 * 1000,
     })
 
-    const { data: categories = [] } = useQuery<Category[]>({
-        queryKey: ['categories'],
-        queryFn: async () => {
-            const res = await apiClient.get('/categories')
-            return res.data.data
-        },
-        enabled: !!transaction,
-        staleTime: 5 * 60 * 1000,
-    })
+    const { categories, ownerName: categoryOwner, createCategory } = useAccountCategories(transaction?.accountId, !!transaction)
 
     const { mutate: save, isPending } = useMutation({
         mutationFn: async () => {
@@ -498,6 +491,8 @@ export function EditSheet({ transaction, onClose }: Props) {
                 <CategoryPicker
                     visible={showCategoryPicker}
                     categories={categories}
+                    ownerName={categoryOwner}
+                    onCreate={createCategory}
                     selectedId={form.categoryId}
                     onSelect={(id, name) => setForm(f => f ? { ...f, categoryId: id, categoryName: name } : f)}
                     onClose={() => setShowCategoryPicker(false)}

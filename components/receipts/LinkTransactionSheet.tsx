@@ -12,6 +12,7 @@ import { haptics } from '@/lib/haptics'
 import { colors } from '@/lib/colors'
 import { OptionPicker } from '@/components/OptionPicker'
 import { CategoryPicker } from '@/components/transactions/CategoryPicker'
+import { useAccountCategories } from '@/hooks/useAccountCategories'
 import type { Receipt, Account, Category } from '@/lib/types'
 
 interface Candidate {
@@ -64,12 +65,7 @@ export function LinkTransactionSheet({ receipt, onClose }: Props) {
         queryFn: async () => (await apiClient.get('/accounts')).data.data,
         enabled: !!receipt && creating,
     })
-    const { data: categories } = useQuery<Category[]>({
-        queryKey: ['categories'],
-        queryFn: async () => (await apiClient.get('/categories')).data.data,
-        enabled: !!receipt && creating,
-        staleTime: 10 * 60 * 1000,
-    })
+    const { categories, ownerName: categoryOwner, createCategory } = useAccountCategories(account?.id, !!receipt && creating)
     const manualAccounts = accounts?.filter((a) => !a.plaidLinked) ?? []
 
     const { mutate: createFromReceipt, isPending: isCreating } = useMutation({
@@ -224,17 +220,19 @@ export function LinkTransactionSheet({ receipt, onClose }: Props) {
                             options={manualAccounts.map((a) => ({ label: a.name, value: a.id }))}
                             selectedValue={account?.id ?? null}
                             onSelect={(value) => {
-                                setAccount(manualAccounts.find((a) => a.id === value) ?? null)
+                                setAccount(manualAccounts.find((a) => a.id === value) ?? null); setCategory(null)
                                 setShowAccountPicker(false)
                             }}
                             onClose={() => setShowAccountPicker(false)}
                         />
                         <CategoryPicker
                             visible={showCategoryPicker}
-                            categories={categories ?? []}
+                            categories={categories}
+                            ownerName={categoryOwner}
+                            onCreate={createCategory}
                             selectedId={category?.id ?? null}
                             onSelect={(id) => {
-                                setCategory(id ? categories?.find((c) => c.id === id) ?? null : null)
+                                setCategory(id ? categories.find((c) => c.id === id) ?? null : null)
                                 setShowCategoryPicker(false)
                             }}
                             onClose={() => setShowCategoryPicker(false)}

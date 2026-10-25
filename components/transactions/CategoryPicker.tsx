@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import {
-    Modal, View, Text, TextInput, TouchableOpacity, ScrollView,
+    Modal, View, Text, TextInput, TouchableOpacity, ScrollView, Alert,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { X, Search, Check } from 'lucide-react-native'
@@ -19,10 +19,32 @@ interface Props {
     selectedId: string | null
     onSelect: (id: string | null, name: string | null) => void
     onClose: () => void
+    /** Shared account: whose list this is ("Lauren's categories") */
+    ownerName?: string | null
+    /** Adds a category to that owner's list (only passed when they gave you edit access) */
+    onCreate?: (name: string) => Promise<Category>
 }
 
-export function CategoryPicker({ visible, categories, selectedId, onSelect, onClose }: Props) {
+export function CategoryPicker({ visible, categories, selectedId, onSelect, onClose, ownerName, onCreate }: Props) {
     const [search, setSearch] = useState('')
+    const [creating, setCreating] = useState(false)
+
+    const newName = search.trim()
+    const canOfferCreate = !!onCreate && newName.length > 0 && !categories.some(c => c.name.toLowerCase() === newName.toLowerCase())
+    const create = async () => {
+        if (!onCreate || creating) return
+        setCreating(true)
+        try {
+            const cat = await onCreate(newName)
+            onSelect(cat.id, cat.name)
+            setSearch('')
+            onClose()
+        } catch (e: any) {
+            Alert.alert('Could not add the category', e?.response?.data?.error ?? 'Please try again.')
+        } finally {
+            setCreating(false)
+        }
+    }
 
     const filtered = useMemo(() => {
         const q = search.toLowerCase()
@@ -45,7 +67,7 @@ export function CategoryPicker({ visible, categories, selectedId, onSelect, onCl
             <SafeAreaView className="flex-1 bg-brand-bg">
                 {/* Header */}
                 <View className="flex-row items-center px-4 py-3 border-b border-brand-border">
-                    <Text className="flex-1 text-brand-text text-lg font-semibold">Category</Text>
+                    <Text className="flex-1 text-brand-text text-lg font-semibold">{ownerName ? `${ownerName}'s categories` : 'Category'}</Text>
                     <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} hitSlop={8}>
                         <X size={20} color={colors.muted} />
                     </TouchableOpacity>
@@ -67,6 +89,18 @@ export function CategoryPicker({ visible, categories, selectedId, onSelect, onCl
                 </View>
 
                 <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
+                    {canOfferCreate && (
+                        <TouchableOpacity
+                            className="flex-row items-center px-4 py-3.5 border-b border-brand-border"
+                            onPress={create}
+                            disabled={creating}
+                        >
+                            <Text className="flex-1 text-brand-accent text-sm font-medium">
+                                {creating ? 'Adding…' : `Add "${newName}"${ownerName ? ` to ${ownerName}'s categories` : ''}`}
+                            </Text>
+                        </TouchableOpacity>
+                    )}
+
                     {/* Uncategorized option */}
                     {!search && (
                         <TouchableOpacity

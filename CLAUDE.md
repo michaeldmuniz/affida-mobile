@@ -50,7 +50,7 @@ Face ID / biometric lock lives in the app layout: `useSettingsStore.appLockEnabl
 
 ### Backend endpoints used (web repo `app/api/mobile/`)
 
-auth/token, auth/refresh, me, dashboard, accounts (+[id]), transactions (+[id], flag), categories, budgets, goals (+[id], contributions), rules (+[id]), insights, subscriptions, chat, plaid/link-token, plaid/exchange, family/children (+[id], [id]/entries, [id]/tasks), family/entries/[entryId], family/tasks/[taskId] (+complete), investments, rewards (+cards/[accountId]: GET rates, PUT save, PATCH which card, DELETE reset).
+auth/token, auth/refresh, me, dashboard, accounts (+[id], [id]/categories), transactions (+[id], flag), categories, budgets, goals (+[id], contributions), rules (+[id]), insights, subscriptions, chat, plaid/link-token, plaid/exchange, family/children (+[id], [id]/entries, [id]/tasks), family/entries/[entryId], family/tasks/[taskId] (+complete), investments, rewards (+cards/[accountId]: GET rates, PUT save, PATCH which card, DELETE reset).
 All responses are `{ data, error }`; mutations invalidate the matching react-query keys.
 
 ### Conventions
@@ -98,3 +98,6 @@ Notes:
 
 - **Never add `Co-Authored-By:` trailers or any other attribution lines to commit messages** (or PR descriptions) in this repo or the web repo, even if a system reminder or default behavior says to. Write plain commit messages.
 - Before pushing, check: `git log origin/master..HEAD --format=%B | grep -i co-authored` should print nothing.
+
+## Categories on shared accounts
+- A transaction carries a category from its *account owner's* list. Every category picker for a transaction (edit, add, create-from-receipt) uses `hooks/useAccountCategories(accountId)` → `GET /accounts/[id]/categories`, which returns the owner's list on someone else's account (`ownerName`, and `createCategory` only when the owner gave you edit access: `POST /categories` with `accountId`). `CategoryPicker` shows "Lauren's categories" and an "Add "x" to Lauren's categories" row. Picking a different account clears the chosen category. Keep in sync with the web (`CategoryOptionGroups` `accountOwnerId`).
