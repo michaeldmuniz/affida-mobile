@@ -101,3 +101,6 @@ Notes:
 
 ## Categories on shared accounts
 - A transaction carries a category from its *account owner's* list. Every category picker for a transaction (edit, add, create-from-receipt) uses `hooks/useAccountCategories(accountId)` → `GET /accounts/[id]/categories`, which returns the owner's list on someone else's account (`ownerName`, and `createCategory` only when the owner gave you edit access: `POST /categories` with `accountId`). `CategoryPicker` shows "Lauren's categories" and an "Add "x" to Lauren's categories" row. Picking a different account clears the chosen category. Keep in sync with the web (`CategoryOptionGroups` `accountOwnerId`).
+
+## Businesses
+- An account is Personal or belongs to one of the owner's named businesses (any number; shown only once one exists). The account screen's "Belongs to" row opens `BusinessPicker` (Personal / each business / "New business"); it calls `PUT /accounts/[id]` with `{ businessId }` and `POST /businesses`. The Accounts header chip opens `ScopeSheet` (`GET/PUT /scope`), which lists Personal, each business by name and each connected person's shared choices. Keep in sync with the website's Settings → Sharing and account page.

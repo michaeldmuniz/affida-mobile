@@ -44,6 +44,8 @@ export interface Account {
     excludeFromNetWorth: boolean
     /** Personal or Business (your own accounts; sent by newer servers) */
     purpose?: 'PERSONAL' | 'BUSINESS'
+    /** The business it belongs to (null = Personal) */
+    businessId?: string | null
     plaidLinked: boolean
     /** When the bank last synced; null for manual accounts. */
     lastSyncAt: string | null

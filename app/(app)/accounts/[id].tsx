@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { View, Text, ScrollView, RefreshControl, TouchableOpacity, Alert, TextInput, Modal, ActivityIndicator, Switch } from 'react-native'
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity, Alert, TextInput, Modal, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { ChevronLeft, Pencil, Trash2 } from 'lucide-react-native'
+import { ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { Card } from '@/components/ui/Card'
@@ -12,6 +12,7 @@ import { haptics } from '@/lib/haptics'
 import { syncStatusLabel } from '@/lib/sync'
 import { ReconnectBankButton } from '@/components/accounts/ReconnectBankButton'
 import { PendingBadge } from '@/components/transactions/PendingBadge'
+import { BusinessPicker } from '@/components/accounts/BusinessPicker'
 
 interface AccountDetail {
     id: string
@@ -20,7 +21,8 @@ interface AccountDetail {
     institutionName: string
     balance: number
     creditLimit: number | null
-    /** Personal or Business: which header choice shows it and which sharing bucket covers it */
+    /** Personal (null) or the owner's business it belongs to */
+    businessId: string | null
     purpose: 'PERSONAL' | 'BUSINESS'
     plaidLinked: boolean
     lastSyncAt: string | null
@@ -117,10 +119,15 @@ export default function AccountDetailScreen() {
         saveLimit(parsed)
     }
 
-    // Owner only: Personal <-> Business. A Business account leaves the default (Personal) view.
-    const { mutate: setPurpose, isPending: isSettingPurpose } = useMutation({
-        mutationFn: async (purpose: 'PERSONAL' | 'BUSINESS') => {
-            await apiClient.put(`/accounts/${id}`, { purpose })
+    // Owner only: Personal or one of my businesses. A business account leaves the default (Personal) view.
+    const [showBusinessPicker, setShowBusinessPicker] = useState(false)
+    const { data: myBusinesses = [] } = useQuery<{ id: string; name: string }[]>({
+        queryKey: ['businesses'],
+        queryFn: async () => (await apiClient.get('/businesses')).data.data,
+    })
+    const { mutate: setBusiness, isPending: isSettingBusiness } = useMutation({
+        mutationFn: async (businessId: string | null) => {
+            await apiClient.put(`/accounts/${id}`, { businessId })
         },
         onSuccess: () => {
             haptics.light()
@@ -340,24 +347,24 @@ export default function AccountDetailScreen() {
                                 )}
                             </Card>
 
-                            {/* Personal / Business (owner only) */}
+                            {/* Personal or a business (owner only) */}
                             {!account.isShared && (
-                                <Card className="p-5">
-                                    <View className="flex-row items-center">
-                                        <View className="flex-1 pr-4">
-                                            <Text className="text-brand-text text-sm font-medium">Business account</Text>
-                                            <Text className="text-brand-muted text-xs mt-1">
-                                                Shows under Business in the scope picker instead of Personal, and is shared separately.
+                                <TouchableOpacity activeOpacity={0.7} onPress={() => setShowBusinessPicker(true)} disabled={isSettingBusiness}>
+                                    <Card className="p-5">
+                                        <View className="flex-row items-center">
+                                            <View className="flex-1 pr-4">
+                                                <Text className="text-brand-text text-sm font-medium">Belongs to</Text>
+                                                <Text className="text-brand-muted text-xs mt-1">
+                                                    Personal, or one of your businesses. Each is shared separately.
+                                                </Text>
+                                            </View>
+                                            <Text className="text-brand-accent text-sm font-medium">
+                                                {account.businessId ? (myBusinesses.find(b => b.id === account.businessId)?.name ?? 'Business') : 'Personal'}
                                             </Text>
+                                            <ChevronRight size={16} color={colors.muted} />
                                         </View>
-                                        <Switch
-                                            accessibilityLabel="Business account"
-                                            value={account.purpose === 'BUSINESS'}
-                                            disabled={isSettingPurpose}
-                                            onValueChange={(v) => setPurpose(v ? 'BUSINESS' : 'PERSONAL')}
-                                        />
-                                    </View>
-                                </Card>
+                                    </Card>
+                                </TouchableOpacity>
                             )}
 
                             {/* Balance history */}
@@ -462,6 +469,12 @@ export default function AccountDetailScreen() {
                     </View>
                 </View>
             </Modal>
+            <BusinessPicker
+                visible={showBusinessPicker}
+                selectedId={account?.businessId ?? null}
+                onSelect={(businessId) => setBusiness(businessId)}
+                onClose={() => setShowBusinessPicker(false)}
+            />
         </SafeAreaView>
     )
 }
