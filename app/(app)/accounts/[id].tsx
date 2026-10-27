@@ -11,6 +11,7 @@ import { colors } from '@/lib/colors'
 import { haptics } from '@/lib/haptics'
 import { syncStatusLabel } from '@/lib/sync'
 import { ReconnectBankButton } from '@/components/accounts/ReconnectBankButton'
+import { PlaidLinkButton } from '@/components/accounts/PlaidLinkButton'
 import { PendingBadge } from '@/components/transactions/PendingBadge'
 import { BusinessPicker } from '@/components/accounts/BusinessPicker'
 
@@ -165,6 +166,39 @@ export default function AccountDetailScreen() {
         },
         onError: (err: any) => Alert.alert('Error', err?.response?.data?.error ?? 'Failed to disconnect bank.'),
     })
+
+    // Keep the account and its transactions, stop syncing; the server deletes the bank connection
+    // once no account is left on it (wholeBank switches every account at the bank so it goes).
+    const { mutate: makeManual, isPending: isSwitching } = useMutation({
+        mutationFn: async (wholeBank: boolean) => {
+            await apiClient.post(`/accounts/${id}/make-manual`, { wholeBank })
+        },
+        onSuccess: () => {
+            for (const key of ['accounts', 'dashboard', 'transactions', 'account-detail']) {
+                queryClient.invalidateQueries({ queryKey: [key] })
+            }
+        },
+        onError: (err: any) => Alert.alert('Error', err?.response?.data?.error ?? 'Could not switch the account to manual.'),
+    })
+
+    const handleMakeManual = () => {
+        if (!data) return
+        const names = data.account.disconnectAccountNames
+        const others = names.length > 1
+        Alert.alert(
+            'Switch to a manual account?',
+            `${data.account.name} keeps its balance and every transaction but stops syncing with ${data.account.institutionName}. ${
+                others
+                    ? `${data.account.institutionName} also has ${names.length - 1} other account${names.length === 2 ? '' : 's'} (${names.filter(n => n !== data.account.name).join(', ')}) on the same connection. It stays, and keeps costing you, until none of them use it.`
+                    : 'The bank connection will be deleted, since nothing else uses it.'
+            }`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                ...(others ? [{ text: `Switch all ${names.length}`, onPress: () => makeManual(true) }] : []),
+                { text: others ? 'Just this one' : 'Switch', onPress: () => makeManual(false) },
+            ]
+        )
+    }
 
     const handleDelete = () => {
         const itemId = data?.account.disconnectItemId
@@ -329,6 +363,29 @@ export default function AccountDetailScreen() {
                                 )}
 
                                 {account.reconnectItemId && <ReconnectBankButton plaidItemId={account.reconnectItemId} />}
+
+                                {account.plaidLinked && account.disconnectItemId && !account.isShared && (
+                                    <TouchableOpacity
+                                        className="mt-4 self-start"
+                                        onPress={handleMakeManual}
+                                        disabled={isSwitching}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text className="text-brand-muted text-sm underline">
+                                            {isSwitching ? 'Switching…' : 'Switch to a manual account'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                )}
+
+                                {!account.plaidLinked && !account.isShared && account.canEdit && (
+                                    <View className="mt-4">
+                                        <PlaidLinkButton
+                                            label="Connect to your bank"
+                                            claimAccount={{ id: account.id, name: account.name, type: account.type }}
+                                            onSuccess={() => refetch()}
+                                        />
+                                    </View>
+                                )}
                                 {account.needsReconnect && !account.reconnectItemId && (
                                     <Text className="text-brand-muted text-xs mt-1">
                                         {account.ownerName?.split(' ')[0] ?? 'Your partner'} needs to reconnect this bank.

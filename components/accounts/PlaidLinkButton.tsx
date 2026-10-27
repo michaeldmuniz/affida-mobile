@@ -4,13 +4,15 @@ import { create, open, destroy, LinkSuccess, LinkExit } from 'react-native-plaid
 import { useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { SyncOptionsSheet, computeSyncStartDate } from './SyncOptionsSheet'
+import { guessClaimedAccount, type LinkedAccount } from '@/lib/plaid-claim'
 
 type RangeOption = '30d' | '90d' | '180d' | '365d' | 'all'
 
-// The server answers 403 when a trialing user already has the maximum number of
-// banks connected. No upgrade action here — billing is managed on the web.
-const TRIAL_LIMIT_TITLE = 'Bank limit reached'
+// The server answers 403 when a bank can't be connected: a trialing user at the bank limit, or
+// someone on the free plan. Its message says which. No upgrade action here — billing is managed on the web.
+const TRIAL_LIMIT_TITLE = 'Bank connections'
 const TRIAL_LIMIT_MESSAGE = 'Free trials can connect up to 3 banks. You can connect more once your trial ends.'
+const limitText = (err: any): string => err?.response?.data?.error ?? TRIAL_LIMIT_MESSAGE
 
 // iOS can't present a modal/alert while another native screen is still animating
 // out (Plaid Link, the sync sheet, the Add sheet). Overlapping them left the app
@@ -20,9 +22,13 @@ const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
 
 interface Props {
     onSuccess?: () => void
+    /** Turn this manual account into the bank account it matches, instead of adding new ones */
+    claimAccount?: { id: string; name: string; type: string }
+    label?: string
 }
 
-export function PlaidLinkButton({ onSuccess }: Props) {
+export function PlaidLinkButton({ onSuccess, claimAccount, label }: Props) {
+    const [linked, setLinked] = useState<LinkedAccount[]>([])
     const queryClient = useQueryClient()
     const [linkToken, setLinkToken] = useState<string | null>(null)
     const [fetching, setFetching] = useState(false)
@@ -47,7 +53,7 @@ export function PlaidLinkButton({ onSuccess }: Props) {
             const detail = err?.response?.data?.error ?? err?.message ?? 'Unknown error'
             if (status === 403) {
                 // Shown when the button is tapped, not on screen open
-                setLimitMessage(TRIAL_LIMIT_MESSAGE)
+                setLimitMessage(limitText(err))
                 return
             }
             console.error('[Plaid] link-token error', { status, detail })
@@ -73,7 +79,9 @@ export function PlaidLinkButton({ onSuccess }: Props) {
                 await sleep(DISMISS_MS)
                 setInstitutionName(success.metadata.institution?.name ?? 'your bank')
                 setPendingToken(success.publicToken)
-                setSyncRange('180d')
+                setLinked(success.metadata.accounts.map((a: any) => ({ id: a.id, name: a.name, mask: a.mask, type: a.type, subtype: a.subtype })))
+                // A converted account's history is a file: match it against everything the bank has
+                setSyncRange(claimAccount ? 'all' : '180d')
                 refreshToken()
             },
             onExit: async (_exit: LinkExit) => {
@@ -87,10 +95,27 @@ export function PlaidLinkButton({ onSuccess }: Props) {
         if (!pendingToken) return
         setExchanging(true)
         try {
+            // Converting a manual account: confirm which bank account it becomes
+            let claim: { plaidAccountId: string; accountId: string } | undefined
+            const guess = claimAccount ? guessClaimedAccount(claimAccount, linked) : null
+            if (claimAccount && guess) {
+                const useIt = await new Promise<boolean>(resolve => Alert.alert(
+                    `Is ${guess.name}${guess.mask ? ` ••${guess.mask}` : ''} your "${claimAccount.name}"?`,
+                    'It keeps its name and every transaction you have; the bank\'s transactions are matched to yours, so nothing is counted twice.',
+                    [
+                        { text: 'No, add as new', style: 'cancel', onPress: () => resolve(false) },
+                        { text: 'Yes', onPress: () => resolve(true) },
+                    ],
+                    { onDismiss: () => resolve(false) },
+                ))
+                if (useIt) claim = { plaidAccountId: guess.id, accountId: claimAccount.id }
+            }
             await apiClient.post('/plaid/exchange', {
                 public_token: pendingToken,
                 syncStartDate: computeSyncStartDate(syncRange),
+                ...(claim ? { claim } : {}),
             })
+            queryClient.invalidateQueries({ queryKey: ['account-detail'] })
             queryClient.invalidateQueries({ queryKey: ['accounts'] })
             queryClient.invalidateQueries({ queryKey: ['dashboard'] })
             queryClient.invalidateQueries({ queryKey: ['transactions'] })
@@ -104,7 +129,7 @@ export function PlaidLinkButton({ onSuccess }: Props) {
             if (err?.response?.status === 403) {
                 setPendingToken(null)
                 await sleep(DISMISS_MS)
-                Alert.alert(TRIAL_LIMIT_TITLE, TRIAL_LIMIT_MESSAGE)
+                Alert.alert(TRIAL_LIMIT_TITLE, limitText(err))
                 return
             }
             Alert.alert('Error', 'Failed to connect bank account. Please try again.')
@@ -127,7 +152,7 @@ export function PlaidLinkButton({ onSuccess }: Props) {
             >
                 {fetching
                     ? <ActivityIndicator color="#fff" />
-                    : <Text className="text-white font-semibold text-base">Connect Bank Account</Text>
+                    : <Text className="text-white font-semibold text-base">{label ?? 'Connect Bank Account'}</Text>
                 }
             </TouchableOpacity>
             <SyncOptionsSheet
