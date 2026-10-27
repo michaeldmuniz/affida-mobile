@@ -188,6 +188,20 @@ export default function InsightsScreen() {
                                     points={data.netWorthHistory.map((p) => p.netWorth)}
                                     labels={data.netWorthHistory.map((p) => p.month.split(' ')[0])}
                                 />
+                                {data.netWorthForecast?.ok && (() => {
+                                    const f = data.netWorthForecast
+                                    const yearAhead = f.points[11] ?? f.points[f.points.length - 1]
+                                    return (
+                                        <View className="mt-4 rounded-xl bg-brand-elevated p-3">
+                                            <Text className="text-brand-muted text-xs">In a year ({yearAhead.month})</Text>
+                                            <Text className="text-brand-text text-lg font-bold font-mono">{compactUsd(yearAhead.netWorth)}</Text>
+                                            <Text className="text-brand-muted text-xs">Likely between {compactUsd(yearAhead.low)} and {compactUsd(yearAhead.high)}</Text>
+                                            <Text className="text-brand-muted text-xs mt-1">
+                                                About {f.monthlyChange >= 0 ? '+' : '-'}{compactUsd(Math.abs(f.monthlyChange))} a month, from your last {f.basedOnMonths} months. An estimate, not a promise.
+                                            </Text>
+                                        </View>
+                                    )
+                                })()}
                             </>
                         ) : isLoading ? (
                             <ChartSkeleton />

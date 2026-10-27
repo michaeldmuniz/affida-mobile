@@ -255,8 +255,21 @@ export interface Insights {
     categoryBreakdown: CategoryBreakdownItem[]
     trend: TrendPoint[]
     netWorthHistory: NetWorthPoint[]
+    /** Where net worth is heading (current month only; null for past months) */
+    netWorthForecast?: NetWorthForecast | null
     topMerchants: MerchantSpend[]
 }
+
+export interface NetWorthForecastPoint {
+    month: string
+    netWorth: number
+    low: number
+    high: number
+}
+
+export type NetWorthForecast =
+    | { ok: true; basedOnMonths: number; monthlyChange: number; confidence: 'low' | 'medium' | 'high'; points: NetWorthForecastPoint[] }
+    | { ok: false; reason: 'not-enough-history'; have: number; needed: number }
 
 export interface SubscriptionItem {
     merchantName: string

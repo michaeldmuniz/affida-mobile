@@ -72,6 +72,10 @@ Never call a paid external API (OpenAI via chat, Plaid) in a loop; the backend a
 ## Keep the website's phone layout in sync
 The website (`my-awesome-app`) imitates this app when opened in a phone's browser: the bottom tabs (Home, Transactions, Accounts, Budgets, Goals, plus More), the Home screen's cards and section order and chips, day-grouped Transactions with swipe-to-flag, card styling. **When you change any of those here (a tab, a Home section or its order, a label, a list layout, an interaction), make the same change in the web repo** (`components/dashboard/MobileNav.tsx`, `components/phone/PhoneHome.tsx` and `lib/queries/phone-home.ts`, the phone list in `app/(dashboard)/transactions/client.tsx`) so the two stay alike. Its CLAUDE.md says the same. The web phone layout is only ever shown to phones, never to computers.
 
+## Receipts and the net worth forecast
+- Receipt reading happens on the server and is the same for the camera scan, the photo library and the website (`processReceiptUpload` + `prepareReceiptImage` in the web repo). The app just sends the image (the document scanner's already-cropped page, or the library photo with its crop outline); don't add image processing here that the website's upload doesn't also get, and don't re-encode to a lossy format on the phone.
+- Insights' Net Worth card shows the forecast the server returns as `netWorthForecast` (current month only). The calculation lives in the web repo (`lib/net-worth-forecast.ts`); change it there, never recompute it in the app.
+
 ## Testing on the iPhone without an EAS build (local Release build)
 
 **This is the default way to test any change on Mike's phone — after a commit, build and install this way without being asked.** Only do an EAS build (`eas build` + `eas submit`) once a change is finalized/verified working locally, or there's a concrete reason to push a TestFlight build to an external tester. Don't spend an EAS build on something still being iterated on — a bug caught locally first is free to fix, a bug caught after an EAS/TestFlight submission isn't.
