@@ -169,7 +169,8 @@ export function FilterSheet({ visible, filters, onApply, onClose }: Props) {
                                     {(['all', 'income', 'expense'] as const).map(t => (
                                         <Chip
                                             key={t}
-                                            label={t === 'all' ? 'All' : t === 'income' ? 'Income' : 'Expense'}
+                                            label={t === 'all' ? 'All' : t === 'income' ? '+' : '\u2212'}
+                                            accessibilityLabel={t === 'all' ? 'All' : t === 'income' ? 'Income' : 'Expense'}
                                             active={local.type === t}
                                             onPress={() => set('type', t)}
                                         />
@@ -332,12 +333,15 @@ function Section({ label, children }: { label: string; children: React.ReactNode
     )
 }
 
-function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+function Chip({ label, active, onPress, accessibilityLabel }: { label: string; active: boolean; onPress: () => void; accessibilityLabel?: string }) {
     return (
         <TouchableOpacity
             className={`px-4 h-9 rounded-xl border items-center justify-center ${active ? 'bg-brand-accent border-brand-accent' : 'bg-brand-surface border-brand-border'}`}
             onPress={onPress}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={accessibilityLabel}
+            accessibilityState={{ selected: active }}
         >
             <Text className={`text-sm font-medium ${active ? 'text-white' : 'text-brand-muted'}`}>{label}</Text>
         </TouchableOpacity>

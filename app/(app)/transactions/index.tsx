@@ -189,7 +189,7 @@ export default function TransactionsScreen() {
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3 -mx-1">
                         <View className="flex-row gap-x-2 px-1">
                             {filters.type !== 'all' && (
-                                <FilterPill label={filters.type === 'income' ? 'Income' : 'Expense'} onRemove={() => setFilters(f => ({ ...f, type: 'all' }))} />
+                                <FilterPill label={filters.type === 'income' ? '+ Income' : '\u2212 Expense'} onRemove={() => setFilters(f => ({ ...f, type: 'all' }))} />
                             )}
                             {filters.month && (
                                 <FilterPill
