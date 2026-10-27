@@ -135,6 +135,8 @@ export interface ReceiptLineItem {
     amount: number
     categoryId: string | null
     categoryName: string | null
+    /** Linked to someone else's account whose categories have no match: the name it had (shown uncategorized) */
+    notInOwnersList?: string | null
 }
 
 export interface Receipt {
@@ -151,7 +153,12 @@ export interface Receipt {
     canEdit?: boolean
     splitApplied: boolean
     matchedTransactionId: string | null
-    matchedTransaction: Pick<Transaction, 'id' | 'description' | 'merchantName' | 'amount' | 'date'> | null
+    matchedTransaction: (Pick<Transaction, 'id' | 'description' | 'merchantName' | 'amount' | 'date'> & {
+        accountId?: string | null
+        accountOwnerId?: string | null
+        /** First name of the account's owner when it isn't your own account */
+        accountOwnerName?: string | null
+    }) | null
     createdAt: string
 }
 

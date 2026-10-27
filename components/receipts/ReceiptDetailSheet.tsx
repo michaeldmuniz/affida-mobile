@@ -18,9 +18,9 @@ interface Props {
 
 export function ReceiptDetailSheet({ receipt, onClose }: Props) {
     const queryClient = useQueryClient()
-    type EditItem = { description: string; amountText: string; categoryId: string | null; categoryName: string | null }
+    type EditItem = { description: string; amountText: string; categoryId: string | null; categoryName: string | null; notInOwnersList?: string | null }
     const toEdit = (r: Receipt): EditItem[] =>
-        r.lineItems.map((i) => ({ description: i.description, amountText: String(i.amount), categoryId: i.categoryId, categoryName: i.categoryName }))
+        r.lineItems.map((i) => ({ description: i.description, amountText: String(i.amount), categoryId: i.categoryId, categoryName: i.categoryName, notInOwnersList: i.notInOwnersList ?? null }))
 
     // `base` is what the server last confirmed; the fields below are the edits on top of it
     const [base, setBase] = useState<Receipt | null>(receipt)
@@ -47,6 +47,20 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
         staleTime: 5 * 60 * 1000,
         enabled: !!receipt,
     })
+
+    // Linked to someone else's account: a transaction there carries a category from its owner's list, so offer exactly that list
+    const ownerName = receipt?.matchedTransaction?.accountOwnerName ?? null
+    const ownerAccountId = ownerName ? receipt?.matchedTransaction?.accountId ?? null : null
+    const { data: ownerList } = useQuery<{ ownerName: string | null; categories: (Category & { isSystem?: boolean })[] }>({
+        queryKey: ['account-categories', ownerAccountId],
+        queryFn: async () => (await apiClient.get(`/accounts/${ownerAccountId}/categories`)).data.data,
+        staleTime: 5 * 60 * 1000,
+        enabled: !!ownerAccountId && receipt?.canEdit !== false,
+    })
+    const pickerCategories: Category[] = ownerList
+        ? ownerList.categories.map((c) => ({ id: c.id, name: c.name, group: c.group, isDefault: !!c.isSystem }))
+        : categories
+    const unmatchedCount = items.filter((i) => i.notInOwnersList).length
 
     const parsedItems = items.map((i) => ({ description: i.description, amount: Number(i.amountText), categoryId: i.categoryId }))
     const itemsValid = items.every((i) => i.description.trim() !== '' && i.amountText.trim() !== '' && Number.isFinite(Number(i.amountText)))
@@ -153,7 +167,7 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
     if (!receipt) return null
 
     const handleCategorySelect = (index: number, categoryId: string | null, categoryName: string | null) => {
-        setItems((prev) => prev.map((item, i) => (i === index ? { ...item, categoryId, categoryName } : item)))
+        setItems((prev) => prev.map((item, i) => (i === index ? { ...item, categoryId, categoryName, notInOwnersList: null } : item)))
         setPickingIndex(null)
     }
 
@@ -266,6 +280,19 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
                                     )}
                                 </View>
 
+                                {ownerName && currentItems.length > 0 && (
+                                    <Text className="px-4 pt-3 text-brand-muted text-xs">
+                                        This is on {ownerName}'s account, so the items use {ownerName}'s categories.
+                                    </Text>
+                                )}
+                                {unmatchedCount > 0 && (
+                                    <View className="mx-4 mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+                                        <Text className="text-amber-400 text-xs">
+                                            {unmatchedCount === 1 ? '1 item has' : `${unmatchedCount} items have`} no matching category on {ownerName ? `${ownerName}'s` : 'that'} account and will be uncategorized. You can pick one below, or leave {unmatchedCount === 1 ? 'it' : 'them'} as is.
+                                        </Text>
+                                    </View>
+                                )}
+
                                 {/* Line items: name, amount and category can all be corrected */}
                                 {currentItems.length > 0 ? (
                                     currentItems.map((item, i) => (
@@ -310,6 +337,11 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
                                                             />
                                                         </View>
                                                     </View>
+                                                    {item.notInOwnersList && (
+                                                        <Text className="text-amber-400 text-xs">
+                                                            “{item.notInOwnersList}” isn't one of {ownerName ? `${ownerName}'s` : "the account owner's"} categories, so this item is uncategorized unless you pick one.
+                                                        </Text>
+                                                    )}
                                                 </>
                                             ) : (
                                                 <View className="flex-row items-center">
@@ -435,7 +467,8 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
 
                     <CategoryPicker
                         visible={pickingIndex !== null}
-                        categories={categories}
+                        categories={pickerCategories}
+                        ownerName={ownerList?.ownerName ?? null}
                         selectedId={pickingIndex !== null ? (currentItems[pickingIndex]?.categoryId ?? null) : null}
                         onSelect={(id, name) => {
                             if (pickingIndex !== null) handleCategorySelect(pickingIndex, id, name)
