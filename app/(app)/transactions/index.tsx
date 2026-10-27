@@ -40,6 +40,8 @@ export default function TransactionsScreen() {
                 ...DEFAULT_FILTERS,
                 categoryId: params.categoryId,
                 categoryName: params.categoryName,
+                // Insights and budgets add same-named categories together, so open the list that figure counted
+                categoryByName: true,
                 dateRange: (['thisMonth', 'lastMonth'].includes(params.dateRange ?? '')
                     ? params.dateRange
                     : 'all') as TransactionFilters['dateRange'],

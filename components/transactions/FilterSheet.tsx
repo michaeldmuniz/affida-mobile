@@ -17,6 +17,8 @@ export interface TransactionFilters {
     accountName: string | null
     categoryId: string | null
     categoryName: string | null
+    /** Filter by the category's name across everyone in view (set by a drill-down from a figure that adds same-named categories together, e.g. yours and your partner's Groceries) */
+    categoryByName?: boolean
     flagged: boolean
     sort: 'date' | 'amount'
     order: 'asc' | 'desc'
@@ -49,7 +51,10 @@ export function filtersToParams(f: TransactionFilters): Record<string, string> {
     const p: Record<string, string> = {}
     if (f.type !== 'all') p.type = f.type
     if (f.accountId) p.accountId = f.accountId
-    if (f.categoryId) p.categoryId = f.categoryId
+    if (f.categoryId) {
+        if (f.categoryByName && f.categoryName) p.categoryName = f.categoryName
+        else p.categoryId = f.categoryId
+    }
     if (f.flagged) p.flagged = 'true'
     p.sort = f.sort
     p.order = f.order
@@ -277,7 +282,7 @@ export function FilterSheet({ visible, filters, onApply, onClose }: Props) {
                     visible={showCategoryPicker}
                     categories={categories}
                     selectedId={local.categoryId}
-                    onSelect={(id, name) => { set('categoryId', id); set('categoryName', name) }}
+                    onSelect={(id, name) => { set('categoryId', id); set('categoryName', name); set('categoryByName', false) }}
                     onClose={() => setShowCategoryPicker(false)}
                 />
 
