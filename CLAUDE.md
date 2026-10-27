@@ -50,7 +50,7 @@ Face ID / biometric lock lives in the app layout: `useSettingsStore.appLockEnabl
 
 ### Backend endpoints used (web repo `app/api/mobile/`)
 
-auth/token, auth/refresh, me, dashboard, accounts (+[id], [id]/categories), transactions (+[id], flag), categories, budgets, goals (+[id], contributions), rules (+[id]), insights, subscriptions, chat, plaid/link-token, plaid/exchange, family/children (+[id], [id]/entries, [id]/tasks), family/entries/[entryId], family/tasks/[taskId] (+complete), investments, rewards (+cards/[accountId]: GET rates, PUT save, PATCH which card, DELETE reset).
+auth/token, auth/refresh, me, dashboard, accounts (+[id], [id]/categories), transactions (+[id], flag), categories, budgets, goals (+[id], contributions), rules (+[id]), insights, subscriptions, chat, plaid/link-token, plaid/exchange (optional `claim: { plaidAccountId, accountId }` turns a manual account into the bank account), accounts/[id]/make-manual (POST `{ wholeBank? }`: bank → manual, the server deletes the bank connection once no account uses it), family/children (+[id], [id]/entries, [id]/tasks), family/entries/[entryId], family/tasks/[taskId] (+complete), investments, rewards (+cards/[accountId]: GET rates, PUT save, PATCH which card, DELETE reset).
 All responses are `{ data, error }`; mutations invalidate the matching react-query keys.
 
 ### Conventions
