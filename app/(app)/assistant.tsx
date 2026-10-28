@@ -16,6 +16,7 @@ import { streamChat } from '@/lib/chat-api'
 import { haptics } from '@/lib/haptics'
 import type { ChatMessage } from '@/lib/types'
 import { colors } from '@/lib/colors'
+import { useAiUsage, aiLeftText } from '@/hooks/useAiUsage'
 
 const SUGGESTIONS = [
     'How much did I spend on dining this month?',
@@ -29,6 +30,8 @@ export default function AssistantScreen() {
     const [messages, setMessages] = useState<ChatMessage[]>([])
     const [input, setInput] = useState('')
     const [isStreaming, setIsStreaming] = useState(false)
+    const { usage, refresh: refreshUsage } = useAiUsage()
+    const left = aiLeftText(usage, 'chat', 'messages')
     const scrollRef = useRef<ScrollView>(null)
     const scrollPending = useRef(false)
 
@@ -83,10 +86,11 @@ export default function AssistantScreen() {
                 )
             } finally {
                 setIsStreaming(false)
+                refreshUsage()
                 scrollToEnd()
             }
         },
-        [messages, isStreaming, scrollToEnd]
+        [messages, isStreaming, scrollToEnd, refreshUsage]
     )
 
     return (
@@ -153,6 +157,10 @@ export default function AssistantScreen() {
                         </View>
                     )}
                 </ScrollView>
+
+                {left && (
+                    <Text className={`text-xs text-center pt-2 ${left.low ? 'text-amber-400' : 'text-brand-muted'}`}>{left.text}</Text>
+                )}
 
                 {/* Input bar */}
                 <View className="flex-row items-end gap-x-2 px-4 py-3 border-t border-brand-border bg-brand-bg">

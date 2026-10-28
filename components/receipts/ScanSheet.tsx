@@ -11,6 +11,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { haptics } from '@/lib/haptics'
 import { colors } from '@/lib/colors'
+import { useAiUsage, aiLeftText } from '@/hooks/useAiUsage'
 import { ReceiptDetailSheet } from '@/components/receipts/ReceiptDetailSheet'
 import { CropStep, type CropQuad } from '@/components/receipts/CropStep'
 import type { Receipt } from '@/lib/types'
@@ -25,6 +26,8 @@ interface Props {
 
 export function ScanSheet({ visible, onClose, onViewPending }: Props) {
     const queryClient = useQueryClient()
+    const { usage, refresh: refreshUsage } = useAiUsage(visible)
+    const left = aiLeftText(usage, 'receipt', 'scans')
     const [step, setStep] = useState<ScanStep>('pick')
     const [imageUri, setImageUri] = useState<string | null>(null)
     const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null)
@@ -134,6 +137,7 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
             setFinishing(true)
             setTimeout(() => setResult(data), 500)
             queryClient.invalidateQueries({ queryKey: ['receipts'] })
+            refreshUsage()
             if (data.status === 'matched') {
                 queryClient.invalidateQueries({ queryKey: ['transactions'] })
                 haptics.success()
@@ -182,6 +186,9 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
                                 <Text className="text-brand-muted text-sm text-center leading-relaxed">
                                     Take a photo or choose one from your library. We'll auto-crop and straighten it, match it to a transaction, and split the categories automatically.
                                 </Text>
+                                {left && (
+                                    <Text className={`text-xs text-center ${left.low ? 'text-amber-400' : 'text-brand-muted'}`}>{left.text}</Text>
+                                )}
                                 {error && (
                                     <Text className="text-red-400 text-sm text-center">{error}</Text>
                                 )}
