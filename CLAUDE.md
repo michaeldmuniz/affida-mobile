@@ -102,6 +102,7 @@ Notes:
 
 - **Never add `Co-Authored-By:` trailers or any other attribution lines to commit messages** (or PR descriptions) in this repo or the web repo, even if a system reminder or default behavior says to. Write plain commit messages.
 - Before pushing, check: `git log origin/master..HEAD --format=%B | grep -i co-authored` should print nothing.
+- **Commit after every task, but do NOT push to `master` or start a production build/submit unless the owner says to ship it.** Work on a branch and merge on their OK. The web repo's CLAUDE.md "Release workflow" is the source of truth: dev and production use different servers, and the app picks its server from `EXPO_PUBLIC_API_URL`. Once the dev server exists, `development` and `preview` builds in `eas.json` should set it to the dev URL and only `production` to `https://affida.money`; a test build must never be pointed at production data by accident.
 
 ## Categories on shared accounts
 - A transaction carries a category from its *account owner's* list. Every category picker for a transaction (edit, add, create-from-receipt) uses `hooks/useAccountCategories(accountId)` → `GET /accounts/[id]/categories`, which returns the owner's list on someone else's account (`ownerName`, and `createCategory` only when the owner gave you edit access: `POST /categories` with `accountId`). `CategoryPicker` shows "Lauren's categories" and an "Add "x" to Lauren's categories" row. Picking a different account clears the chosen category. Keep in sync with the web (`CategoryOptionGroups` `accountOwnerId`).
