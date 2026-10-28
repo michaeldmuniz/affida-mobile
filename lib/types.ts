@@ -186,6 +186,8 @@ export interface Budget {
     goalRewardAmount?: number
     /** Refunds that boost the budget (included in remaining). */
     refundAmount?: number
+    /** Refund dollars that already cancelled spending (taken off `spent`). */
+    refundsNetted?: number
     method: string
     isHousehold: boolean
     partnerOnly: boolean
