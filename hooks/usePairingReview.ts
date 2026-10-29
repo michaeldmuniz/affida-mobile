@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 
-export interface ReviewRow { id: string; day: string; description: string; amount: number; categoryName: string | null }
+export interface ReviewRow { id: string; day: string; description: string; amount: number; categoryName: string | null; parts?: { description: string; amount: number }[] }
 export interface ReviewItem {
     bankId: string
     kind: 'SINGLE' | 'SPLIT'
@@ -15,7 +15,7 @@ export interface ReviewItem {
     willDo: string
     cannotMerge?: string
 }
-export interface LogEntry { id: string; kind: string; summary: string; createdAt: string; seen: boolean }
+export interface LogEntry { id: string; kind: string; summary: string; createdAt: string; seen: boolean; undoable: boolean; undone: boolean }
 export interface PairingReview { items: ReviewItem[]; more: number; log: LogEntry[]; unseen: number }
 
 /**
@@ -42,6 +42,10 @@ export function usePairingReview(enabled = true) {
         mutationFn: async (item: ReviewItem) => (await apiClient.post('/pairing-review', { action: 'merge', bankId: item.bankId, rowIds: item.rows.map((r) => r.id) })).data.data as { summary: string },
         onSettled: refresh,
     })
+    const undo = useMutation({
+        mutationFn: async (logId: string) => (await apiClient.post('/pairing-review', { action: 'undo', logId })).data.data as { summary: string },
+        onSettled: refresh,
+    })
     const separate = useMutation({
         mutationFn: async (bankId: string) => (await apiClient.post('/pairing-review', { action: 'dismiss', bankId })).data.data,
         onSettled: refresh,
@@ -50,5 +54,5 @@ export function usePairingReview(enabled = true) {
         mutationFn: async () => (await apiClient.post('/pairing-review', { action: 'seen' })).data.data,
         onSettled: () => queryClient.invalidateQueries({ queryKey: ['pairing-review'] }),
     })
-    return { review: data ?? null, merge, separate, markSeen }
+    return { review: data ?? null, merge, undo, separate, markSeen }
 }

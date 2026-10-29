@@ -16,16 +16,21 @@ const serverError = (e: unknown) => ((e as { response?: { data?: { error?: strin
  * nothing new to read. Mirrors the website's banner (components/accounts/PairingReviewBanner).
  */
 export function PairingReviewBanner() {
-    const { review, merge, separate, markSeen } = usePairingReview()
+    const { review, merge, undo, separate, markSeen } = usePairingReview()
     const [open, setOpen] = useState(false)
     const [confirming, setConfirming] = useState<string | null>(null)
+    const [confirmingUndo, setConfirmingUndo] = useState<string | null>(null)
     if (!review || (review.items.length === 0 && review.unseen === 0)) return null
 
     const n = review.items.length
-    const busy = merge.isPending || separate.isPending
-    const close = () => { setOpen(false); setConfirming(null); if (review.unseen > 0) markSeen.mutate() }
+    const busy = merge.isPending || separate.isPending || undo.isPending
+    const close = () => { setOpen(false); setConfirming(null); setConfirmingUndo(null); if (review.unseen > 0) markSeen.mutate() }
     const doMerge = (item: ReviewItem) => merge.mutate(item, {
         onSuccess: (r) => { setConfirming(null); Alert.alert('Merged', r.summary) },
+        onError: (e) => Alert.alert('Nothing was changed', serverError(e)),
+    })
+    const doUndo = (logId: string) => undo.mutate(logId, {
+        onSuccess: () => { setConfirmingUndo(null); Alert.alert('Undone', 'The bank’s charge is back as its own entry and your entries are as they were.') },
         onError: (e) => Alert.alert('Nothing was changed', serverError(e)),
     })
     const doSeparate = (item: ReviewItem) => separate.mutate(item.bankId, {
@@ -76,6 +81,9 @@ export function PairingReviewBanner() {
                                         <Text className="text-brand-text text-sm">{money(r.amount)}</Text>
                                     </View>
                                 ))}
+                                {item.rows.map((r) => r.parts ? (
+                                    <Text key={`${r.id}-parts`} className="text-brand-muted text-xs mt-0.5 pl-3">split into {r.parts.length} parts: {r.parts.map((p) => `${p.description} ${money(p.amount)}`).join(' · ')}</Text>
+                                ) : null)}
                                 <Text className="text-brand-text text-sm mt-2"><Text className="font-semibold">Why we think so: </Text>{item.reason}</Text>
                                 {item.canMerge
                                     ? <Text className="text-brand-muted text-sm mt-1"><Text className="font-semibold">If you merge: </Text>{item.willDo}</Text>
@@ -109,8 +117,26 @@ export function PairingReviewBanner() {
                                 <Text className="text-brand-text text-sm font-semibold mb-2">What was done for you</Text>
                                 {review.log.map((l) => (
                                     <View key={l.id} className="rounded-lg bg-brand-surface px-3 py-2 mb-2">
-                                        <Text className="text-brand-muted text-xs">{new Date(l.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}{l.seen ? '' : ' · new'}</Text>
+                                        <Text className="text-brand-muted text-xs">{new Date(l.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}{l.seen ? '' : ' · new'}{l.undone ? ' · undone' : ''}</Text>
                                         <Text className="text-brand-text text-sm">{l.summary}</Text>
+                                        {l.undoable && confirmingUndo !== l.id && (
+                                            <TouchableOpacity onPress={() => setConfirmingUndo(l.id)} disabled={busy} className="rounded-lg border border-brand-border px-3 py-2 mt-2 self-start" accessibilityRole="button">
+                                                <Text className="text-brand-text text-sm font-semibold">Undo this merge</Text>
+                                            </TouchableOpacity>
+                                        )}
+                                        {l.undoable && confirmingUndo === l.id && (
+                                            <View className="mt-2">
+                                                <Text className="text-brand-muted text-xs">The bank’s charge comes back as its own entry and your entries go back to how they were. Anything you edited since stays as you edited it.</Text>
+                                                <View className="flex-row gap-2 mt-2">
+                                                    <TouchableOpacity onPress={() => doUndo(l.id)} disabled={busy} className="rounded-lg bg-brand-accent px-3 py-2" accessibilityRole="button">
+                                                        {undo.isPending ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-sm font-semibold">Yes, undo</Text>}
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity onPress={() => setConfirmingUndo(null)} disabled={busy} className="rounded-lg px-3 py-2" accessibilityRole="button">
+                                                        <Text className="text-brand-muted text-sm font-semibold">Cancel</Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </View>
+                                        )}
                                     </View>
                                 ))}
                             </View>
