@@ -277,7 +277,7 @@ export default function AccountDetailScreen() {
                                 </Text>
                                 <AmountText amount={account.balance} size="xl" neutral className="text-brand-text mt-2" />
                                 <Text className={`text-xs mt-2 ${account.needsReconnect ? 'text-brand-negative' : 'text-brand-muted'}`}>
-                                    {account.plaidLinked ? syncStatusLabel(account) : `Manual account · updated ${formatDate(account.updatedAt)}`}
+                                    {account.plaidLinked ? syncStatusLabel(account) : account.needsReconnect ? 'Disconnected · works like a manual account until you reconnect' : `Manual account · updated ${formatDate(account.updatedAt)}`}
                                 </Text>
                                 {account.isShared && (
                                     <Text className="text-brand-muted text-xs mt-1">

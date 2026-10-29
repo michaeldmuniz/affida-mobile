@@ -113,3 +113,6 @@ Notes:
 
 ## Lite bank limit (choose which banks to keep)
 - Someone on Lite with more banks than Lite includes (moved down from Pro) sees `components/accounts/BankLimitBanner.tsx` at the top of Accounts (`hooks/useBankLimit.ts`: `GET /bank-limit`, `POST /bank-limit { keepIds }`). Choosing detaches the others (accounts and history stay). The server decides everything and returns nothing unless `BANK_LIMIT_ENFORCEMENT=1` is set on the server; no billing in the app, so "upgrade to Pro" points to the website. Keep in sync with the website's `components/billing/BankLimitBanner.tsx`. Type-checked only: not run on a device.
+
+## Disconnected banks act as manual accounts
+- `plaidLinked` (from the server) is false for an account whose bank connection was detached (plan ended, downgraded, trimmed) as well as for plain manual accounts, so Add Transaction, receipt linking and account delete treat it as manual; `needsReconnect` / `reconnectItemId` still offer Reconnect. A reconnect always brings a new Plaid token; a detached bank counts toward the Lite / trial bank cap when reconnected. Nothing to do in the app: the rule lives on the server (`lib/account-sync.ts` in the web repo). Type-checked only: not run on a device.
