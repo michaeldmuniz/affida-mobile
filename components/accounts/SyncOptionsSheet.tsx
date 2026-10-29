@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react'
 import { Modal, View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Check, UploadCloud } from 'lucide-react-native'
 import { colors } from '@/lib/colors'
+import { apiClient } from '@/lib/api-client'
 
 type RangeOption = '30d' | '90d' | '180d' | '365d' | 'all'
 
@@ -34,9 +36,25 @@ interface Props {
     onConfirm: () => void
     onCancel: () => void
     isLoading: boolean
+    /** Converting a manual account: the one whose typed entries the bank's charges will be matched against */
+    convertAccount?: { id: string; name: string }
 }
 
-export function SyncOptionsSheet({ visible, institutionName, selected, onSelect, onConfirm, onCancel, isLoading }: Props) {
+interface ManualPreview { total: number; inRange: number }
+
+export function SyncOptionsSheet({ visible, institutionName, selected, onSelect, onConfirm, onCancel, isLoading, convertAccount }: Props) {
+    // How many entries the person typed on the account being converted fall in the chosen period
+    const [preview, setPreview] = useState<ManualPreview | null>(null)
+    const since = computeSyncStartDate(selected)
+    useEffect(() => {
+        if (!visible || !convertAccount) { setPreview(null); return }
+        let stale = false
+        apiClient.get(`/accounts/${convertAccount.id}/manual-preview`, { params: since ? { since } : {} })
+            .then((r) => { if (!stale) setPreview(r.data.data as ManualPreview) })
+            .catch(() => { if (!stale) setPreview(null) }) // an explanation is never worth an error
+        return () => { stale = true }
+    }, [visible, convertAccount?.id, since])
+
     return (
         <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onCancel}>
             <SafeAreaView className="flex-1 bg-brand-bg" edges={['top', 'bottom']}>
@@ -68,6 +86,30 @@ export function SyncOptionsSheet({ visible, institutionName, selected, onSelect,
                                 </TouchableOpacity>
                             )
                         })}
+                        {convertAccount && preview && preview.total > 0 && (
+                            <View className="rounded-2xl border border-sky-400/50 bg-sky-400/10 p-4 mt-2 gap-y-1.5">
+                                {preview.inRange > 0 ? (
+                                    <Text className="text-brand-text text-sm">
+                                        You entered {preview.inRange} transaction{preview.inRange === 1 ? '' : 's'} yourself in this period. If this is your “{convertAccount.name}”, the bank’s charges are matched to them like this:
+                                    </Text>
+                                ) : (
+                                    <Text className="text-brand-text text-sm">
+                                        None of the {preview.total} transaction{preview.total === 1 ? '' : 's'} you entered fall in this period, so nothing will be matched; they stay exactly as they are.
+                                    </Text>
+                                )}
+                                {preview.inRange > 0 && (
+                                    <>
+                                        <Text className="text-brand-muted text-xs">• Same amount, a similar description and a date within 3 days: matched to your entry, so it is not added twice.</Text>
+                                        <Text className="text-brand-muted text-xs">• A purchase you entered in several parts that adds up exactly to one bank charge: combined into one split.</Text>
+                                        <Text className="text-brand-muted text-xs">• Anything else is added as the bank’s own charge. If it was already in your list, the purchase shows twice until you review it. We list the likely ones under “Possible duplicates” on the Accounts screen and you decide.</Text>
+                                    </>
+                                )}
+                                <Text className="text-brand-muted text-xs">Nothing you entered is deleted, and everything we match or combine is written down for you to read afterwards.</Text>
+                                {selected !== 'all' && preview.total > preview.inRange && (
+                                    <Text className="text-brand-muted text-xs">Your {preview.total - preview.inRange} older entr{preview.total - preview.inRange === 1 ? 'y is' : 'ies are'} outside this period and stay as they are.</Text>
+                                )}
+                            </View>
+                        )}
                     </View>
                 </ScrollView>
 

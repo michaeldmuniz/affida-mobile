@@ -163,6 +163,7 @@ export function PlaidLinkButton({ onSuccess, claimAccount, label }: Props) {
                 onConfirm={handleConfirm}
                 onCancel={handleCancel}
                 isLoading={exchanging}
+                convertAccount={claimAccount ? { id: claimAccount.id, name: claimAccount.name } : undefined}
             />
         </>
     )
