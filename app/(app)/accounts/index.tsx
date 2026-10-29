@@ -10,6 +10,7 @@ import { AmountText } from '@/components/ui/AmountText'
 import { AddAccountSheet } from '@/components/accounts/AddSheet'
 import { ScopeSheet, useScope, scopeSummary } from '@/components/accounts/ScopeSheet'
 import { BankLimitBanner } from '@/components/accounts/BankLimitBanner'
+import { PairingReviewBanner } from '@/components/accounts/PairingReviewBanner'
 import { getPaymentUrl } from '@/lib/payment-links'
 import { DEBT_TYPES, computeNetWorth } from '@/lib/account-types'
 import { formatAccountType } from '@/lib/format'
@@ -111,6 +112,7 @@ export default function AccountsScreen() {
 
                 <View className="px-6 gap-y-5 pb-8 pt-4">
                     <BankLimitBanner />
+                    <PairingReviewBanner />
                     {/* Summary */}
                     <Card className="p-5">
                         <Text className="text-brand-muted text-xs uppercase tracking-widest mb-3">Net Worth</Text>
