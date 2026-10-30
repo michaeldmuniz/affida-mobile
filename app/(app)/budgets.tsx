@@ -14,6 +14,7 @@ import type { Budget } from '@/lib/types'
 import { colors } from '@/lib/colors'
 import { haptics } from '@/lib/haptics'
 import { ProgressRing } from '@/components/charts/ProgressRing'
+import { trackAction } from '@/lib/track'
 
 const WARN = '#F5AE39'
 
@@ -479,7 +480,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
             </Text>
             <TouchableOpacity
                 className="bg-brand-accent px-6 py-3 rounded-xl"
-                onPress={onCreate}
+                onPress={() => { trackAction('budget_add_open'); onCreate() }}
                 activeOpacity={0.85}
             >
                 <Text className="text-white font-semibold text-sm">Create a budget</Text>

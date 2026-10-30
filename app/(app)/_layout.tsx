@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Redirect, Tabs } from 'expo-router'
+import { Redirect, Tabs, usePathname } from 'expo-router'
 import { View, AppState } from 'react-native'
 import * as LocalAuthentication from 'expo-local-authentication'
 
@@ -12,6 +12,7 @@ import { LoadingScreen } from '@/components/LoadingScreen'
 import { haptics } from '@/lib/haptics'
 import { colors } from '@/lib/colors'
 import { syncOnOpen } from '@/lib/sync'
+import { trackScreen } from '@/lib/track'
 
 function TabIcon({ Icon, focused }: { Icon: any; focused: boolean }) {
     return (
@@ -33,6 +34,10 @@ export default function AppLayout() {
         useSettingsStore()
     const [locked, setLocked] = useState<boolean | null>(null)
     const appStateRef = useRef(AppState.currentState)
+    const pathname = usePathname()
+
+    // Which screen is open (usage tracking, lib/track.ts)
+    useEffect(() => { if (token) trackScreen(pathname) }, [pathname, token])
 
     // Initialize lock state once settings have hydrated
     useEffect(() => {

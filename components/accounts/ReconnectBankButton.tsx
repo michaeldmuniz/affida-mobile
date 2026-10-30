@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { RefreshCw } from 'lucide-react-native'
 import { apiClient } from '@/lib/api-client'
 import { colors } from '@/lib/colors'
+import { trackAction } from '@/lib/track'
 
 interface Props {
     /** The bank connection to repair (account.reconnectItemId) */
@@ -87,7 +88,7 @@ export function ReconnectBankButton({ plaidItemId }: Props) {
     return (
         <TouchableOpacity
             className="flex-row items-center gap-x-2 mt-4 self-start bg-brand-elevated border border-brand-negative rounded-xl px-4 h-9"
-            onPress={handlePress}
+            onPress={() => { trackAction('reconnect_bank'); handlePress() }}
             disabled={busy}
             activeOpacity={0.85}
         >

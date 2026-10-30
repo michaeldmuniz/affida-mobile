@@ -9,6 +9,7 @@ import { GoalCreateSheet } from '@/components/goals/CreateSheet'
 import { GoalEditSheet } from '@/components/goals/EditSheet'
 import type { Goal } from '@/lib/types'
 import { colors } from '@/lib/colors'
+import { trackAction } from '@/lib/track'
 
 function daysUntil(dateStr: string | null) {
     if (!dateStr) return null
@@ -98,7 +99,7 @@ export default function GoalsScreen() {
                     <Text className="text-brand-text text-2xl font-bold">Goals</Text>
                     <TouchableOpacity
                         className="w-9 h-9 rounded-full bg-brand-surface border border-brand-border items-center justify-center"
-                        onPress={() => setShowCreate(true)}
+                        onPress={() => { trackAction('goal_new_open'); setShowCreate(true) }}
                     >
                         <Plus size={18} color={colors.accent} strokeWidth={2} />
                     </TouchableOpacity>

@@ -53,6 +53,10 @@ Face ID / biometric lock lives in the app layout: `useSettingsStore.appLockEnabl
 auth/token, auth/refresh, me, dashboard, accounts (+[id], [id]/categories), transactions (+[id], flag), categories, budgets, goals (+[id], contributions), rules (+[id]), insights, subscriptions, chat, plaid/link-token, plaid/exchange (optional `claim: { plaidAccountId, accountId }` turns a manual account into the bank account), accounts/[id]/make-manual (POST `{ wholeBank? }`: bank → manual, the server deletes the bank connection once no account uses it), family/children (+[id], [id]/entries, [id]/tasks), family/entries/[entryId], family/tasks/[taskId] (+complete), investments, rewards (+cards/[accountId]: GET rates, PUT save, PATCH which card, DELETE reset).
 All responses are `{ data, error }`; mutations invalidate the matching react-query keys.
 
+### Usage tracking
+
+`lib/track.ts` sends which screens people open and which buttons they use to `POST /api/mobile/track` (web repo; shown in the admin's Usage page). **Never content**: only the router path (named like the website's pages: `/` is `/dashboard`, `/debts` is `/debt`; the server turns ids into `:id`) and a fixed lowercase action key through `trackAction('scan_open')`; the server rejects anything else. Screens are tracked once in `app/(app)/_layout.tsx` (`trackScreen(pathname)`). Events are buffered, sent every 5 s and when the app goes to the background, the same key within 30 s counts once, and a failure is ignored. To track a new button add `trackAction('its_key')` to its `onPress` (and its plain name to `lib/usage-labels.ts` in the admin repo). Current keys: `scan_open`, `scan_camera`, `scan_library`, `transaction_flag`, `goal_new_open`, `budget_add_open`, `assistant_send`, `pairing_review_open`, `reconnect_bank`. Type-checked and bundles; not run on a device. Needs the web release that has the route (it answers 404 before that, which the app ignores).
+
 ### Conventions
 
 - Screens: `SafeAreaView` with `edges={['top']}`, header inside the ScrollView, pull-to-refresh via `RefreshControl` tinted `#5B7BF8`
