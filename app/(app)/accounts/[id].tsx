@@ -207,10 +207,11 @@ export default function AccountDetailScreen() {
             const names = data.account.disconnectAccountNames
             Alert.alert(
                 `Disconnect ${data.account.institutionName}?`,
-                `This removes the bank connection and permanently deletes ${names.length > 1 ? `all ${names.length} of its accounts (${names.join(', ')})` : `"${names[0] ?? data.account.name}"`} and every transaction in ${names.length > 1 ? 'them' : 'it'}. This cannot be undone. To use the bank again you would need to reconnect it.`,
+                `Want to stop syncing but keep your accounts? Choose "Keep history": ${names.length > 1 ? `all ${names.length} accounts (${names.join(', ')})` : `"${names[0] ?? data.account.name}"`} stay with every transaction as manual accounts, and the bank connection is removed.\n\nOr delete everything: this permanently deletes ${names.length > 1 ? 'those accounts' : 'the account'} and every transaction in ${names.length > 1 ? 'them' : 'it'}. This cannot be undone.`,
                 [
                     { text: 'Cancel', style: 'cancel' },
-                    { text: 'Disconnect', style: 'destructive', onPress: () => disconnectBank(itemId) },
+                    { text: 'Keep history', onPress: () => makeManual(true) },
+                    { text: 'Delete everything', style: 'destructive', onPress: () => disconnectBank(itemId) },
                 ]
             )
             return
@@ -365,16 +366,21 @@ export default function AccountDetailScreen() {
                                 {account.reconnectItemId && <ReconnectBankButton plaidItemId={account.reconnectItemId} />}
 
                                 {account.plaidLinked && account.disconnectItemId && !account.isShared && (
-                                    <TouchableOpacity
-                                        className="mt-4 self-start"
-                                        onPress={handleMakeManual}
-                                        disabled={isSwitching}
-                                        activeOpacity={0.7}
-                                    >
-                                        <Text className="text-brand-muted text-sm underline">
-                                            {isSwitching ? 'Switching…' : 'Switch to a manual account'}
+                                    <View className="mt-4 rounded-xl border border-brand-border bg-brand-surface p-3">
+                                        <Text className="text-brand-muted text-sm leading-relaxed">
+                                            Want to stop syncing this account but keep it? Its balance and every transaction stay, and you stop paying for the bank connection.
                                         </Text>
-                                    </TouchableOpacity>
+                                        <TouchableOpacity
+                                            className="mt-3 h-10 rounded-xl border border-brand-accent items-center justify-center"
+                                            onPress={handleMakeManual}
+                                            disabled={isSwitching}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Text className="text-brand-accent text-sm font-semibold">
+                                                {isSwitching ? 'Switching…' : 'Switch to a manual account'}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
                                 )}
 
                                 {!account.plaidLinked && !account.isShared && account.canEdit && (
