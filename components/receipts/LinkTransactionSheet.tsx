@@ -11,9 +11,7 @@ import { AmountText } from '@/components/ui/AmountText'
 import { haptics } from '@/lib/haptics'
 import { colors } from '@/lib/colors'
 import { OptionPicker } from '@/components/OptionPicker'
-import { CategoryPicker } from '@/components/transactions/CategoryPicker'
-import { useAccountCategories } from '@/hooks/useAccountCategories'
-import type { Receipt, Account, Category } from '@/lib/types'
+import type { Receipt, Account } from '@/lib/types'
 
 interface Candidate {
     id: string
@@ -30,6 +28,14 @@ interface Candidate {
 interface Props {
     receipt: Receipt | null
     onClose: () => void
+}
+
+/** One plain sentence about how a transaction built from the receipt is filed: the receipt's own items decide (nothing to pick). */
+function filingNote(items: Receipt['lineItems']): string {
+    const names = [...new Set(items.filter((i) => i.amount > 0).map((i) => i.categoryName).filter((n): n is string => !!n))]
+    if (names.length >= 2) return `Filed by the receipt's categories (${names.join(', ')}): split into one part each when the items add up to the total.`
+    if (names.length === 1) return `Filed under ${names[0]}, from the receipt's items.`
+    return "No category yet, because the receipt's items have none. You can set one on the transaction afterwards."
 }
 
 export function LinkTransactionSheet({ receipt, onClose }: Props) {
@@ -56,23 +62,19 @@ export function LinkTransactionSheet({ receipt, onClose }: Props) {
 
     const [creating, setCreating] = useState(false)
     const [account, setAccount] = useState<Account | null>(null)
-    const [category, setCategory] = useState<Category | null>(null)
     const [showAccountPicker, setShowAccountPicker] = useState(false)
-    const [showCategoryPicker, setShowCategoryPicker] = useState(false)
 
     const { data: accounts } = useQuery<Account[]>({
         queryKey: ['accounts'],
         queryFn: async () => (await apiClient.get('/accounts')).data.data,
         enabled: !!receipt && creating,
     })
-    const { categories, ownerName: categoryOwner, createCategory } = useAccountCategories(account?.id, !!receipt && creating)
     const manualAccounts = accounts?.filter((a) => !a.plaidLinked) ?? []
 
     const { mutate: createFromReceipt, isPending: isCreating } = useMutation({
         mutationFn: async () => {
             await apiClient.post(`/receipts/${receipt!.id}/transaction`, {
                 accountId: account!.id,
-                categoryId: category?.id ?? null,
             })
         },
         onSuccess: () => {
@@ -107,7 +109,6 @@ export function LinkTransactionSheet({ receipt, onClose }: Props) {
         setSearch('')
         setCreating(false)
         setAccount(null)
-        setCategory(null)
         onClose()
     }
 
@@ -184,16 +185,8 @@ export function LinkTransactionSheet({ receipt, onClose }: Props) {
                             </Text>
                             <ChevronDown size={16} color={colors.muted} />
                         </TouchableOpacity>
-                        <TouchableOpacity
-                            accessibilityRole="button"
-                            className="flex-row items-center justify-between bg-brand-surface border border-brand-border rounded-xl px-4 h-12"
-                            onPress={() => { haptics.light(); setShowCategoryPicker(true) }}
-                        >
-                            <Text className={category ? 'text-brand-text text-sm' : 'text-brand-muted text-sm'}>
-                                {category?.name ?? 'Category (picked automatically if blank)'}
-                            </Text>
-                            <ChevronDown size={16} color={colors.muted} />
-                        </TouchableOpacity>
+                        {/* No category to pick: the receipt's own items decide, and this says how */}
+                        <Text className="text-brand-muted text-xs">{filingNote(receipt.lineItems)}</Text>
                         {accounts && manualAccounts.length === 0 && (
                             <Text className="text-brand-muted text-xs">
                                 You have no manual accounts. Add one under Accounts first.
@@ -220,22 +213,10 @@ export function LinkTransactionSheet({ receipt, onClose }: Props) {
                             options={manualAccounts.map((a) => ({ label: a.name, value: a.id }))}
                             selectedValue={account?.id ?? null}
                             onSelect={(value) => {
-                                setAccount(manualAccounts.find((a) => a.id === value) ?? null); setCategory(null)
+                                setAccount(manualAccounts.find((a) => a.id === value) ?? null)
                                 setShowAccountPicker(false)
                             }}
                             onClose={() => setShowAccountPicker(false)}
-                        />
-                        <CategoryPicker
-                            visible={showCategoryPicker}
-                            categories={categories}
-                            ownerName={categoryOwner}
-                            onCreate={createCategory}
-                            selectedId={category?.id ?? null}
-                            onSelect={(id) => {
-                                setCategory(id ? categories.find((c) => c.id === id) ?? null : null)
-                                setShowCategoryPicker(false)
-                            }}
-                            onClose={() => setShowCategoryPicker(false)}
                         />
                     </View>
                 ) : (

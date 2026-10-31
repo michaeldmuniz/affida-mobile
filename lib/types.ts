@@ -152,6 +152,10 @@ export interface Receipt {
     /** False when the receipt can be viewed but not changed (shared account, viewer role) */
     canEdit?: boolean
     splitApplied: boolean
+    /** Can it be split, and if not, why (the server decides; the website shows the same) */
+    splitStatus?: 'not-linked' | 'applied' | 'available' | 'already-split' | 'one-category' | 'no-fit'
+    /** The receipt has a tax or tip line, or was charged more than its items: the tax and tip choice matters */
+    hasTaxOrTip?: boolean
     matchedTransactionId: string | null
     matchedTransaction: (Pick<Transaction, 'id' | 'description' | 'merchantName' | 'amount' | 'date'> & {
         accountId?: string | null

@@ -83,7 +83,7 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
         const t = setTimeout(() => setDebouncedKey(previewKey), 400)
         return () => clearTimeout(t)
     }, [previewKey])
-    type Preview = { linked: boolean; splits: { categoryName: string | null; amount: number; isTaxLine: boolean }[] | null }
+    type Preview = { linked: boolean; applied?: boolean; status?: string; reason?: string | null; splits: { categoryName: string | null; amount: number; isTaxLine: boolean }[] | null }
     const { data: preview } = useQuery<Preview>({
         queryKey: ['receipt-preview', receipt?.id, debouncedKey],
         queryFn: async () => (await apiClient.post(`/receipts/${receipt!.id}/preview`, { lineItems: parsedItems, taxMode })).data.data,
@@ -125,6 +125,19 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
         },
     })
 
+    const { mutate: undoSplit, isPending: isUndoing } = useMutation({
+        mutationFn: async () => {
+            await apiClient.delete(`/receipts/${receipt!.id}/split`)
+        },
+        onSuccess: () => {
+            haptics.success()
+            queryClient.invalidateQueries({ queryKey: ['receipts'] })
+            queryClient.invalidateQueries({ queryKey: ['transactions'] })
+            onClose()
+        },
+        onError: (err: any) => Alert.alert('Error', err?.response?.data?.error ?? err?.message ?? 'Failed to undo the split'),
+    })
+
     const { mutate: unlink, isPending: isUnlinking } = useMutation({
         mutationFn: async () => {
             await apiClient.patch(`/receipts/${receipt!.id}`, { unlink: true })
@@ -144,10 +157,22 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
         haptics.light()
         Alert.alert(
             'Split Transaction',
-            'This will split the matched transaction into one entry per category from this receipt. This cannot be undone from here.',
+            'This will split the matched transaction into one entry per category from this receipt. You can undo it from this receipt.',
             [
                 { text: 'Cancel', style: 'cancel' },
                 { text: 'Split', onPress: () => applySplit() },
+            ]
+        )
+    }
+
+    const handleUndoSplit = () => {
+        haptics.light()
+        Alert.alert(
+            'Undo Split',
+            'The transaction goes back to one entry. You can split it again from this receipt, or unlink the receipt.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Undo split', style: 'destructive', onPress: () => undoSplit() },
             ]
         )
     }
@@ -362,7 +387,7 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
                             </View>
 
                             {/* Tax & tip: how it is handled when the transaction is split. Always offered; the choice is kept for next time */}
-                            {editable && currentItems.length > 0 && (
+                            {editable && currentItems.length > 0 && (receipt.hasTaxOrTip || taxMode !== (base?.taxMode ?? 'spread')) && (
                                 <View className="bg-brand-surface border border-brand-border rounded-2xl px-4 py-3.5 gap-y-2.5">
                                     <Text className="text-brand-muted text-xs font-semibold uppercase tracking-wide">Tax &amp; tip when splitting</Text>
                                     {([
@@ -387,14 +412,20 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
                                             </View>
                                         </TouchableOpacity>
                                     ))}
-                                    <Text className="text-brand-muted text-xs">Saved as your choice for future receipts. You can change it here every time.</Text>
+                                    <Text className="text-brand-muted text-xs">Saved as your choice for future receipts.</Text>
                                 </View>
                             )}
 
-                            {/* What the split will look like */}
+                            {/* Where the split stands: what it is, or will be after saving, or the plain reason it is not split */}
                             {editable && receipt.status === 'matched' && itemsValid && preview && (
                                 <View className="bg-brand-elevated rounded-2xl px-4 py-3.5 gap-y-1">
-                                    <Text className="text-brand-muted text-xs font-semibold">The transaction will be split like this</Text>
+                                    <Text className="text-brand-muted text-xs font-semibold">
+                                        {receipt.splitApplied
+                                            ? dirty
+                                                ? (preview.splits ? 'After you save, the split will be' : 'After you save, the transaction is no longer split')
+                                                : 'The transaction is split by category'
+                                            : preview.splits ? 'It can be split by category like this' : 'Not split'}
+                                    </Text>
                                     {preview.splits ? (
                                         preview.splits.map((sp, i) => (
                                             <View key={i} className="flex-row justify-between">
@@ -405,15 +436,41 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
                                             </View>
                                         ))
                                     ) : (
-                                        <Text className="text-brand-muted text-xs">
-                                            These items won't be split automatically: they fall in one category, or they don't add up to the charge.
-                                        </Text>
+                                        <Text className="text-brand-muted text-xs">{preview.reason ?? "These items can't be split by category."}</Text>
+                                    )}
+                                    {dirty && receipt.splitApplied && preview.splits && (
+                                        <Text className="text-brand-muted text-xs mt-1">Save your changes and the split follows them.</Text>
                                     )}
                                 </View>
                             )}
 
-                            {/* Save the corrections (re-splits an already split transaction) */}
-                            {editable && (
+                            {/* The split button for what is true right now: undo a split in place, or split when it can be */}
+                            {editable && receipt.status === 'matched' && !dirty && currentItems.length > 0 && (
+                                receipt.splitApplied ? (
+                                    <TouchableOpacity
+                                        className="h-12 rounded-2xl border border-brand-border items-center justify-center"
+                                        onPress={handleUndoSplit}
+                                        disabled={isUndoing}
+                                        activeOpacity={0.8}
+                                        accessibilityRole="button"
+                                    >
+                                        <Text className="text-brand-text font-semibold text-sm">{isUndoing ? 'Undoing…' : 'Undo split'}</Text>
+                                    </TouchableOpacity>
+                                ) : receipt.splitStatus === 'available' ? (
+                                    <TouchableOpacity
+                                        className="h-12 rounded-2xl bg-brand-accent items-center justify-center"
+                                        onPress={handleApplySplit}
+                                        disabled={isSplitting}
+                                        activeOpacity={0.8}
+                                        accessibilityRole="button"
+                                    >
+                                        <Text className="text-white font-semibold text-sm">{isSplitting ? 'Splitting…' : 'Split by category'}</Text>
+                                    </TouchableOpacity>
+                                ) : null
+                            )}
+
+                            {/* Only while there is something to save: no dead button */}
+                            {editable && dirty && (
                                 <View className="gap-y-2">
                                     {saveMessage && (
                                         <Text className={`text-xs ${saveMessage.kind === 'ok' ? 'text-brand-positive' : 'text-brand-negative'}`}>
@@ -421,46 +478,23 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
                                         </Text>
                                     )}
                                     <TouchableOpacity
-                                        className={`h-14 rounded-2xl items-center justify-center ${dirty && itemsValid && totalValid && !isSaving ? 'bg-brand-accent' : 'bg-brand-elevated'}`}
+                                        className={`h-14 rounded-2xl items-center justify-center ${itemsValid && totalValid && !isSaving ? 'bg-brand-accent' : 'bg-brand-elevated'}`}
                                         onPress={() => { haptics.medium(); saveChanges() }}
-                                        disabled={!dirty || !itemsValid || !totalValid || isSaving}
+                                        disabled={!itemsValid || !totalValid || isSaving}
                                         activeOpacity={0.8}
                                         accessibilityRole="button"
                                     >
-                                        <Text className={`font-semibold text-base ${dirty && itemsValid && totalValid && !isSaving ? 'text-white' : 'text-brand-muted'}`}>
+                                        <Text className={`font-semibold text-base ${itemsValid && totalValid && !isSaving ? 'text-white' : 'text-brand-muted'}`}>
                                             {isSaving ? 'Saving…' : 'Save changes'}
                                         </Text>
                                     </TouchableOpacity>
-                                    {dirty && (!itemsValid || !totalValid) && (
+                                    {(!itemsValid || !totalValid) && (
                                         <Text className="text-brand-muted text-xs text-center">Every item needs a name and an amount, and the total must be more than 0.</Text>
                                     )}
                                 </View>
                             )}
-
-                            {/* Apply split to matched transaction */}
-                            {receipt.status === 'matched' && currentItems.length > 0 && (
-                                receipt.splitApplied ? (
-                                    <View className="flex-row items-center gap-x-3 bg-brand-positive/10 border border-brand-positive/25 rounded-2xl px-4 py-3.5">
-                                        <CheckCircle size={20} color={colors.positive} />
-                                        <View className="flex-1">
-                                            <Text className="text-brand-positive font-semibold text-sm">Split Applied</Text>
-                                            <Text className="text-brand-positive/80 text-xs mt-0.5">
-                                                The transaction has been split by category
-                                            </Text>
-                                        </View>
-                                    </View>
-                                ) : (
-                                    <TouchableOpacity
-                                        className="h-14 rounded-2xl bg-brand-accent items-center justify-center"
-                                        onPress={handleApplySplit}
-                                        disabled={isSplitting}
-                                        activeOpacity={0.8}
-                                    >
-                                        <Text className="text-white font-semibold text-base">
-                                            {isSplitting ? 'Splitting…' : 'Split Transaction by Category'}
-                                        </Text>
-                                    </TouchableOpacity>
-                                )
+                            {editable && !dirty && saveMessage && (
+                                <Text className={`text-xs ${saveMessage.kind === 'ok' ? 'text-brand-positive' : 'text-brand-negative'}`}>{saveMessage.text}</Text>
                             )}
                         </View>
                     </ScrollView>
