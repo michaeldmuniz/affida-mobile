@@ -68,7 +68,8 @@ export function ReceiptDetailSheet({ receipt, onClose }: Props) {
 
     const dirty = !!base && (
         taxMode !== (base.taxMode ?? 'spread') ||
-        Number(totalText) !== (base.total ?? NaN) ||
+        // a receipt that came with no total is not "edited" because its box is empty
+        (totalText.trim() === '' ? base.total != null : Number(totalText) !== base.total) ||
         items.length !== base.lineItems.length ||
         items.some((it, i) => {
             const orig = base.lineItems[i]
