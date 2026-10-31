@@ -57,6 +57,10 @@ All responses are `{ data, error }`; mutations invalidate the matching react-que
 
 When a manual account becomes a bank account (`PlaidLinkButton claimAccount`, `SyncOptionsSheet convertAccount`), nobody picks "how far back": the sheet reads the account's newest entry (`GET /accounts/[id]/manual-preview` → `latestDay`) and syncs from `AUTO_OVERLAP_DAYS` (7) before it, or takes everything the bank has when the account is empty (`computeSyncStartDate('auto', newestDay)`). It says so in plain words; the old choices are under "Change how far back". Same rule as the website's connect dialog. Type-checked and bundles; not run on a device.
 
+### Net worth layers and cash runway (Insights screen)
+
+The Net Worth card on Insights shows what net worth is made of, stacked under the line (`components/charts/StackedLayersChart.tsx`): liquid cash at the bottom, then investments, other assets, and what is owed hanging below zero, with today's amounts listed under the chart. The server guarantees `cash + investments + other - debt = netWorth` on every point (`NetWorthPoint.layers` from `GET /api/mobile/insights`, never negative: an overdrawn account counts as owed), so the app only draws. Below it, a "Cash runway" box (`netWorthRunway`: checking and savings against the average spending of the last full months, worded by `runwayPhrase` in `lib/format.ts`). Older responses without layers fall back to the plain `LineChart`. Same wording and colors as the website's Net Worth report and phone Reports. Type-checked and bundles; not run on a device.
+
 ### Conventions
 
 - Screens: `SafeAreaView` with `edges={['top']}`, header inside the ScrollView, pull-to-refresh via `RefreshControl` tinted `#5B7BF8`

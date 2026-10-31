@@ -73,3 +73,13 @@ export function addDaysTo(day: string, n: number): string {
     d.setDate(d.getDate() + n)
     return localDay(d)
 }
+
+/** How long liquid cash lasts: "about 5.3 months", "about 1 year 3 months", never false precision for huge numbers. Same wording as the website. */
+export function runwayPhrase(months: number): string {
+    if (months >= 120) return '10 years or more'
+    if (months < 1) return `about ${Math.max(1, Math.round(months * 30))} days`
+    if (months < 24) return `about ${months < 10 ? months.toFixed(1).replace(/\.0$/, '') : Math.round(months)} months`
+    const years = Math.floor(months / 12)
+    const rest = Math.round(months - years * 12)
+    return rest === 0 ? `about ${years} years` : `about ${years} years ${rest} months`
+}

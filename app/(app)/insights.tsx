@@ -10,8 +10,9 @@ import { AmountText } from '@/components/ui/AmountText'
 import { DonutChart } from '@/components/charts/DonutChart'
 import { TrendBars } from '@/components/charts/TrendBars'
 import { LineChart } from '@/components/charts/LineChart'
+import { StackedLayersChart, LAYER_STYLE } from '@/components/charts/StackedLayersChart'
 import { colorForIndex } from '@/components/charts/palette'
-import { formatMonth, toMonthKey, compactUsd } from '@/lib/format'
+import { formatMonth, toMonthKey, compactUsd, runwayPhrase } from '@/lib/format'
 import { haptics } from '@/lib/haptics'
 import type { Insights } from '@/lib/types'
 import { colors } from '@/lib/colors'
@@ -184,10 +185,56 @@ export default function InsightsScreen() {
                                     </Text>
                                     <NetWorthDelta history={data.netWorthHistory.map((p) => p.netWorth)} />
                                 </View>
-                                <LineChart
-                                    points={data.netWorthHistory.map((p) => p.netWorth)}
-                                    labels={data.netWorthHistory.map((p) => p.month.split(' ')[0])}
-                                />
+                                {data.netWorthHistory.every((p) => p.layers) ? (
+                                    <>
+                                        <StackedLayersChart
+                                            points={data.netWorthHistory.map((p) => ({ netWorth: p.netWorth, layers: p.layers! }))}
+                                            labels={data.netWorthHistory.map((p) => p.month.split(' ')[0])}
+                                        />
+                                        {/* What it is made of today, with the colors of the layers above */}
+                                        {(() => {
+                                            const now = data.netWorthHistory[data.netWorthHistory.length - 1].layers!
+                                            return (
+                                                <View className="mt-3 gap-y-1.5">
+                                                    {LAYER_STYLE.map((l) => (
+                                                        <View key={l.key} className="flex-row items-center justify-between">
+                                                            <View className="flex-row items-center gap-x-2">
+                                                                <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: l.color }} />
+                                                                <Text className="text-brand-muted text-xs">{l.label}</Text>
+                                                            </View>
+                                                            <Text className="text-brand-text text-xs font-mono">
+                                                                {l.key === 'debt' ? `-${compactUsd(now.debt)}` : compactUsd(now[l.key])}
+                                                            </Text>
+                                                        </View>
+                                                    ))}
+                                                    <Text className="text-brand-muted text-[11px] mt-1">The line is your net worth. Above zero is what you have; below zero is what you owe.</Text>
+                                                </View>
+                                            )
+                                        })()}
+                                    </>
+                                ) : (
+                                    <LineChart
+                                        points={data.netWorthHistory.map((p) => p.netWorth)}
+                                        labels={data.netWorthHistory.map((p) => p.month.split(' ')[0])}
+                                    />
+                                )}
+                                {data.netWorthRunway && (
+                                    <View className="mt-4 rounded-xl bg-brand-elevated p-3">
+                                        <Text className="text-brand-muted text-xs">Cash runway</Text>
+                                        {data.netWorthRunway.months !== null ? (
+                                            <>
+                                                <Text className="text-brand-text text-lg font-bold">{runwayPhrase(data.netWorthRunway.months)}</Text>
+                                                <Text className="text-brand-muted text-xs">
+                                                    Your checking and savings ({compactUsd(data.netWorthRunway.cash)}) against your usual spending of {compactUsd(data.netWorthRunway.monthlySpend)} a month, based on your last {data.netWorthRunway.basedOnMonths} full month{data.netWorthRunway.basedOnMonths === 1 ? '' : 's'}.
+                                                </Text>
+                                            </>
+                                        ) : (
+                                            <Text className="text-brand-muted text-xs mt-0.5">
+                                                {data.netWorthRunway.cash <= 0 ? 'There is no liquid cash in checking and savings right now.' : 'It shows once there is a full month of spending to compare with.'}
+                                            </Text>
+                                        )}
+                                    </View>
+                                )}
                                 {data.netWorthForecast?.ok && (() => {
                                     const f = data.netWorthForecast
                                     const yearAhead = f.points[11] ?? f.points[f.points.length - 1]

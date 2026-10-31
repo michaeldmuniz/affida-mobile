@@ -246,9 +246,22 @@ export interface TrendPoint {
     savingsRate: number
 }
 
+/** What net worth is made of: cash + investments + other - debt = netWorth */
+export interface NetWorthLayers { cash: number; investments: number; other: number; debt: number }
+
 export interface NetWorthPoint {
     month: string
     netWorth: number
+    layers?: NetWorthLayers
+}
+
+/** How long liquid cash (checking and savings) would cover the person's usual spending */
+export interface CashRunway {
+    cash: number
+    monthlySpend: number
+    /** null when there is no spending history to compare with, or no cash */
+    months: number | null
+    basedOnMonths: number
 }
 
 export interface MerchantSpend {
@@ -266,6 +279,7 @@ export interface Insights {
     netWorthHistory: NetWorthPoint[]
     /** Where net worth is heading (current month only; null for past months) */
     netWorthForecast?: NetWorthForecast | null
+    netWorthRunway?: CashRunway | null
     topMerchants: MerchantSpend[]
 }
 
