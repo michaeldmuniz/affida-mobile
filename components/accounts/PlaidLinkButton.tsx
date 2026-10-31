@@ -121,8 +121,10 @@ export function PlaidLinkButton({ onSuccess, claimAccount, label }: Props) {
             }
             await apiClient.post('/plaid/exchange', {
                 public_token: pendingToken,
-                syncStartDate: computeSyncStartDate(syncRange, newestDay),
-                ...(claim ? { claim } : {}),
+                // The automatic start belongs to the account being connected over (the server gives it to that account only), so the
+                // bank's other accounts keep all their history; with no match to connect over there is nothing to start from: everything the bank has
+                syncStartDate: syncRange === 'auto' ? undefined : computeSyncStartDate(syncRange, newestDay),
+                ...(claim ? { claim: { ...claim, ...(syncRange === 'auto' && computeSyncStartDate('auto', newestDay) ? { syncStartDate: computeSyncStartDate('auto', newestDay) } : {}) } } : {}),
             })
             queryClient.invalidateQueries({ queryKey: ['account-detail'] })
             queryClient.invalidateQueries({ queryKey: ['accounts'] })
