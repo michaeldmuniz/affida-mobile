@@ -6,7 +6,7 @@ import { apiClient } from '@/lib/api-client'
 import { SyncOptionsSheet, computeSyncStartDate } from './SyncOptionsSheet'
 import { guessClaimedAccount, type LinkedAccount } from '@/lib/plaid-claim'
 
-type RangeOption = '30d' | '90d' | '180d' | '365d' | 'all'
+type RangeOption = 'auto' | '30d' | '90d' | '180d' | '365d' | 'all'
 
 // The server answers 403 when a bank can't be connected: a trialing user at the bank limit, or
 // someone on the free plan. Its message says which. No upgrade action here — billing is managed on the web.
@@ -35,6 +35,8 @@ export function PlaidLinkButton({ onSuccess, claimAccount, label }: Props) {
     const [pendingToken, setPendingToken] = useState<string | null>(null)
     const [institutionName, setInstitutionName] = useState('')
     const [syncRange, setSyncRange] = useState<RangeOption>('180d')
+    // The newest entry on the account being connected over (YYYY-MM-DD): null = none, undefined = still being read
+    const [newestDay, setNewestDay] = useState<string | null | undefined>(undefined)
     const [exchanging, setExchanging] = useState(false)
     const [limitMessage, setLimitMessage] = useState<string | null>(null)
 
@@ -80,8 +82,15 @@ export function PlaidLinkButton({ onSuccess, claimAccount, label }: Props) {
                 setInstitutionName(success.metadata.institution?.name ?? 'your bank')
                 setPendingToken(success.publicToken)
                 setLinked(success.metadata.accounts.map((a: any) => ({ id: a.id, name: a.name, mask: a.mask, type: a.type, subtype: a.subtype })))
-                // A converted account's history is a file: match it against everything the bank has
-                setSyncRange(claimAccount ? 'all' : '180d')
+                // Connecting over an account that has transactions: nobody has to choose how far back. It starts a week before
+                // the account's newest entry (or takes everything the bank has when it has none); the other choices stay in the sheet.
+                setSyncRange(claimAccount ? 'auto' : '180d')
+                setNewestDay(claimAccount ? undefined : null)
+                if (claimAccount) {
+                    apiClient.get(`/accounts/${claimAccount.id}/manual-preview`)
+                        .then((r) => setNewestDay((r.data.data?.latestDay as string | null) ?? null))
+                        .catch(() => setNewestDay(null)) // not read: take the bank's whole history, as before
+                }
                 refreshToken()
             },
             onExit: async (_exit: LinkExit) => {
@@ -112,7 +121,7 @@ export function PlaidLinkButton({ onSuccess, claimAccount, label }: Props) {
             }
             await apiClient.post('/plaid/exchange', {
                 public_token: pendingToken,
-                syncStartDate: computeSyncStartDate(syncRange),
+                syncStartDate: computeSyncStartDate(syncRange, newestDay),
                 ...(claim ? { claim } : {}),
             })
             queryClient.invalidateQueries({ queryKey: ['account-detail'] })
@@ -164,6 +173,7 @@ export function PlaidLinkButton({ onSuccess, claimAccount, label }: Props) {
                 onCancel={handleCancel}
                 isLoading={exchanging}
                 convertAccount={claimAccount ? { id: claimAccount.id, name: claimAccount.name } : undefined}
+                newestDay={newestDay}
             />
         </>
     )

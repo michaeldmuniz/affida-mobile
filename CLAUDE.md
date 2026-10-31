@@ -53,6 +53,10 @@ Face ID / biometric lock lives in the app layout: `useSettingsStore.appLockEnabl
 auth/token, auth/refresh, me, dashboard, accounts (+[id], [id]/categories), transactions (+[id], flag), categories, budgets, goals (+[id], contributions), rules (+[id]), insights, subscriptions, chat, plaid/link-token, plaid/exchange (optional `claim: { plaidAccountId, accountId }` turns a manual account into the bank account), accounts/[id]/make-manual (POST `{ wholeBank? }`: bank → manual, the server deletes the bank connection once no account uses it), family/children (+[id], [id]/entries, [id]/tasks), family/entries/[entryId], family/tasks/[taskId] (+complete), investments, rewards (+cards/[accountId]: GET rates, PUT save, PATCH which card, DELETE reset).
 All responses are `{ data, error }`; mutations invalidate the matching react-query keys.
 
+### Connecting a bank over an existing account
+
+When a manual account becomes a bank account (`PlaidLinkButton claimAccount`, `SyncOptionsSheet convertAccount`), nobody picks "how far back": the sheet reads the account's newest entry (`GET /accounts/[id]/manual-preview` → `latestDay`) and syncs from `AUTO_OVERLAP_DAYS` (7) before it, or takes everything the bank has when the account is empty (`computeSyncStartDate('auto', newestDay)`). It says so in plain words; the old choices are under "Change how far back". Same rule as the website's connect dialog. Type-checked and bundles; not run on a device.
+
 ### Conventions
 
 - Screens: `SafeAreaView` with `edges={['top']}`, header inside the ScrollView, pull-to-refresh via `RefreshControl` tinted `#5B7BF8`

@@ -5,7 +5,13 @@ import { Check, UploadCloud } from 'lucide-react-native'
 import { colors } from '@/lib/colors'
 import { apiClient } from '@/lib/api-client'
 
-type RangeOption = '30d' | '90d' | '180d' | '365d' | 'all'
+// 'auto' is chosen for the person when a manual account becomes a bank account: from a week before its newest entry
+type RangeOption = 'auto' | '30d' | '90d' | '180d' | '365d' | 'all'
+
+/** Bank transactions are read from this many days before the account's newest entry: enough to catch late-posted charges and pair them with what is there. */
+const AUTO_OVERLAP_DAYS = 7
+
+const AUTO_OPTION = { value: 'auto' as RangeOption, label: 'Recommended', sub: 'Keep what I have and add what is newer' }
 
 const RANGE_OPTIONS: Array<{ value: RangeOption; label: string; sub: string }> = [
     { value: '30d',  label: 'Last 30 days',        sub: 'Import 1 month of history' },
@@ -22,7 +28,14 @@ function daysAgo(days: number): string {
     return d.toISOString()
 }
 
-export function computeSyncStartDate(range: RangeOption): string | undefined {
+/** `newestDay` (YYYY-MM-DD) is the newest entry on the account being connected over; only 'auto' uses it. */
+export function computeSyncStartDate(range: RangeOption, newestDay?: string | null): string | undefined {
+    if (range === 'auto') {
+        if (!newestDay) return undefined
+        const d = new Date(`${newestDay}T00:00:00.000Z`)
+        d.setUTCDate(d.getUTCDate() - AUTO_OVERLAP_DAYS)
+        return d.toISOString()
+    }
     if (range === 'all') return undefined
     const days = range === '30d' ? 30 : range === '90d' ? 90 : range === '365d' ? 365 : 180
     return daysAgo(days)
@@ -38,14 +51,22 @@ interface Props {
     isLoading: boolean
     /** Converting a manual account: the one whose typed entries the bank's charges will be matched against */
     convertAccount?: { id: string; name: string }
+    /** Its newest entry (YYYY-MM-DD), null when it has none, undefined while still being read */
+    newestDay?: string | null
 }
 
 interface ManualPreview { total: number; inRange: number }
 
-export function SyncOptionsSheet({ visible, institutionName, selected, onSelect, onConfirm, onCancel, isLoading, convertAccount }: Props) {
+const fmtDay = (day: string) => new Date(`${day}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+
+export function SyncOptionsSheet({ visible, institutionName, selected, onSelect, onConfirm, onCancel, isLoading, convertAccount, newestDay }: Props) {
+    const [showOptions, setShowOptions] = useState(false)
+    useEffect(() => { if (visible) setShowOptions(false) }, [visible])
+    const autoStart = computeSyncStartDate('auto', newestDay)
+    const waiting = selected === 'auto' && newestDay === undefined
     // How many entries the person typed on the account being converted fall in the chosen period
     const [preview, setPreview] = useState<ManualPreview | null>(null)
-    const since = computeSyncStartDate(selected)
+    const since = computeSyncStartDate(selected, newestDay)
     useEffect(() => {
         if (!visible || !convertAccount) { setPreview(null); return }
         let stale = false
@@ -59,7 +80,7 @@ export function SyncOptionsSheet({ visible, institutionName, selected, onSelect,
         <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onCancel}>
             <SafeAreaView className="flex-1 bg-brand-bg" edges={['top', 'bottom']}>
                 <View className="px-5 pt-5 pb-4 border-b border-brand-border">
-                    <Text className="text-brand-text text-lg font-bold">How far back should we sync?</Text>
+                    <Text className="text-brand-text text-lg font-bold">{convertAccount ? `Connect ${convertAccount.name}` : 'How far back should we sync?'}</Text>
                     <Text className="text-brand-muted text-sm mt-1">
                         Connected: <Text className="text-brand-text font-medium">{institutionName}</Text>
                     </Text>
@@ -67,7 +88,29 @@ export function SyncOptionsSheet({ visible, institutionName, selected, onSelect,
 
                 <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
                     <View className="px-4 pt-4 gap-y-2 pb-6">
-                        {RANGE_OPTIONS.map(opt => {
+                        {convertAccount && selected === 'auto' && (
+                            <View className="rounded-2xl border border-brand-accent bg-brand-accent/10 p-4 gap-y-1.5">
+                                {waiting ? (
+                                    <Text className="text-brand-muted text-sm">Checking what this account already has…</Text>
+                                ) : autoStart ? (
+                                    <>
+                                        <Text className="text-brand-text text-sm font-semibold">We’ll bring in the bank’s transactions from {fmtDay(autoStart.slice(0, 10))} on.</Text>
+                                        <Text className="text-brand-muted text-xs">Your newest entry here is from {fmtDay(newestDay!)}. Everything before that stays exactly as it is. The few days in between are matched to what you have so nothing is added twice.</Text>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Text className="text-brand-text text-sm font-semibold">We’ll bring in everything the bank has (about 2 years).</Text>
+                                        <Text className="text-brand-muted text-xs">This account has no transactions yet, so there is nothing to match against.</Text>
+                                    </>
+                                )}
+                            </View>
+                        )}
+                        {convertAccount && (
+                            <TouchableOpacity onPress={() => setShowOptions(v => !v)} activeOpacity={0.7} className="self-start py-1">
+                                <Text className="text-brand-muted text-xs underline">{showOptions ? 'Use the recommended choice' : 'Change how far back'}</Text>
+                            </TouchableOpacity>
+                        )}
+                        {(!convertAccount || showOptions) && (convertAccount ? [AUTO_OPTION, ...RANGE_OPTIONS] : RANGE_OPTIONS).map(opt => {
                             const active = selected === opt.value
                             return (
                                 <TouchableOpacity
@@ -105,7 +148,7 @@ export function SyncOptionsSheet({ visible, institutionName, selected, onSelect,
                                     </>
                                 )}
                                 <Text className="text-brand-muted text-xs">Nothing you entered is deleted, and everything we match or combine is written down for you to read afterwards.</Text>
-                                {selected !== 'all' && preview.total > preview.inRange && (
+                                {selected !== 'all' && selected !== 'auto' && preview.total > preview.inRange && (
                                     <Text className="text-brand-muted text-xs">Your {preview.total - preview.inRange} older entr{preview.total - preview.inRange === 1 ? 'y is' : 'ies are'} outside this period and stay as they are.</Text>
                                 )}
                             </View>
@@ -117,7 +160,7 @@ export function SyncOptionsSheet({ visible, institutionName, selected, onSelect,
                     <TouchableOpacity
                         className="h-14 rounded-2xl bg-brand-accent items-center justify-center flex-row gap-x-2"
                         onPress={onConfirm}
-                        disabled={isLoading}
+                        disabled={isLoading || waiting}
                         activeOpacity={0.85}
                     >
                         {isLoading
