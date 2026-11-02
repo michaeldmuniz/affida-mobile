@@ -14,6 +14,7 @@ import type { Budget } from '@/lib/types'
 import { colors } from '@/lib/colors'
 import { haptics } from '@/lib/haptics'
 import { ProgressRing } from '@/components/charts/ProgressRing'
+import { CategoriesIntro } from '@/components/budgets/CategoriesIntro'
 
 const WARN = '#F5AE39'
 
@@ -211,6 +212,7 @@ export default function BudgetsScreen() {
                     <Text className="text-brand-muted text-xs font-medium">Copy Previous</Text>
                 </TouchableOpacity>
             </View>
+            <CategoriesIntro />
 
             <GestureDetector gesture={swipeGesture}>
             <ScrollView
