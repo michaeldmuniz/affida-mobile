@@ -35,6 +35,15 @@ export function localDay(d = new Date()): string {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+/**
+ * The phone's time zone name ("America/Los_Angeles"). Sent when a balance is set so the server's "today" is the person's own
+ * day: in the evening in the US the server's day (UTC) is already tomorrow, which would count that day's entries as already
+ * inside the balance.
+ */
+export function deviceTimeZone(): string | undefined {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined } catch { return undefined }
+}
+
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 /** "Every day", "Weekdays", "Mon, Wed, Fri", or "One time" — same labels as the web. */

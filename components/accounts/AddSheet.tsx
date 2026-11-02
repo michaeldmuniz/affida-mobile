@@ -9,6 +9,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { OptionPicker } from '@/components/OptionPicker'
 import { DEBT_TYPES } from '@/lib/account-types'
+import { deviceTimeZone } from '@/lib/format'
 import { PlaidLinkButton } from './PlaidLinkButton'
 import { colors } from '@/lib/colors'
 
@@ -66,6 +67,7 @@ export function AddAccountSheet({ visible, onClose }: Props) {
                 type,
                 balance: finalBalance,
                 excludeFromNetWorth,
+                timeZone: deviceTimeZone(),
             })
         },
         onSuccess: () => {

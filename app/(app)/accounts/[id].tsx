@@ -14,6 +14,7 @@ import { ReconnectBankButton } from '@/components/accounts/ReconnectBankButton'
 import { PlaidLinkButton } from '@/components/accounts/PlaidLinkButton'
 import { PendingBadge } from '@/components/transactions/PendingBadge'
 import { DEBT_TYPES, amountOwed } from '@/lib/account-types'
+import { deviceTimeZone } from '@/lib/format'
 import { BusinessPicker } from '@/components/accounts/BusinessPicker'
 
 interface AccountDetail {
@@ -87,7 +88,7 @@ export default function AccountDetailScreen() {
 
     const { mutate: updateBalance, isPending: isUpdating } = useMutation({
         mutationFn: async (balance: number) => {
-            await apiClient.patch(`/accounts/${id}`, { balance })
+            await apiClient.patch(`/accounts/${id}`, { balance, timeZone: deviceTimeZone() })
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['account-detail', id] })

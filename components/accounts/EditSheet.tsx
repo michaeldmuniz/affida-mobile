@@ -10,6 +10,7 @@ import { apiClient } from '@/lib/api-client'
 import { haptics } from '@/lib/haptics'
 import type { Account } from '@/lib/types'
 import { colors } from '@/lib/colors'
+import { deviceTimeZone } from '@/lib/format'
 
 interface Props {
     visible: boolean
@@ -45,7 +46,7 @@ export function AccountEditSheet({ visible, account, onClose, onDeleted }: Props
             if (isManual) {
                 const parsed = parseFloat(balance)
                 if (isNaN(parsed)) throw new Error('BALANCE')
-                if (parsed !== account.balance) payload.balance = parsed
+                if (parsed !== account.balance) { payload.balance = parsed; payload.timeZone = deviceTimeZone() }
             }
             await apiClient.patch(`/accounts/${account.id}`, payload)
         },
