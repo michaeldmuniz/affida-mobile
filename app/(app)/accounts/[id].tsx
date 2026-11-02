@@ -13,6 +13,7 @@ import { syncStatusLabel } from '@/lib/sync'
 import { ReconnectBankButton } from '@/components/accounts/ReconnectBankButton'
 import { PlaidLinkButton } from '@/components/accounts/PlaidLinkButton'
 import { PendingBadge } from '@/components/transactions/PendingBadge'
+import { DEBT_TYPES, amountOwed } from '@/lib/account-types'
 import { BusinessPicker } from '@/components/accounts/BusinessPicker'
 
 interface AccountDetail {
@@ -26,6 +27,8 @@ interface AccountDetail {
     businessId: string | null
     purpose: 'PERSONAL' | 'BUSINESS'
     plaidLinked: boolean
+    owed?: number
+    credit?: number
     lastSyncAt: string | null
     needsReconnect: boolean
     /** The owner's bank connection, and the names of every account that disconnecting it removes */
@@ -276,7 +279,14 @@ export default function AccountDetailScreen() {
                                 <Text className="text-brand-muted text-xs uppercase tracking-widest mb-1">
                                     {account.institutionName} · {formatType(account.type)}
                                 </Text>
-                                <AmountText amount={account.balance} size="xl" neutral className="text-brand-text mt-2" />
+                                {DEBT_TYPES.has(account.type) && account.credit ? (
+                                    <View className="mt-2">
+                                        <AmountText amount={account.credit} size="xl" />
+                                        <Text className="text-brand-positive text-xs mt-1">Credit balance: the {account.plaidLinked ? 'bank' : 'card'} owes you this much</Text>
+                                    </View>
+                                ) : (
+                                    <AmountText amount={DEBT_TYPES.has(account.type) ? amountOwed(account) : account.balance} size="xl" neutral className="text-brand-text mt-2" />
+                                )}
                                 <Text className={`text-xs mt-2 ${account.needsReconnect ? 'text-brand-negative' : 'text-brand-muted'}`}>
                                     {account.plaidLinked ? syncStatusLabel(account) : account.needsReconnect ? 'Disconnected · works like a manual account until you reconnect' : `Manual account · updated ${formatDate(account.updatedAt)}`}
                                 </Text>
@@ -346,7 +356,7 @@ export default function AccountDetailScreen() {
                                                     )}
                                                 </View>
                                                 {!!account.creditLimit && account.creditLimit > 0 && (() => {
-                                                    const owed = account.plaidLinked ? account.balance : Math.abs(account.balance)
+                                                    const owed = amountOwed(account)
                                                     const pct = Math.max(0, (owed / account.creditLimit) * 100)
                                                     const color = pct >= 70 ? colors.negative : pct >= 30 ? '#F5AE39' : colors.positive
                                                     return (

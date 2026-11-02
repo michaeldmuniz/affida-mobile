@@ -12,7 +12,7 @@ import { ScopeSheet, useScope, scopeSummary } from '@/components/accounts/ScopeS
 import { BankLimitBanner } from '@/components/accounts/BankLimitBanner'
 import { PairingReviewBanner } from '@/components/accounts/PairingReviewBanner'
 import { getPaymentUrl } from '@/lib/payment-links'
-import { DEBT_TYPES, computeNetWorth } from '@/lib/account-types'
+import { DEBT_TYPES, computeNetWorth, amountOwed } from '@/lib/account-types'
 import { formatAccountType } from '@/lib/format'
 import type { Account } from '@/lib/types'
 import { colors } from '@/lib/colors'
@@ -38,7 +38,7 @@ const GROUPS: Group[] = [
 /** What an account contributes to its group's total, same sign rules as net worth. */
 function counted(a: Account, debt: boolean) {
     if (a.excludeFromNetWorth || a.hideFromGlobal) return 0
-    if (debt) return a.plaidLinked ? a.balance : Math.abs(a.balance)
+    if (debt) return amountOwed(a)
     return a.balance
 }
 
@@ -78,7 +78,9 @@ export default function AccountsScreen() {
         grouped.find((g) => g.test(acct))!.items.push(acct)
     }
     const sections = grouped.filter((g) => g.items.length > 0)
-    const totalAssets = grouped.filter((g) => !g.debt).reduce((sum, g) => sum + g.items.reduce((s2, a) => s2 + counted(a, false), 0), 0)
+    // (a card in credit is money you have, so it counts with the assets)
+    const credits = grouped.filter((g) => g.debt).reduce((sum, g) => sum + g.items.reduce((s2, a) => s2 + (a.excludeFromNetWorth || a.hideFromGlobal ? 0 : a.credit ?? 0), 0), 0)
+    const totalAssets = credits + grouped.filter((g) => !g.debt).reduce((sum, g) => sum + g.items.reduce((s2, a) => s2 + counted(a, false), 0), 0)
     const totalOwed = grouped.filter((g) => g.debt).reduce((sum, g) => sum + g.items.reduce((s2, a) => s2 + counted(a, true), 0), 0)
 
     return (
@@ -194,7 +196,14 @@ function AccountRow({ account, onPress }: { account: Account; onPress: () => voi
                     )}
                 </View>
                 <View className="items-end gap-y-1">
-                    <AmountText amount={account.balance} size="sm" neutral />
+                    {DEBT_TYPES.has(account.type) && account.credit ? (
+                        <View className="flex-row items-baseline gap-x-1">
+                            <AmountText amount={account.credit} size="sm" />
+                            <Text className="text-brand-positive text-xs">credit</Text>
+                        </View>
+                    ) : (
+                        <AmountText amount={DEBT_TYPES.has(account.type) ? amountOwed(account) : account.balance} size="sm" neutral />
+                    )}
                     {payUrl && (
                         <TouchableOpacity
                             className="flex-row items-center gap-x-1 px-2 py-0.5 rounded-full bg-blue-500/15"

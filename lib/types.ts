@@ -47,6 +47,9 @@ export interface Account {
     /** The business it belongs to (null = Personal) */
     businessId?: string | null
     plaidLinked: boolean
+    /** For a card or loan, sent by the server: what is owed and what is a credit (the bank owes you), never both */
+    owed?: number
+    credit?: number
     /** When the bank last synced; null for manual accounts. */
     lastSyncAt: string | null
     needsReconnect: boolean

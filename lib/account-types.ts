@@ -10,12 +10,14 @@ export const DEBT_TYPES = new Set([
  * owed: Plaid reports them positive (negative = credit in your favour), manual entries
  * may use either sign. Shared accounts you've hidden are left out, as on the dashboard.
  */
-export function computeNetWorth(accounts: { balance: number; type: string; excludeFromNetWorth: boolean; plaidLinked: boolean; hideFromGlobal?: boolean }[]): number {
+export function computeNetWorth(accounts: { balance: number; type: string; excludeFromNetWorth: boolean; plaidLinked: boolean; hideFromGlobal?: boolean; owed?: number; credit?: number }[]): number {
     let net = 0
     for (const a of accounts) {
         if (a.excludeFromNetWorth || a.hideFromGlobal) continue
         if (DEBT_TYPES.has(a.type)) {
-            net -= a.plaidLinked ? a.balance : Math.abs(a.balance)
+            // (the server says what is owed and what is a credit; older servers did not, so the old sign guess stays as a fallback)
+            net -= a.owed ?? (a.plaidLinked ? a.balance : Math.abs(a.balance))
+            net += a.credit ?? 0
         } else {
             net += a.balance
         }
@@ -29,8 +31,8 @@ export function canEditAccount(a: { isShared?: boolean; role?: 'VIEWER' | 'EDITO
 }
 
 /** What you owe on a debt account (positive number), with the same sign rules as net worth. */
-export function amountOwed(a: { balance: number; plaidLinked: boolean }): number {
-    return a.plaidLinked ? a.balance : Math.abs(a.balance)
+export function amountOwed(a: { balance: number; plaidLinked: boolean; owed?: number }): number {
+    return a.owed ?? (a.plaidLinked ? a.balance : Math.abs(a.balance))
 }
 
 /** The debt accounts that count toward what you owe (hidden/excluded ones are left out, like net worth). */
