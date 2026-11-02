@@ -494,7 +494,10 @@ export default function AccountDetailScreen() {
                     <View className="bg-brand-surface border border-brand-border rounded-2xl p-6 w-full">
                         <Text className="text-brand-text text-base font-bold mb-1">Update Balance</Text>
                         <Text className="text-brand-muted text-sm mb-4">
-                            This will create a new balance snapshot.
+                            {['CREDIT_CARD', 'LINE_OF_CREDIT', 'MORTGAGE', 'AUTO_LOAN', 'STUDENT_LOAN', 'PERSONAL_LOAN', 'LOAN'].includes(String(account?.type))
+                                ? 'Enter what you owe right now, as your card or lender shows it. '
+                                : 'Enter the balance your bank shows right now. '}
+                            Entries dated before today are already part of it and won't change it; entries from today on will.
                         </Text>
                         <View className="flex-row items-center bg-brand-elevated border border-brand-border rounded-xl px-4 h-14 mb-4">
                             <Text className="text-brand-muted text-xl mr-1">$</Text>

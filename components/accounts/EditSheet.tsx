@@ -146,7 +146,7 @@ export function AccountEditSheet({ visible, account, onClose, onDeleted }: Props
                                         />
                                     </View>
                                     <Text className="text-brand-muted text-xs mt-2 px-1">
-                                        Updating the balance records a snapshot for net worth history.
+                                        Enter what it is today. Entries dated before today are already part of it and won't change it; entries from today on will.
                                     </Text>
                                 </View>
                             ) : (
