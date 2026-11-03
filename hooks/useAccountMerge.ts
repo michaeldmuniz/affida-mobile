@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 
 export interface MergeSuggestion {
-    manual: { id: string; name: string; type: string; balance: number; entries: number }
-    synced: { id: string; name: string; type: string; balance: number; mask: string | null; institutionName: string; entries: number }
+    manual: { id: string; name: string; type: string; balance: number; owed: boolean; entries: number }
+    synced: { id: string; name: string; type: string; balance: number; owed: boolean; mask: string | null; institutionName: string; entries: number }
     confidence: 'high' | 'likely'
     reasons: string[]
     effects: string[]

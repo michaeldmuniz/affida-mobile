@@ -70,7 +70,7 @@ export function PairingReviewBanner() {
                     <ScrollView className="flex-1 px-6">
                         {review.items.map((item) => (
                             <View key={item.bankId} className="rounded-xl border border-brand-border bg-brand-surface p-4 mb-3">
-                                <Text className="text-brand-muted text-xs">{item.accountName}</Text>
+                                <Text className="text-brand-muted text-xs">{item.accountName}{item.fence ? '  ·  NOT SURE' : ''}</Text>
                                 <Text className="text-brand-text text-sm font-semibold mt-0.5">
                                     Bank charge · {day(item.bank.day)} · {item.bank.description} · {money(item.bank.amount)}
                                 </Text>
@@ -84,7 +84,7 @@ export function PairingReviewBanner() {
                                 {item.rows.map((r) => r.parts ? (
                                     <Text key={`${r.id}-parts`} className="text-brand-muted text-xs mt-0.5 pl-3">split into {r.parts.length} parts: {r.parts.map((p) => `${p.description} ${money(p.amount)}`).join(' · ')}</Text>
                                 ) : null)}
-                                <Text className="text-brand-text text-sm mt-2"><Text className="font-semibold">Why we think so: </Text>{item.reason}</Text>
+                                <Text className="text-brand-text text-sm mt-2"><Text className="font-semibold">{item.fence ? 'Why we are not sure: ' : 'Why we think so: '}</Text>{item.fence ? item.reason.replace(/^Not sure: /, '') : item.reason}</Text>
                                 {item.canMerge
                                     ? <Text className="text-brand-muted text-sm mt-1"><Text className="font-semibold">If you merge: </Text>{item.willDo}</Text>
                                     : <Text className="text-amber-500 text-sm mt-1">{item.cannotMerge} If they are the same purchase, edit or delete one yourself in Transactions.</Text>}

@@ -10,6 +10,8 @@ export interface ReviewItem {
     bank: { day: string; description: string; amount: number }
     rows: ReviewRow[]
     reason: string
+    /** Weaker evidence ("not sure"): the person decides each one */
+    fence?: boolean
     leftover: number
     canMerge: boolean
     willDo: string

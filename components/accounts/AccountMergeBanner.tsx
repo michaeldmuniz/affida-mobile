@@ -59,12 +59,12 @@ export function AccountMergeBanner() {
                                     <View className="flex-1">
                                         <Text className="text-brand-muted text-xs">You typed</Text>
                                         <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>{s.manual.name}</Text>
-                                        <Text className="text-brand-muted text-xs">{money(s.manual.balance)} · {s.manual.entries} entries</Text>
+                                        <Text className="text-brand-muted text-xs">{money(s.manual.balance)}{s.manual.owed ? ' owed' : ''} · {s.manual.entries} entries</Text>
                                     </View>
                                     <View className="flex-1">
                                         <Text className="text-brand-muted text-xs">Bank’s copy</Text>
                                         <Text className="text-brand-text text-sm font-medium" numberOfLines={1}>{s.synced.name}{s.synced.mask ? ` ••${s.synced.mask}` : ''}</Text>
-                                        <Text className="text-brand-muted text-xs">{money(s.synced.balance)} · {s.synced.entries} entries</Text>
+                                        <Text className="text-brand-muted text-xs">{money(s.synced.balance)}{s.synced.owed ? ' owed' : ''} · {s.synced.entries} entries</Text>
                                     </View>
                                 </View>
                                 <Text className="text-brand-muted text-xs">Why they look the same: {s.reasons.join('; ')}.</Text>
