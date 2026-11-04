@@ -19,6 +19,7 @@ import { TransactionDetails, SyncedSummary } from './TransactionDetails'
 import { TransactionPicker } from './TransactionPicker'
 import { SplitSheet } from './SplitSheet'
 import { ReceiptDetailSheet } from '@/components/receipts/ReceiptDetailSheet'
+import { CategoryOfferSheet, type CategoryOffer } from './CategoryOfferSheet'
 
 interface EditState {
     merchantName: string
@@ -29,34 +30,6 @@ interface EditState {
     amount: string
     /** Transaction date, YYYY-MM-DD. */
     day: string
-}
-
-/** Returned when the bank's own category for the transaction is filed somewhere else than where the person just put it */
-interface CategoryOffer {
-    correctionId: string
-    plaidCategory: string
-    currentCategoryName: string | null
-    newCategoryName: string
-}
-
-/** Same question and wording as the website: a yes only affects FUTURE transactions, never anything already in the account */
-function askAboutFutureOnes(offer: CategoryOffer) {
-    const answer = (accept: boolean) => {
-        apiClient.post('/category-offer', { correctionId: offer.correctionId, accept })
-            .then(() => { if (accept) Alert.alert('Saved', `From now on, new transactions your bank labels ${offer.plaidCategory} go to ${offer.newCategoryName}.`) })
-            .catch(() => Alert.alert('Error', 'Could not save that. Please try again.'))
-    }
-    Alert.alert(
-        'File future ones this way too?',
-        `You moved this transaction to ${offer.newCategoryName}. Your bank labels it ${offer.plaidCategory}, and new transactions with that label are ${offer.currentCategoryName ? `currently filed under ${offer.currentCategoryName}` : 'not filed by a saved choice yet'}.\n\n` +
-        `If you choose yes: from now on, new transactions your bank labels ${offer.plaidCategory} are filed under ${offer.newCategoryName} (your own rules still come first).\n\n` +
-        'What does not change: nothing already in your account. This transaction stays where you put it, and no past transaction is moved.\n\n' +
-        'You can change this any time under Settings, Category Mapping on the website.',
-        [
-            { text: 'No, just this one', style: 'cancel', onPress: () => answer(false) },
-            { text: `Yes, future ones`, onPress: () => answer(true) },
-        ],
-    )
 }
 
 interface Props {
@@ -73,6 +46,8 @@ export function EditSheet({ transaction, onClose }: Props) {
     const [editingReceipt, setEditingReceipt] = useState<Receipt | null>(null)
     const [picking, setPicking] = useState<'link' | 'refund' | null>(null)
     const [splitting, setSplitting] = useState(false)
+    // "Want these filed automatically?": lives here (not in the edit modal) so it outlasts closing the sheet
+    const [offer, setOffer] = useState<CategoryOffer | null>(null)
 
     useEffect(() => {
         setCreateRule(false)
@@ -141,13 +116,14 @@ export function EditSheet({ transaction, onClose }: Props) {
             }
             return (saved.data?.data?.offer ?? null) as CategoryOffer | null
         },
-        onSuccess: (offer) => {
+        onSuccess: (made) => {
             queryClient.invalidateQueries({ queryKey: ['transactions'] })
             queryClient.invalidateQueries({ queryKey: ['transaction', transaction?.id] })
             queryClient.invalidateQueries({ queryKey: ['dashboard'] })
             if (createRule) queryClient.invalidateQueries({ queryKey: ['rules'] })
             onClose()
-            if (offer) askAboutFutureOnes(offer)
+            // after the edit sheet has finished closing (two modals cannot swap in the same moment on iOS)
+            if (made) setTimeout(() => setOffer(made), 700)
         },
         onError: () => {
             Alert.alert('Error', 'Failed to save changes. Please try again.')
@@ -242,12 +218,14 @@ export function EditSheet({ transaction, onClose }: Props) {
         ])
     }
 
-    if (!transaction || !form) return null
+    const offerSheet = <CategoryOfferSheet offer={offer} onDone={() => setOffer(null)} />
+    if (!transaction || !form) return offerSheet
 
     const isSplit = !!detail && (detail.splitInto.length > 0 || detail.splitFrom !== null)
 
     return (
         <>
+            {offerSheet}
             <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
                 <SafeAreaView className="flex-1 bg-brand-bg" edges={['top', 'bottom']}>
                     <KeyboardAvoidingView
