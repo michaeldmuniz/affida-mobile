@@ -31,6 +31,34 @@ interface EditState {
     day: string
 }
 
+/** Returned when the bank's own category for the transaction is filed somewhere else than where the person just put it */
+interface CategoryOffer {
+    correctionId: string
+    plaidCategory: string
+    currentCategoryName: string | null
+    newCategoryName: string
+}
+
+/** Same question and wording as the website: a yes only affects FUTURE transactions, never anything already in the account */
+function askAboutFutureOnes(offer: CategoryOffer) {
+    const answer = (accept: boolean) => {
+        apiClient.post('/category-offer', { correctionId: offer.correctionId, accept })
+            .then(() => { if (accept) Alert.alert('Saved', `From now on, new transactions your bank labels ${offer.plaidCategory} go to ${offer.newCategoryName}.`) })
+            .catch(() => Alert.alert('Error', 'Could not save that. Please try again.'))
+    }
+    Alert.alert(
+        'File future ones this way too?',
+        `You moved this transaction to ${offer.newCategoryName}. Your bank labels it ${offer.plaidCategory}, and new transactions with that label are ${offer.currentCategoryName ? `currently filed under ${offer.currentCategoryName}` : 'not filed by a saved choice yet'}.\n\n` +
+        `If you choose yes: from now on, new transactions your bank labels ${offer.plaidCategory} are filed under ${offer.newCategoryName} (your own rules still come first).\n\n` +
+        'What does not change: nothing already in your account. This transaction stays where you put it, and no past transaction is moved.\n\n' +
+        'You can change this any time under Settings, Category Mapping on the website.',
+        [
+            { text: 'No, just this one', style: 'cancel', onPress: () => answer(false) },
+            { text: `Yes, future ones`, onPress: () => answer(true) },
+        ],
+    )
+}
+
 interface Props {
     transaction: Transaction | null
     onClose: () => void
@@ -89,7 +117,7 @@ export function EditSheet({ transaction, onClose }: Props) {
 
     const { mutate: save, isPending } = useMutation({
         mutationFn: async () => {
-            if (!transaction || !form) return
+            if (!transaction || !form) return null
             const payload: Record<string, unknown> = {
                 merchantName: form.merchantName.trim() || undefined,
                 categoryId: form.categoryId,
@@ -104,20 +132,22 @@ export function EditSheet({ transaction, onClose }: Props) {
             }
             // Transaction date: editable on any transaction (only sent if changed).
             if (form.day !== transaction.date.slice(0, 10)) payload.date = `${form.day}T12:00:00.000Z`
-            await apiClient.patch(`/transactions/${transaction.id}`, payload)
+            const saved = await apiClient.patch(`/transactions/${transaction.id}`, payload)
             if (createRule && form.merchantName.trim() && form.categoryId) {
                 await apiClient.post('/rules', {
                     containsText: form.merchantName.trim(),
                     categoryId: form.categoryId,
                 })
             }
+            return (saved.data?.data?.offer ?? null) as CategoryOffer | null
         },
-        onSuccess: () => {
+        onSuccess: (offer) => {
             queryClient.invalidateQueries({ queryKey: ['transactions'] })
             queryClient.invalidateQueries({ queryKey: ['transaction', transaction?.id] })
             queryClient.invalidateQueries({ queryKey: ['dashboard'] })
             if (createRule) queryClient.invalidateQueries({ queryKey: ['rules'] })
             onClose()
+            if (offer) askAboutFutureOnes(offer)
         },
         onError: () => {
             Alert.alert('Error', 'Failed to save changes. Please try again.')
