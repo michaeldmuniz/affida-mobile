@@ -155,7 +155,7 @@ export default function SettingsScreen() {
     const displayName = profile?.name ?? authUser?.name ?? null
 
     const subStatus = profile?.subscriptionStatus ?? authUser?.subscriptionStatus ?? 'INACTIVE'
-    const isActive = subStatus === 'ACTIVE' || subStatus === 'TRIALING'
+    const isActive = subStatus === 'ACTIVE' || subStatus === 'TRIALING' || subStatus === 'FREE'
 
     return (
         <SafeAreaView className="flex-1 bg-brand-bg">
@@ -209,7 +209,7 @@ export default function SettingsScreen() {
                     <SettingsRow
                         icon={CreditCard}
                         label="Plan"
-                        value={isActive ? (subStatus === 'TRIALING' ? 'Trial' : 'Active') : 'Inactive'}
+                        value={isActive ? (subStatus === 'TRIALING' ? 'Trial' : subStatus === 'FREE' ? 'Pro (gift)' : 'Active') : 'Inactive'}
                     />
                     {profile?.subscriptionEnds && (
                         <>

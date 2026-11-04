@@ -119,7 +119,7 @@ export function PlaidLinkButton({ onSuccess, claimAccount, label }: Props) {
                 ))
                 if (useIt) claim = { plaidAccountId: guess.id, accountId: claimAccount.id }
             }
-            await apiClient.post('/plaid/exchange', {
+            const exchanged = await apiClient.post('/plaid/exchange', {
                 public_token: pendingToken,
                 // The automatic start belongs to the account being connected over (the server gives it to that account only), so the
                 // bank's other accounts keep all their history; with no match to connect over there is nothing to start from: everything the bank has
@@ -130,12 +130,15 @@ export function PlaidLinkButton({ onSuccess, claimAccount, label }: Props) {
             queryClient.invalidateQueries({ queryKey: ['accounts'] })
             queryClient.invalidateQueries({ queryKey: ['dashboard'] })
             queryClient.invalidateQueries({ queryKey: ['transactions'] })
+            queryClient.invalidateQueries({ queryKey: ['account-merge'] })
             // Dismiss the sync sheet, then the Add sheet, then show the alert — one at a time
             setPendingToken(null)
             await sleep(DISMISS_MS)
             onSuccess?.()
             await sleep(DISMISS_MS)
-            Alert.alert('Connected!', `Successfully connected ${institutionName}.`)
+            // Said, never silent: bank accounts that were attached to accounts the person had already typed (same as the website's message)
+            const attached = (exchanged.data?.data?.autoClaimed ?? []) as { name: string; plaidName: string }[]
+            Alert.alert('Connected!', `Successfully connected ${institutionName}.${attached.length > 0 ? `\n\nWe also connected ${attached.length === 1 ? 'one of your existing accounts' : `${attached.length} of your existing accounts`}: ${attached.map((x) => `${x.name} is now synced with the bank’s ${x.plaidName}`).join('; ')}. Their history and names were kept.` : ''}`)
         } catch (err: any) {
             if (err?.response?.status === 403) {
                 setPendingToken(null)
