@@ -16,6 +16,7 @@ import { streamChat } from '@/lib/chat-api'
 import { haptics } from '@/lib/haptics'
 import type { ChatMessage } from '@/lib/types'
 import { colors } from '@/lib/colors'
+import { trackAction } from '@/lib/track'
 import { useAiUsage, aiLeftText } from '@/hooks/useAiUsage'
 
 const SUGGESTIONS = [
@@ -51,6 +52,7 @@ export default function AssistantScreen() {
             const trimmed = text.trim()
             if (!trimmed || isStreaming) return
 
+            trackAction('assistant_send')
             haptics.medium()
             setInput('')
 

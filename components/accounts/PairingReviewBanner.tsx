@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { Info, X } from 'lucide-react-native'
 import { usePairingReview, type ReviewItem } from '@/hooks/usePairingReview'
 import { colors } from '@/lib/colors'
+import { trackAction } from '@/lib/track'
 
 const day = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
 const money = (n: number) => `${n < 0 ? '-' : ''}$${Math.abs(n).toFixed(2)}`
@@ -40,7 +41,7 @@ export function PairingReviewBanner() {
     return (
         <>
             <TouchableOpacity
-                onPress={() => setOpen(true)}
+                onPress={() => { trackAction('pairing_review_open'); setOpen(true) }}
                 className="flex-row items-center gap-x-3 rounded-xl border border-sky-400/50 bg-sky-400/10 p-4"
                 accessibilityRole="button"
                 accessibilityLabel={n > 0 ? 'Review possible duplicates' : 'See what changed when your bank connected'}

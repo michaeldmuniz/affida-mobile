@@ -17,6 +17,7 @@ import type { Transaction, Receipt, PaginatedResponse } from '@/lib/types'
 import type { TransactionFilters } from '@/components/transactions/FilterSheet'
 import { colors } from '@/lib/colors'
 import { PendingBadge } from '@/components/transactions/PendingBadge'
+import { trackAction } from '@/lib/track'
 
 const PAGE_SIZE = 50
 
@@ -160,7 +161,7 @@ export default function TransactionsScreen() {
                         {/* Scan receipt */}
                         <TouchableOpacity
                             className="w-9 h-9 rounded-full bg-brand-surface border border-brand-border items-center justify-center"
-                            onPress={() => { haptics.light(); setShowScan(true) }}
+                            onPress={() => { trackAction('scan_open'); haptics.light(); setShowScan(true) }}
                         >
                             <Camera size={16} color={colors.muted} strokeWidth={1.8} />
                         </TouchableOpacity>
@@ -273,7 +274,7 @@ export default function TransactionsScreen() {
                                                     <TouchableOpacity
                                                         accessibilityRole="button"
                                                         accessibilityLabel={tx.flagged ? 'Remove flag' : 'Flag transaction'}
-                                                        onPress={() => toggleFlag(tx)}
+                                                        onPress={() => { trackAction('transaction_flag'); toggleFlag(tx) }}
                                                         className={`w-24 items-center justify-center ${tx.flagged ? 'bg-brand-muted' : 'bg-brand-negative'}`}
                                                     >
                                                         <Flag size={18} color="#fff" fill={tx.flagged ? 'none' : '#fff'} />

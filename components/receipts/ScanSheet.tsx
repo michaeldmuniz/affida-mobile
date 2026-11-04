@@ -15,6 +15,7 @@ import { useAiUsage, aiLeftText } from '@/hooks/useAiUsage'
 import { ReceiptDetailSheet } from '@/components/receipts/ReceiptDetailSheet'
 import { CropStep, type CropQuad } from '@/components/receipts/CropStep'
 import type { Receipt } from '@/lib/types'
+import { trackAction } from '@/lib/track'
 
 type ScanStep = 'pick' | 'crop' | 'uploading'
 
@@ -195,7 +196,7 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
                                 <View className="w-full gap-y-3 mt-4">
                                     <TouchableOpacity
                                         className="h-14 rounded-2xl bg-brand-accent items-center justify-center flex-row gap-x-2"
-                                        onPress={scanWithCamera}
+                                        onPress={() => { trackAction('scan_camera'); scanWithCamera() }}
                                         activeOpacity={0.8}
                                     >
                                         <Camera size={18} color="#fff" strokeWidth={2} />
@@ -203,7 +204,7 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                         className="h-14 rounded-2xl bg-brand-surface border border-brand-border items-center justify-center flex-row gap-x-2"
-                                        onPress={pickFromLibrary}
+                                        onPress={() => { trackAction('scan_library'); pickFromLibrary() }}
                                         activeOpacity={0.8}
                                     >
                                         <ImageIcon size={18} color={colors.text} strokeWidth={1.8} />
