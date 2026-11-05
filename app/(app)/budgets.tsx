@@ -140,7 +140,7 @@ export default function BudgetsScreen() {
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
     const daysLeft = daysInMonth - now.getDate() + 1
     const perDay = offset === 0 && totalLeft > 0 ? totalLeft / daysLeft : null
-    const ringColor = statusColor(totalSpent, totalBudgeted)
+    const ringColor = totalLeft < 0 ? colors.negative : statusColor(totalSpent, totalBudgeted)
 
     // Swipe left/right over the list to change months, same as the chevrons.
     // Only takes over once the gesture is clearly horizontal, so vertical scrolling is untouched.
@@ -230,7 +230,7 @@ export default function BudgetsScreen() {
                     {budgeted.length > 0 && (
                         <Card className="p-5 items-center">
                             <ProgressRing
-                                progress={totalBudgeted > 0 ? totalSpent / totalBudgeted : totalSpent > 0 ? 1 : 0}
+                                progress={totalBudgeted > 0 ? totalSpent / totalBudgeted : totalSpent > 0 || totalLeft < 0 ? 1 : 0}
                                 color={ringColor}
                                 size={170}
                                 strokeWidth={16}
@@ -255,7 +255,7 @@ export default function BudgetsScreen() {
                                 </View>
                                 <View className="items-end">
                                     <Text className="text-brand-muted text-xs uppercase tracking-widest mb-1">Budgeted</Text>
-                                    <Text className="text-brand-muted text-lg font-semibold">{money(totalBudgeted)}</Text>
+                                    <Text className="text-brand-muted text-lg font-semibold">{money(Math.max(totalBudgeted, 0))}</Text>
                                 </View>
                             </View>
                             {(perDay !== null || overCount > 0) && (
