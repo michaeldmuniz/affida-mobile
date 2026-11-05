@@ -10,7 +10,8 @@ import { apiClient } from '@/lib/api-client'
 import { CategoryPicker } from './CategoryPicker'
 import { useAccountCategories } from '@/hooks/useAccountCategories'
 import { AmountText } from '@/components/ui/AmountText'
-import type { Transaction, Category, Receipt, TransactionDetail } from '@/lib/types'
+import type { Transaction, Category, Receipt, TransactionDetail, Account } from '@/lib/types'
+import { canEditAccount } from '@/lib/account-types'
 import { colors } from '@/lib/colors'
 import { haptics } from '@/lib/haptics'
 import { shortDay } from '@/lib/format'
@@ -65,6 +66,15 @@ export function EditSheet({ transaction, onClose }: Props) {
             })
         }
     }, [transaction])
+
+    // A transaction on an account shared with you as view-only can be looked at but not changed (the server refuses)
+    const { data: allAccounts } = useQuery<Account[]>({
+        queryKey: ['accounts'],
+        queryFn: async () => (await apiClient.get('/accounts')).data.data,
+        staleTime: 5 * 60 * 1000,
+        enabled: !!transaction,
+    })
+    const viewOnly = !!transaction?.accountId && !!allAccounts?.some(a => a.id === transaction.accountId && !canEditAccount(a))
 
     // Everything the web dialog shows (location, payment, links, splits...), loaded on open
     const { data: detail } = useQuery<TransactionDetail | null>({
@@ -242,16 +252,24 @@ export function EditSheet({ transaction, onClose }: Props) {
                             </Text>
                             <TouchableOpacity
                                 onPress={() => save()}
-                                disabled={isPending}
+                                disabled={isPending || viewOnly}
                                 className="items-end"
                                 hitSlop={8}
                             >
                                 {isPending
                                     ? <ActivityIndicator size="small" color={colors.accent} />
-                                    : <Text className="text-brand-accent font-semibold text-sm">Save</Text>
+                                    : <Text className={`font-semibold text-sm ${viewOnly ? 'text-brand-muted' : 'text-brand-accent'}`}>Save</Text>
                                 }
                             </TouchableOpacity>
                         </View>
+
+                        {viewOnly && (
+                            <View className="mx-4 mt-3 rounded-xl border border-brand-border bg-brand-surface px-4 py-3">
+                                <Text className="text-brand-muted text-xs leading-relaxed">
+                                    This account is shared with you as view-only, so you can look at this transaction but not change it.
+                                </Text>
+                            </View>
+                        )}
 
                         <ScrollView className="flex-1" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
