@@ -181,7 +181,11 @@ export function GoalCreateSheet({ visible, onClose }: Props) {
                                 </Text>
                                 {accounts.length === 0 ? (
                                     <View className="bg-brand-surface border border-brand-border rounded-xl px-4 py-4">
-                                        <Text className="text-brand-muted text-sm text-center">No accounts found.</Text>
+                                        <Text className="text-brand-muted text-sm text-center">
+                                            {allAccounts.length > 0
+                                                ? "Accounts shared with you as view-only can't be linked to a goal. Ask the person who shared them for edit access, or log what you've saved by hand."
+                                                : 'No accounts found.'}
+                                        </Text>
                                     </View>
                                 ) : (
                                     <View className="bg-brand-surface border border-brand-border rounded-xl overflow-hidden">

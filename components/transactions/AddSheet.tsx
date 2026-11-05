@@ -128,7 +128,8 @@ export function TransactionAddSheet({ visible, onClose }: Props) {
                             </Text>
                             <Text className="text-brand-muted text-sm text-center leading-relaxed">
                                 Manual transactions can only be added to manually-tracked accounts.
-                                Bank-linked accounts update automatically. Add a manual account from the Accounts screen first.
+                                Bank-linked accounts update automatically, and accounts shared with you can only be added to when their owner gave you edit access.
+                                Add a manual account from the Accounts screen first.
                             </Text>
                         </View>
                     ) : (
