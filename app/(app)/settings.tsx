@@ -8,6 +8,7 @@ import * as LocalAuthentication from 'expo-local-authentication'
 import { apiClient } from '@/lib/api-client'
 import { useAuthStore } from '@/lib/auth-store'
 import { useSettingsStore } from '@/lib/settings-store'
+import { BudgetSharingRows } from '@/components/settings/BudgetSharingRows'
 import { haptics } from '@/lib/haptics'
 import { colors } from '@/lib/colors'
 import { SUPPORT_EMAIL } from '@/lib/support'
@@ -273,6 +274,7 @@ export default function SettingsScreen() {
                         onPress={() => router.push('/(app)/family' as any)}
                     />
                     <Divider />
+                    <BudgetSharingRows renderRow={(row, key) => <View key={key}>{row}<Divider /></View>} />
                     <SettingsRow
                         icon={Sparkles}
                         label="Card Rewards"
