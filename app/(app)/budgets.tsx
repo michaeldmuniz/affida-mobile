@@ -46,13 +46,13 @@ function formatMonth(d: Date) {
     return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 }
 
-function BudgetBar({ spent, total }: { spent: number; total: number }) {
-    const pct = total > 0 ? Math.min((spent / total) * 100, 100) : spent > 0 ? 100 : 0
+function BudgetBar({ spent, total, over = false }: { spent: number; total: number; over?: boolean }) {
+    const pct = total > 0 ? Math.min((spent / total) * 100, 100) : spent > 0 || over ? 100 : 0
     return (
         <View className="h-2.5 bg-brand-elevated rounded-full overflow-hidden mt-3">
             <View
                 className="h-full rounded-full"
-                style={{ width: `${pct}%`, backgroundColor: statusColor(spent, total) }}
+                style={{ width: `${pct}%`, backgroundColor: over ? colors.negative : statusColor(spent, total) }}
             />
         </View>
     )
@@ -410,18 +410,18 @@ function BudgetRow({ budget, onEdit, onOpen }: { budget: Budget; onEdit?: () => 
                         <Pencil size={14} color={colors.muted} strokeWidth={2.5} />
                     </TouchableOpacity>
                 )}
-                <Text className="text-sm font-semibold font-mono" style={{ color: statusColor(budget.spent, total) }}>
+                <Text className="text-sm font-semibold font-mono" style={{ color: over ? colors.negative : statusColor(budget.spent, total) }}>
                     ${Math.abs(remaining).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     <Text className="text-brand-muted font-normal"> {over ? 'over' : 'left'}</Text>
                 </Text>
             </View>
-            <BudgetBar spent={budget.spent} total={total} />
+            <BudgetBar spent={budget.spent} total={total} over={over} />
             <View className="flex-row justify-between mt-1.5">
                 <Text className="text-brand-muted text-xs">
                     {dollars(budget.spent)} spent
                 </Text>
                 <Text className="text-brand-muted text-xs">
-                    {total > 0 ? Math.round((budget.spent / total) * 100) : 0}% of {dollars(total)}
+                    {total > 0 ? Math.round((budget.spent / total) * 100) : 0}% of {dollars(Math.max(total, 0))}
                 </Text>
             </View>
         </Card>
