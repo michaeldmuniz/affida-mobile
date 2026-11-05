@@ -272,6 +272,8 @@ export function EditSheet({ transaction, onClose }: Props) {
                         )}
 
                         <ScrollView className="flex-1" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+                            {/* View-only account: look, but nothing in here can be pressed (the server would refuse every change) */}
+                            <View pointerEvents={viewOnly ? 'none' : 'auto'} style={viewOnly ? { opacity: 0.55 } : undefined}>
 
                             {/* Synced from the bank: amount, date, account */}
                             {!transaction.isManual && detail && <SyncedSummary detail={detail} />}
@@ -510,6 +512,7 @@ export function EditSheet({ transaction, onClose }: Props) {
                             )}
 
                             <View className="h-8" />
+                            </View>
                         </ScrollView>
                     </KeyboardAvoidingView>
                 </SafeAreaView>
