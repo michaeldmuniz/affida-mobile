@@ -11,14 +11,14 @@ import { haptics } from '@/lib/haptics'
  */
 export function CategoriesIntro() {
     const queryClient = useQueryClient()
-    const { data } = useQuery<{ budgetsCategories: boolean }>({
+    const { data } = useQuery<{ budgetsCategories: boolean; budgetsSharing?: boolean }>({
         queryKey: ['intros'],
         queryFn: async () => (await apiClient.get('/intros')).data.data,
         staleTime: 5 * 60 * 1000,
     })
     const { mutate: dismiss } = useMutation({
         mutationFn: async () => { await apiClient.post('/intros', { key: 'budgetsCategories' }) },
-        onMutate: () => { queryClient.setQueryData(['intros'], { budgetsCategories: false }) },
+        onMutate: () => { queryClient.setQueryData(['intros'], (old: object | undefined) => ({ ...old, budgetsCategories: false })) },
     })
     if (!data?.budgetsCategories) return null
 

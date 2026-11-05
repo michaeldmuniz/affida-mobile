@@ -15,6 +15,7 @@ import { colors } from '@/lib/colors'
 import { haptics } from '@/lib/haptics'
 import { ProgressRing } from '@/components/charts/ProgressRing'
 import { CategoriesIntro } from '@/components/budgets/CategoriesIntro'
+import { BudgetsSharingHint } from '@/components/budgets/BudgetsSharingHint'
 import { trackAction } from '@/lib/track'
 
 const WARN = '#F5AE39'
@@ -214,6 +215,7 @@ export default function BudgetsScreen() {
                 </TouchableOpacity>
             </View>
             <CategoriesIntro />
+            <BudgetsSharingHint />
 
             <GestureDetector gesture={swipeGesture}>
             <ScrollView
