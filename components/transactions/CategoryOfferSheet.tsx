@@ -11,6 +11,10 @@ export interface CategoryOffer {
     correctionId: string
     newCategoryName: string
     times: number
+    /** How many times this store was moved to the new category, and how many times this bank category was */
+    merchantTimes?: number
+    bankTimes?: number
+    /** '' for a typed or imported entry (no bank category) */
     plaidCategory: string
     currentMappingName: string | null
     narrow: { text: string; pastCount: number } | null
@@ -249,8 +253,9 @@ export function CategoryOfferSheet({ offer, onDone }: { offer: CategoryOffer | n
                 <ScrollView className="flex-1 px-4 pt-6" showsVerticalScrollIndicator={false}>
                     <Text className="text-brand-text text-lg font-semibold">Want these filed under {offer.newCategoryName} automatically?</Text>
                     <Text className="text-brand-muted text-sm mt-2 mb-4">
-                        You have moved {offer.times} transactions your bank labels {plainBankLabel(offer.plaidCategory)} to {offer.newCategoryName}
-                        {offer.currentMappingName ? ` (they were going to ${offer.currentMappingName})` : ''}. You can make that stick in either way below, or both.
+                        {narrow ? `You have moved ${offer.merchantTimes ?? offer.times} "${narrow.text}" transactions to ${offer.newCategoryName}. ` : ''}
+                        {broad ? `${narrow ? 'You have also moved ' : 'You have moved '}${offer.bankTimes ?? offer.times} transactions your bank labels ${plainBankLabel(offer.plaidCategory)} to ${offer.newCategoryName}${offer.currentMappingName ? ` (they were going to ${offer.currentMappingName})` : ''}. ` : ''}
+                        You can make that stick {narrow && broad ? 'in either way below, or both' : 'below'}.
                     </Text>
 
                     {narrow && (

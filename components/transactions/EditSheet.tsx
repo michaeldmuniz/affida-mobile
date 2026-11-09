@@ -22,6 +22,7 @@ import { TransactionPicker } from './TransactionPicker'
 import { SplitSheet } from './SplitSheet'
 import { ReceiptDetailSheet } from '@/components/receipts/ReceiptDetailSheet'
 import { CategoryOfferSheet, type CategoryOffer } from './CategoryOfferSheet'
+import { CategoryOfferBanner } from './CategoryOfferBanner'
 
 interface EditState {
     merchantName: string
@@ -53,7 +54,9 @@ export function EditSheet({ transaction, onClose, split, onSelectPart }: Props) 
     const [picking, setPicking] = useState<'link' | 'refund' | null>(null)
     const [splitting, setSplitting] = useState(false)
     // "Want these filed automatically?": lives here (not in the edit modal) so it outlasts closing the sheet
+    // The offer shows as a small notification first (prompt); its Review button opens the full sheet (offer)
     const [offer, setOffer] = useState<CategoryOffer | null>(null)
+    const [prompt, setPrompt] = useState<CategoryOffer | null>(null)
 
     useEffect(() => {
         setCreateRule(false)
@@ -137,8 +140,8 @@ export function EditSheet({ transaction, onClose, split, onSelectPart }: Props) 
             queryClient.invalidateQueries({ queryKey: ['dashboard'] })
             if (createRule) queryClient.invalidateQueries({ queryKey: ['rules'] })
             onClose()
-            // after the edit sheet has finished closing (two modals cannot swap in the same moment on iOS)
-            if (made) setTimeout(() => setOffer(made), 700)
+            // a small notification, not a window: it never covers what the person is doing
+            if (made) setPrompt(made)
         },
         onError: () => {
             Alert.alert('Error', 'Failed to save changes. Please try again.')
@@ -233,7 +236,12 @@ export function EditSheet({ transaction, onClose, split, onSelectPart }: Props) 
         ])
     }
 
-    const offerSheet = <CategoryOfferSheet offer={offer} onDone={() => setOffer(null)} />
+    const offerSheet = (
+        <>
+            <CategoryOfferBanner offer={prompt} onGone={() => setPrompt(null)} onReview={(o) => { setPrompt(null); setOffer(o) }} />
+            <CategoryOfferSheet offer={offer} onDone={() => setOffer(null)} />
+        </>
+    )
     if (!transaction || !form) return offerSheet
 
     const isSplit = !!detail && (detail.splitInto.length > 0 || detail.splitFrom !== null)
