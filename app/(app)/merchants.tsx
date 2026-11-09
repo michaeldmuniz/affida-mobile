@@ -122,6 +122,27 @@ export default function MerchantsScreen() {
     })()
     const shownTxs = (txs ?? []).filter(t => t.date >= windowStart && t.date < windowEnd)
 
+    // Same detail as the website: first and latest visit, how often, and what it was filed under
+    const detail = useMemo(() => {
+        if (!txs || !months[0]) return null
+        const yearStart = `${months[0]}-01`
+        const year = txs.filter(t => t.date >= yearStart)
+        const visits = (list: MerchantTransaction[]) => list.filter(t => !t.splitPart && t.amount > 0).sort((a, b) => a.date.localeCompare(b.date))
+        const yearVisits = visits(year)
+        const allVisits = visits(txs)
+        const gaps: number[] = []
+        for (let i = 1; i < yearVisits.length; i++) gaps.push((Date.parse(yearVisits[i].date) - Date.parse(yearVisits[i - 1].date)) / 86400000)
+        gaps.sort((a, b) => a - b)
+        const cats = new Map<string, number>()
+        for (const t of year) cats.set(t.category ?? 'Uncategorized', (cats.get(t.category ?? 'Uncategorized') ?? 0) + t.amount)
+        return {
+            first: allVisits[0]?.date ?? null,
+            last: allVisits[allVisits.length - 1]?.date ?? null,
+            every: gaps.length ? gaps[Math.floor(gaps.length / 2)] : null,
+            cats: [...cats.entries()].filter(([, v]) => v > 0.005).sort((a, b) => b[1] - a[1]).slice(0, 4),
+        }
+    }, [txs, months])
+
     const toggle = (key: string) => { haptics.light(); setSelKeys(k => k.includes(key) ? k.filter(x => x !== key) : [...k, key]); setQuery('') }
     const clear = () => { haptics.light(); setSelKeys([]); setQuery('') }
     // The picked payees added together (for one payee, just its own numbers)
@@ -318,6 +339,20 @@ export default function MerchantsScreen() {
                                 <Text className="text-brand-text font-semibold text-base">Transactions</Text>
                                 {selected.variants.length > 0 && <Text className="text-brand-muted text-[11px]">{selected.variants.length} spellings combined</Text>}
                             </View>
+                            {detail && (
+                                <View className="mb-3 pb-3 border-b border-brand-border gap-y-1.5">
+                                    <Text className="text-brand-muted text-xs">
+                                        First visit {detail.first ? dayLabel(detail.first) : '—'} · Latest {detail.last ? dayLabel(detail.last) : '—'}
+                                        {detail.every !== null ? ` · Typically every ${detail.every < 1.5 ? 'day' : `${Math.round(detail.every)} days`}` : ''}
+                                    </Text>
+                                    {detail.cats.map(([name, v]) => (
+                                        <View key={name} className="flex-row justify-between">
+                                            <Text className="text-brand-text text-sm flex-1 pr-3" numberOfLines={1}>{name}</Text>
+                                            <Text className="text-brand-muted text-sm">{usd(v)}</Text>
+                                        </View>
+                                    ))}
+                                </View>
+                            )}
                             {!txs ? (
                                 <ActivityIndicator color={colors.accent} />
                             ) : shownTxs.length === 0 ? (
