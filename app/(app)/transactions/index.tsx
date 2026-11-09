@@ -24,7 +24,7 @@ const PAGE_SIZE = 50
 
 export default function TransactionsScreen() {
     const router = useRouter()
-    const params = useLocalSearchParams<{ categoryId?: string; categoryName?: string; dateRange?: string; month?: string }>()
+    const params = useLocalSearchParams<{ categoryId?: string; categoryName?: string; dateRange?: string; month?: string; focus?: string; search?: string }>()
     const [search, setSearch] = useState('')
     const [editing, setEditing] = useState<Transaction | null>(null)
     // Open swipe rows, so one can be closed after its action (or when another opens)
@@ -53,6 +53,16 @@ export default function TransactionsScreen() {
             router.setParams({ categoryId: undefined, categoryName: undefined, dateRange: undefined, month: undefined })
         }
     }, [params.categoryId, params.categoryName, params.dateRange, params.month])
+
+    // Opened from a tapped transaction elsewhere (e.g. a payee's list): search for it across all dates, then open it
+    const [focusId, setFocusId] = useState<string | null>(null)
+    useEffect(() => {
+        if (!params.focus) return
+        setFilters({ ...DEFAULT_FILTERS, dateRange: 'all' })
+        setSearch(params.search ?? '')
+        setFocusId(params.focus)
+        router.setParams({ focus: undefined, search: undefined })
+    }, [params.focus, params.search])
 
     const filterCount = activeFilterCount(filters)
     const [showScan, setShowScan] = useState(false)
@@ -123,6 +133,14 @@ export default function TransactionsScreen() {
         () => data?.pages.flatMap(p => p.items) ?? [],
         [data]
     )
+
+    // Open the transaction we were sent to as soon as the search has found it
+    useEffect(() => {
+        if (!focusId) return
+        const hit = transactions.find(t => t.id === focusId)
+        if (hit) { setEditing(hit); setFocusId(null) }
+        else if (!isLoading && !isRefetching && data) setFocusId(null)
+    }, [focusId, transactions, isLoading, isRefetching, data])
 
     const grouped = useMemo(() =>
         groupSplits(transactions).reduce<Record<string, ListRow[]>>((acc, row) => {

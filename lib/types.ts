@@ -650,4 +650,10 @@ export interface MerchantTransaction {
     amount: number
     category: string | null
     splitPart: boolean
+    /** For a split part: the purchase it belongs to. */
+    parentId: string | null
+    accountId: string
+    /** What it was paid with, e.g. "Cash Back Visa ••1234". */
+    account: string
+    accountType: string
 }

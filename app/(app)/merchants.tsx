@@ -136,7 +136,16 @@ export default function MerchantsScreen() {
         const cats = new Map<string, number>()
         // Categories follow the chosen period (a month, or the whole range)
         for (const t of txs.filter(x => x.date >= windowStart && x.date < windowEnd)) cats.set(t.category ?? 'Uncategorized', (cats.get(t.category ?? 'Uncategorized') ?? 0) + t.amount)
+        // Which card or account paid for it in the chosen period
+        const accounts = new Map<string, { label: string; type: string; spent: number; visits: number }>()
+        for (const t of txs.filter(x => x.date >= windowStart && x.date < windowEnd)) {
+            const a = accounts.get(t.accountId) ?? { label: t.account, type: t.accountType, spent: 0, visits: 0 }
+            a.spent += t.amount
+            if (!t.splitPart && t.amount > 0) a.visits++
+            accounts.set(t.accountId, a)
+        }
         return {
+            paidWith: [...accounts.values()].filter(a => a.spent > 0.005).sort((a, b) => b.spent - a.spent),
             first: allVisits[0]?.date ?? null,
             last: allVisits[allVisits.length - 1]?.date ?? null,
             every: gaps.length ? gaps[Math.floor(gaps.length / 2)] : null,
@@ -346,6 +355,14 @@ export default function MerchantsScreen() {
                                         First visit {detail.first ? dayLabel(detail.first) : '—'} · Latest {detail.last ? dayLabel(detail.last) : '—'}
                                         {detail.every !== null ? ` · Typically every ${detail.every < 1.5 ? 'day' : `${Math.round(detail.every)} days`}` : ''}
                                     </Text>
+                                    {detail.paidWith.length > 0 && <Text className="text-brand-muted text-xs mt-1">Paid with</Text>}
+                                    {detail.paidWith.map(a => (
+                                        <View key={a.label} className="flex-row justify-between">
+                                            <Text className="text-brand-text text-sm flex-1 pr-3" numberOfLines={1}>{a.label} <Text className="text-brand-muted text-xs">{a.type === 'CREDIT_CARD' ? 'Credit card' : a.type.toLowerCase().replace(/_/g, ' ')}</Text></Text>
+                                            <Text className="text-brand-muted text-sm">{a.visits} · {usd(a.spent)}</Text>
+                                        </View>
+                                    ))}
+                                    <Text className="text-brand-muted text-xs mt-1">Filed under</Text>
                                     {detail.cats.map(([name, v]) => (
                                         <View key={name} className="flex-row justify-between">
                                             <Text className="text-brand-text text-sm flex-1 pr-3" numberOfLines={1}>{name}</Text>
@@ -360,17 +377,23 @@ export default function MerchantsScreen() {
                                 <Text className="text-brand-muted text-sm">No purchases in this period.</Text>
                             ) : (
                                 shownTxs.slice(0, 30).map((t, i) => (
-                                    <View key={t.id} className={`flex-row items-center py-2.5 ${i > 0 ? 'border-t border-brand-border' : ''}`}>
+                                    <TouchableOpacity
+                                        key={t.id}
+                                        activeOpacity={0.7}
+                                        // Opens the Transactions screen on this purchase (a split part opens the purchase it belongs to)
+                                        onPress={() => { haptics.light(); router.push({ pathname: '/transactions', params: { focus: t.parentId ?? t.id, search: t.description } }) }}
+                                        className={`flex-row items-center py-2.5 ${i > 0 ? 'border-t border-brand-border' : ''}`}
+                                    >
                                         <View className="flex-1 pr-3">
                                             <Text className={`text-sm ${t.splitPart ? 'text-brand-muted' : 'text-brand-text'}`} numberOfLines={1}>
                                                 {t.splitPart ? 'Split part' : t.description}{t.category ? ` · ${t.category}` : ''}
                                             </Text>
-                                            <Text className="text-brand-muted text-xs">{dayLabel(t.date)}</Text>
+                                            <Text className="text-brand-muted text-xs">{dayLabel(t.date)} · {t.account}</Text>
                                         </View>
                                         <Text className={`text-sm font-medium ${t.amount < 0 ? 'text-brand-positive' : 'text-brand-text'}`}>
                                             {t.amount < 0 ? `+${usd(-t.amount)}` : usd(t.amount)}
                                         </Text>
-                                    </View>
+                                    </TouchableOpacity>
                                 ))
                             )}
                         </Card>
