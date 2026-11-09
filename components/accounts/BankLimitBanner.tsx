@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Modal, View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { ModalSafeArea } from '@/components/ModalSafeArea'
 import { AlertTriangle, X, Check } from 'lucide-react-native'
 import { useBankLimit } from '@/hooks/useBankLimit'
 import { colors } from '@/lib/colors'
@@ -51,7 +51,7 @@ export function BankLimitBanner() {
             </TouchableOpacity>
 
             <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
-                <SafeAreaView className="flex-1 bg-brand-bg">
+                <ModalSafeArea className="flex-1 bg-brand-bg">
                     <View className="flex-row items-center justify-between px-6 pt-4 pb-2">
                         <Text className="text-brand-text text-xl font-bold">Keep up to {limit.limit} banks</Text>
                         <TouchableOpacity onPress={() => setOpen(false)} accessibilityRole="button" accessibilityLabel="Close">
@@ -95,7 +95,7 @@ export function BankLimitBanner() {
                             {keep.isPending ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-base font-semibold">Keep {picked.size} bank{picked.size === 1 ? '' : 's'}</Text>}
                         </TouchableOpacity>
                     </View>
-                </SafeAreaView>
+                </ModalSafeArea>
             </Modal>
         </>
     )

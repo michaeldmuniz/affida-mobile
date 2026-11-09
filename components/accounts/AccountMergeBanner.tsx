@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Modal, View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { ModalSafeArea } from '@/components/ModalSafeArea'
 import { Copy, X } from 'lucide-react-native'
 import { useAccountMerge, type MergeSuggestion } from '@/hooks/useAccountMerge'
 import { colors } from '@/lib/colors'
@@ -44,7 +44,7 @@ export function AccountMergeBanner() {
             </TouchableOpacity>
 
             <Modal visible={open} animationType="slide" onRequestClose={() => { setOpen(false); setConfirming(null) }}>
-                <SafeAreaView className="flex-1 bg-brand-bg">
+                <ModalSafeArea className="flex-1 bg-brand-bg">
                     <View className="flex-row items-center justify-between px-6 pt-4 pb-2">
                         <Text className="text-brand-text text-lg font-semibold">Possible duplicate accounts</Text>
                         <TouchableOpacity onPress={() => { setOpen(false); setConfirming(null) }} hitSlop={10} accessibilityLabel="Close"><X size={20} color={colors.muted} /></TouchableOpacity>
@@ -88,7 +88,7 @@ export function AccountMergeBanner() {
                             </View>
                         ))}
                     </ScrollView>
-                </SafeAreaView>
+                </ModalSafeArea>
             </Modal>
         </>
     )

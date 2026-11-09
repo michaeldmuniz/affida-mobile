@@ -3,7 +3,7 @@ import {
     Modal, View, Text, ScrollView, TouchableOpacity, Image,
     ActivityIndicator,
 } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { ModalSafeArea } from '@/components/ModalSafeArea'
 import { X, Camera, Image as ImageIcon, ReceiptText } from 'lucide-react-native'
 import * as ImagePicker from 'expo-image-picker'
 import DocumentScanner from 'react-native-document-scanner-plugin'
@@ -161,7 +161,7 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
     return (
         <>
             <Modal visible={visible && !result && !finishing} animationType="slide" presentationStyle="fullScreen" onRequestClose={handleClose}>
-                <SafeAreaView className="flex-1 bg-brand-bg" edges={['top', 'bottom']}>
+                <ModalSafeArea className="flex-1 bg-brand-bg" edges={['top', 'bottom']}>
                     <View className="flex-row items-center px-4 py-3 border-b border-brand-border">
                         <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={handleClose} hitSlop={8} className="w-8">
                             <X size={20} color={colors.muted} />
@@ -232,7 +232,7 @@ export function ScanSheet({ visible, onClose, onViewPending }: Props) {
                             </View>
                         )}
                     </ScrollView>
-                </SafeAreaView>
+                </ModalSafeArea>
             </Modal>
 
             <ReceiptDetailSheet

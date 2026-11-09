@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Modal, View, Text, TextInput, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { ModalSafeArea } from '@/components/ModalSafeArea'
 import { X, Search } from 'lucide-react-native'
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
@@ -47,7 +47,7 @@ export function TransactionPicker({ visible, title, excludeId, onPick, onClose }
 
     return (
         <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-            <SafeAreaView className="flex-1 bg-brand-bg">
+            <ModalSafeArea className="flex-1 bg-brand-bg">
                 <View className="flex-row items-center px-4 py-3 border-b border-brand-border">
                     <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} hitSlop={8} className="w-8">
                         <X size={20} color={colors.muted} />
@@ -98,7 +98,7 @@ export function TransactionPicker({ visible, title, excludeId, onPick, onClose }
                         )}
                     />
                 )}
-            </SafeAreaView>
+            </ModalSafeArea>
         </Modal>
     )
 }

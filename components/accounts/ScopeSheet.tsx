@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Modal, View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { ModalSafeArea } from '@/components/ModalSafeArea'
 import { X, Check, Users } from 'lucide-react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
@@ -62,7 +62,7 @@ export function ScopeSheet({ visible, onClose }: { visible: boolean; onClose: ()
 
     return (
         <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-            <SafeAreaView className="flex-1 bg-brand-bg">
+            <ModalSafeArea className="flex-1 bg-brand-bg">
                 <View className="flex-row items-center px-4 py-3 border-b border-brand-border">
                     <Text className="flex-1 text-brand-text text-lg font-semibold">Show accounts</Text>
                     <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} hitSlop={8}>
@@ -100,7 +100,7 @@ export function ScopeSheet({ visible, onClose }: { visible: boolean; onClose: ()
                         Accounts, transactions, budgets and reports show whatever is ticked here. Move an account into a group from its own screen.
                     </Text>
                 </ScrollView>
-            </SafeAreaView>
+            </ModalSafeArea>
         </Modal>
     )
 }

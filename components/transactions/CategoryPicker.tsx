@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import {
     Modal, View, Text, TextInput, TouchableOpacity, ScrollView, Alert,
 } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { ModalSafeArea } from '@/components/ModalSafeArea'
 import { X, Search, Check } from 'lucide-react-native'
 import type { Category } from '@/lib/types'
 import { colors } from '@/lib/colors'
@@ -64,7 +64,7 @@ export function CategoryPicker({ visible, categories, selectedId, onSelect, onCl
 
     return (
         <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-            <SafeAreaView className="flex-1 bg-brand-bg">
+            <ModalSafeArea className="flex-1 bg-brand-bg">
                 {/* Header */}
                 <View className="flex-row items-center px-4 py-3 border-b border-brand-border">
                     <Text className="flex-1 text-brand-text text-lg font-semibold">{ownerName ? `${ownerName}'s categories` : 'Category'}</Text>
@@ -131,7 +131,7 @@ export function CategoryPicker({ visible, categories, selectedId, onSelect, onCl
                     ))}
                     <View className="h-8" />
                 </ScrollView>
-            </SafeAreaView>
+            </ModalSafeArea>
         </Modal>
     )
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Modal, View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { ModalSafeArea } from '@/components/ModalSafeArea'
 import { Info, X } from 'lucide-react-native'
 import { usePairingReview, type ReviewItem } from '@/hooks/usePairingReview'
 import { colors } from '@/lib/colors'
@@ -58,7 +58,7 @@ export function PairingReviewBanner() {
             </TouchableOpacity>
 
             <Modal visible={open} animationType="slide" onRequestClose={close}>
-                <SafeAreaView className="flex-1 bg-brand-bg">
+                <ModalSafeArea className="flex-1 bg-brand-bg">
                     <View className="flex-row items-center justify-between px-6 pt-4 pb-2">
                         <Text className="text-brand-text text-xl font-bold">{n > 0 ? 'Possible duplicates' : 'What changed'}</Text>
                         <TouchableOpacity onPress={close} disabled={busy} accessibilityRole="button" accessibilityLabel="Close">
@@ -148,7 +148,7 @@ export function PairingReviewBanner() {
                             <Text className="text-brand-text text-base font-semibold">{review.unseen > 0 ? 'Got it' : 'Close'}</Text>
                         </TouchableOpacity>
                     </View>
-                </SafeAreaView>
+                </ModalSafeArea>
             </Modal>
         </>
     )

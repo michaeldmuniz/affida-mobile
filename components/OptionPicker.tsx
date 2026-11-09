@@ -1,5 +1,5 @@
 import { Modal, View, Text, TouchableOpacity, ScrollView } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { ModalSafeArea } from '@/components/ModalSafeArea'
 import { X, Check } from 'lucide-react-native'
 import { colors } from '@/lib/colors'
 
@@ -21,7 +21,7 @@ interface Props {
 export function OptionPicker({ visible, title, options, selectedValue, onSelect, onClose, noneLabel = 'Any' }: Props) {
     return (
         <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-            <SafeAreaView className="flex-1 bg-brand-bg">
+            <ModalSafeArea className="flex-1 bg-brand-bg">
                 <View className="flex-row items-center px-4 py-3 border-b border-brand-border">
                     <Text className="flex-1 text-brand-text text-lg font-semibold">{title}</Text>
                     <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} hitSlop={8}>
@@ -48,7 +48,7 @@ export function OptionPicker({ visible, title, options, selectedValue, onSelect,
                     ))}
                     <View className="h-8" />
                 </ScrollView>
-            </SafeAreaView>
+            </ModalSafeArea>
         </Modal>
     )
 }
