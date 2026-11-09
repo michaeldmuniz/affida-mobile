@@ -55,32 +55,38 @@ export default function MerchantsScreen() {
     const idx = curIdx ?? Math.max(last, 0)
     const [allMonths, setAllMonths] = useState(false)
     const [query, setQuery] = useState('')
-    const [selKey, setSelKey] = useState<string | null>(null)
+    const [selKeys, setSelKeys] = useState<string[]>([])
     const [rowLimit, setRowLimit] = useState(15)
 
     // Opened from a tapped merchant elsewhere in the app: pick it as soon as the data is here
     useEffect(() => {
         if (!params.search || merchants.length === 0) return
         const hit = searchMerchants(merchants, String(params.search))[0]
-        if (hit) setSelKey(hit.key)
+        if (hit) setSelKeys([hit.key])
     }, [params.search, merchants])
 
     const top = useMemo(() => merchants.slice(0, TOP), [merchants])
-    const selected: MerchantSeries | null = useMemo(() => merchants.find(m => m.key === selKey) ?? null, [merchants, selKey])
-    const suggestions = useMemo(() => (query.trim() ? searchMerchants(merchants, query).slice(0, 6) : []), [merchants, query])
-    const selColor = selected ? colorForIndex(Math.max(top.findIndex(t => t.key === selected.key), 0)) : colors.accent
+    // Payees picked to look at (one or several), in the order they were added
+    const picked: MerchantSeries[] = useMemo(() => selKeys.map(k => merchants.find(m => m.key === k)).filter((m): m is MerchantSeries => !!m), [merchants, selKeys])
+    const hasPicks = picked.length > 0
+    const selected: MerchantSeries | null = picked.length === 1 ? picked[0] : null
+    const pickColor = (key: string) => colorForIndex(Math.max(picked.findIndex(m => m.key === key), 0))
+    const suggestions = useMemo(() => (query.trim() ? searchMerchants(merchants, query).filter(m => !selKeys.includes(m.key)).slice(0, 6) : []), [merchants, query, selKeys])
 
     const [from, to] = allMonths ? [0, last] : [idx, idx]
     const prev = !allMonths && idx > 0 ? idx - 1 : null
 
     // Chart columns: one per month, stacked by top payees (or just the picked one)
     const columns = useMemo(() => months.map((m, i) => {
-        if (selected) return { i, total: selected.amounts[i], parts: [{ v: Math.max(selected.amounts[i], 0), c: selColor }] }
+        if (hasPicks) {
+            const parts = picked.map(p => ({ v: Math.max(p.amounts[i], 0), c: pickColor(p.key) }))
+            return { i, total: parts.reduce((t, p) => t + p.v, 0), parts }
+        }
         const parts = top.map((t, k) => ({ v: Math.max(t.amounts[i], 0), c: colorForIndex(k) }))
         const used = parts.reduce((s, p) => s + p.v, 0)
         const total = data?.monthTotals[i] ?? 0
         return { i, total, parts: [...parts, { v: Math.max(total - used, 0), c: OTHER }] }
-    }), [months, selected, top, selColor, data])
+    }), [months, hasPicks, picked, top, data])
     const chartMax = Math.max(1, ...columns.map(c => c.total))
 
     const totals = useMemo(() => {
@@ -103,9 +109,9 @@ export default function MerchantsScreen() {
 
     // The picked payee's own transactions
     const { data: txs } = useQuery<MerchantTransaction[]>({
-        queryKey: ['merchant-transactions', selKey, endMonth],
-        enabled: !!selKey,
-        queryFn: async () => (await apiClient.get('/merchants/transactions', { params: { key: selKey, endMonth } })).data.data,
+        queryKey: ['merchant-transactions', selected?.key, endMonth],
+        enabled: !!selected,
+        queryFn: async () => (await apiClient.get('/merchants/transactions', { params: { key: selected?.key, endMonth } })).data.data,
     })
     const windowStart = months[from] ? `${months[from]}-01` : ''
     const windowEnd = (() => {
@@ -116,9 +122,16 @@ export default function MerchantsScreen() {
     })()
     const shownTxs = (txs ?? []).filter(t => t.date >= windowStart && t.date < windowEnd)
 
-    const pick = (key: string | null) => { haptics.light(); setSelKey(key); setQuery('') }
-    const selStats = selected ? merchantStats(selected, from, to) : null
-    const selPrev = selected && prev !== null ? merchantStats(selected, prev, prev) : null
+    const toggle = (key: string) => { haptics.light(); setSelKeys(k => k.includes(key) ? k.filter(x => x !== key) : [...k, key]); setQuery('') }
+    const clear = () => { haptics.light(); setSelKeys([]); setQuery('') }
+    // The picked payees added together (for one payee, just its own numbers)
+    const combine = (a: number, b: number) => {
+        let spent = 0; let visits = 0; let largest = 0
+        for (const p of picked) { const st = merchantStats(p, a, b); spent += st.spent; visits += st.visits; largest = Math.max(largest, st.largest) }
+        return { spent, visits, largest, average: visits > 0 ? spent / visits : null }
+    }
+    const selStats = hasPicks ? combine(from, to) : null
+    const selPrev = hasPicks && prev !== null ? combine(prev, prev) : null
     const vs = prev !== null ? `vs ${monthShort(months[prev])}` : ''
 
     return (
@@ -144,44 +157,45 @@ export default function MerchantsScreen() {
                     keyboardShouldPersistTaps="handled"
                     refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.accent} />}
                 >
-                    {/* Search: pick one payee to see just it */}
+                    {/* Search: pick one payee, or several, to see just them */}
                     <View>
-                        {selected ? (
-                            <View className="flex-row items-center bg-brand-elevated border border-brand-border rounded-xl px-3 h-11 gap-x-2">
-                                <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: selColor }} />
-                                <Text className="text-brand-text font-medium flex-1" numberOfLines={1}>{selected.name}</Text>
-                                <TouchableOpacity onPress={() => pick(null)} hitSlop={8} className="flex-row items-center gap-x-1">
-                                    <X size={16} color={colors.muted} />
-                                    <Text className="text-brand-muted text-xs">Top payees</Text>
-                                </TouchableOpacity>
-                            </View>
-                        ) : (
-                            <View className="flex-row items-center bg-brand-elevated border border-brand-border rounded-xl px-3 h-11 gap-x-2">
-                                <Search size={16} color={colors.muted} />
-                                <TextInput
-                                    className="flex-1 text-brand-text text-base"
-                                    value={query}
-                                    onChangeText={(t) => { setQuery(t); setRowLimit(15) }}
-                                    placeholder="Search your payees to see just one"
-                                    placeholderTextColor={colors.muted}
-                                    autoCorrect={false}
-                                    autoCapitalize="none"
-                                    returnKeyType="search"
-                                    onSubmitEditing={() => suggestions[0] && pick(suggestions[0].key)}
-                                />
-                                {query ? (
-                                    <TouchableOpacity onPress={() => setQuery('')} hitSlop={8}><X size={16} color={colors.muted} /></TouchableOpacity>
-                                ) : null}
+                        {hasPicks && (
+                            <View className="flex-row flex-wrap items-center gap-2 mb-2">
+                                {picked.map(p => (
+                                    <TouchableOpacity key={p.key} onPress={() => toggle(p.key)} activeOpacity={0.7} className="flex-row items-center bg-brand-elevated border border-brand-border rounded-full pl-3 pr-2 py-1.5 gap-x-1.5">
+                                        <View style={{ width: 9, height: 9, borderRadius: 2, backgroundColor: pickColor(p.key) }} />
+                                        <Text className="text-brand-text text-sm" numberOfLines={1} style={{ maxWidth: 160 }}>{p.name}</Text>
+                                        <X size={14} color={colors.muted} />
+                                    </TouchableOpacity>
+                                ))}
+                                <TouchableOpacity onPress={clear} hitSlop={8}><Text className="text-brand-muted text-xs underline">Top payees</Text></TouchableOpacity>
                             </View>
                         )}
-                        {!selected && query.trim() ? (
+                        <View className="flex-row items-center bg-brand-elevated border border-brand-border rounded-xl px-3 h-11 gap-x-2">
+                            <Search size={16} color={colors.muted} />
+                            <TextInput
+                                className="flex-1 text-brand-text text-base"
+                                value={query}
+                                onChangeText={(t) => { setQuery(t); setRowLimit(15) }}
+                                placeholder={hasPicks ? 'Add another payee to compare' : 'Search your payees to see one, or several'}
+                                placeholderTextColor={colors.muted}
+                                autoCorrect={false}
+                                autoCapitalize="none"
+                                returnKeyType="search"
+                                onSubmitEditing={() => suggestions[0] && toggle(suggestions[0].key)}
+                            />
+                            {query ? (
+                                <TouchableOpacity onPress={() => setQuery('')} hitSlop={8}><X size={16} color={colors.muted} /></TouchableOpacity>
+                            ) : null}
+                        </View>
+                        {query.trim() ? (
                             <View className="mt-2 bg-brand-surface border border-brand-border rounded-xl overflow-hidden">
                                 {suggestions.length === 0 ? (
-                                    <Text className="text-brand-muted text-sm px-4 py-3">No payee matches “{query.trim()}”</Text>
+                                    <Text className="text-brand-muted text-sm px-4 py-3">{searchMerchants(merchants, query).length > 0 ? 'Already added' : `No payee matches “${query.trim()}”`}</Text>
                                 ) : suggestions.map((m, i) => (
                                     <TouchableOpacity
                                         key={m.key}
-                                        onPress={() => pick(m.key)}
+                                        onPress={() => toggle(m.key)}
                                         activeOpacity={0.7}
                                         className={`flex-row items-center justify-between px-4 py-3 ${i > 0 ? 'border-t border-brand-border' : ''}`}
                                     >
@@ -195,8 +209,8 @@ export default function MerchantsScreen() {
 
                     {/* Chart */}
                     <Card className="p-4">
-                        <Text className="text-brand-text font-semibold text-base mb-1">{selected ? selected.name : 'Where your money went'}</Text>
-                        <Text className="text-brand-muted text-xs mb-3">{selected ? 'Spent by month. Tap a month.' : 'Month by month. Tap a month to see it below.'}</Text>
+                        <Text className="text-brand-text font-semibold text-base mb-1">{hasPicks ? (selected ? selected.name : `${picked.length} payees`) : 'Where your money went'}</Text>
+                        <Text className="text-brand-muted text-xs mb-3">{hasPicks ? 'Spent by month. Tap a month.' : 'Month by month. Tap a month to see it below.'}</Text>
                         <View className="flex-row items-end justify-between" style={{ height: 150 }}>
                             {columns.map(c => (
                                 <TouchableOpacity
@@ -219,10 +233,10 @@ export default function MerchantsScreen() {
                                 <Text key={m} className={`flex-1 text-center text-[10px] ${i === idx && !allMonths ? 'text-brand-text font-semibold' : 'text-brand-muted'}`}>{monthShort(m)[0]}</Text>
                             ))}
                         </View>
-                        {!selected && (
+                        {!hasPicks && (
                             <View className="flex-row flex-wrap gap-x-3 gap-y-1.5 mt-3">
                                 {top.map((t, k) => (
-                                    <TouchableOpacity key={t.key} onPress={() => pick(t.key)} className="flex-row items-center gap-x-1.5" activeOpacity={0.7}>
+                                    <TouchableOpacity key={t.key} onPress={() => toggle(t.key)} className="flex-row items-center gap-x-1.5" activeOpacity={0.7}>
                                         <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: colorForIndex(k) }} />
                                         <Text className="text-brand-muted text-xs" numberOfLines={1}>{t.name}</Text>
                                     </TouchableOpacity>
@@ -252,7 +266,7 @@ export default function MerchantsScreen() {
                     </View>
 
                     <View className="flex-row flex-wrap gap-3">
-                        {selected && selStats ? (
+                        {hasPicks && selStats ? (
                             <>
                                 <Tile label="Spent" value={usd(selStats.spent)} sub={selPrev ? pctText(percentChange(selStats.spent, selPrev.spent), vs) : undefined} />
                                 <Tile label="Visits" value={String(selStats.visits)} sub={selPrev ? pctText(percentChange(selStats.visits, selPrev.visits), vs) : undefined} />
@@ -269,7 +283,35 @@ export default function MerchantsScreen() {
                         )}
                     </View>
 
-                    {/* Picked payee: its transactions */}
+                    {/* Several picked: side by side */}
+                    {picked.length > 1 && (
+                        <Card className="p-4">
+                            <Text className="text-brand-text font-semibold text-base mb-1">Compared</Text>
+                            <Text className="text-brand-muted text-xs mb-3">Tap a name below to remove it, or pick one to see its transactions.</Text>
+                            {picked.map((p, i) => {
+                                const st = merchantStats(p, from, to)
+                                return (
+                                    <View key={p.key} className={`flex-row items-center py-2.5 ${i > 0 ? 'border-t border-brand-border' : ''}`}>
+                                        <View style={{ width: 9, height: 9, borderRadius: 2, backgroundColor: pickColor(p.key), marginRight: 10 }} />
+                                        <View className="flex-1 pr-3">
+                                            <Text className="text-brand-text text-sm" numberOfLines={1}>{p.name}</Text>
+                                            <Text className="text-brand-muted text-xs">{st.visits} visit{st.visits === 1 ? '' : 's'}{st.average !== null ? ` · ${usd(st.average)} avg` : ''}</Text>
+                                        </View>
+                                        <Text className="text-brand-text text-sm font-medium mr-3">{usd(st.spent)}</Text>
+                                        <TouchableOpacity onPress={() => { haptics.light(); setSelKeys([p.key]) }} hitSlop={8}><Text className="text-brand-accent text-xs">Details</Text></TouchableOpacity>
+                                    </View>
+                                )
+                            })}
+                            {selStats && (
+                                <View className="flex-row items-center justify-between pt-2.5 border-t border-brand-border">
+                                    <Text className="text-brand-text text-sm font-semibold">Together</Text>
+                                    <Text className="text-brand-text text-sm font-semibold">{usd(selStats.spent)}</Text>
+                                </View>
+                            )}
+                        </Card>
+                    )}
+
+                    {/* One picked payee: its transactions */}
                     {selected && (
                         <Card className="p-4">
                             <View className="flex-row items-center justify-between mb-3">
@@ -308,11 +350,11 @@ export default function MerchantsScreen() {
                             return (
                                 <TouchableOpacity
                                     key={m.key}
-                                    onPress={() => pick(m.key)}
+                                    onPress={() => toggle(m.key)}
                                     activeOpacity={0.7}
                                     className={`flex-row items-center py-3 ${i > 0 ? 'border-t border-brand-border' : ''}`}
                                 >
-                                    <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: ci >= 0 ? colorForIndex(ci) : OTHER, marginRight: 10 }} />
+                                    <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: selKeys.includes(m.key) ? pickColor(m.key) : (!hasPicks && ci >= 0 ? colorForIndex(ci) : OTHER), marginRight: 10 }} />
                                     <View className="flex-1 pr-3">
                                         <Text className="text-brand-text text-sm" numberOfLines={1}>{m.name}</Text>
                                         <Text className="text-brand-muted text-xs">{s.visits} visit{s.visits === 1 ? '' : 's'}{s.average !== null ? ` · ${usd(s.average)} avg` : ''}</Text>
