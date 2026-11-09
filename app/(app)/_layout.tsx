@@ -177,6 +177,10 @@ export default function AppLayout() {
                 options={HIDDEN_SCREEN_OPTIONS}
             />
             <Tabs.Screen
+                name="merchants"
+                options={HIDDEN_SCREEN_OPTIONS}
+            />
+            <Tabs.Screen
                 name="investments"
                 options={HIDDEN_SCREEN_OPTIONS}
             />

@@ -623,3 +623,31 @@ export interface CardRewardsDetail {
     keys: { key: string; label: string; kind: 'category' | 'merchant' }[]
     catalog: { id: string; name: string; issuer: string }[]
 }
+
+// Top Payees: spending by merchant, month by month (GET /api/mobile/merchants)
+export interface MerchantSeries {
+    key: string
+    name: string
+    variants: string[]
+    amounts: number[]
+    visits: number[]
+    largest: number[]
+    total: number
+    totalVisits: number
+}
+
+export interface MerchantHistory {
+    months: string[]
+    monthTotals: number[]
+    monthVisits: number[]
+    merchants: MerchantSeries[]
+}
+
+export interface MerchantTransaction {
+    id: string
+    date: string
+    description: string
+    amount: number
+    category: string | null
+    splitPart: boolean
+}

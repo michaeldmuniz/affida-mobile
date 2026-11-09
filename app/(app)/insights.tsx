@@ -261,13 +261,18 @@ export default function InsightsScreen() {
 
                     {/* Top merchants */}
                     <Card className="p-5">
-                        <Text className="text-brand-text font-semibold text-base mb-4">Top Merchants</Text>
+                        <View className="flex-row items-center justify-between mb-4">
+                            <Text className="text-brand-text font-semibold text-base">Top Merchants</Text>
+                            <TouchableOpacity onPress={() => { haptics.light(); router.push('/merchants') }} hitSlop={8} activeOpacity={0.7}>
+                                <Text className="text-brand-accent text-sm">All payees</Text>
+                            </TouchableOpacity>
+                        </View>
                         {data?.topMerchants?.length ? (
                             <View className="gap-y-3">
                                 {data.topMerchants.slice(0, 8).map((m, i) => {
                                     const max = data.topMerchants[0].amount || 1
                                     return (
-                                        <View key={m.name}>
+                                        <TouchableOpacity key={m.name} activeOpacity={0.7} onPress={() => { haptics.light(); router.push({ pathname: '/merchants', params: { search: m.name } }) }}>
                                             <View className="flex-row items-center justify-between mb-1.5">
                                                 <Text className="text-brand-text text-sm flex-1 pr-3" numberOfLines={1}>
                                                     {m.name}
@@ -285,7 +290,7 @@ export default function InsightsScreen() {
                                                     }}
                                                 />
                                             </View>
-                                        </View>
+                                        </TouchableOpacity>
                                     )
                                 })}
                             </View>
