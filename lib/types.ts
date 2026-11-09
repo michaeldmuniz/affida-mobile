@@ -86,6 +86,25 @@ export interface Transaction {
     pending: boolean
     isManual: boolean
     receiptId?: string | null
+    /** On a part of a split: the id of the original it was split from. Older API versions don't send it. */
+    splitFromId?: string | null
+    /** On the original of a split: its other parts. */
+    splitChildren?: SplitPart[]
+}
+
+/** One of the other parts of a split purchase (the original keeps its own part). */
+export interface SplitPart {
+    id: string
+    amount: number
+    date: string
+    description: string
+    merchantName: string | null
+    categoryId: string | null
+    categoryName: string | null
+    categoryGroup: string | null
+    notes: string | null
+    flagged: boolean
+    pending: boolean
 }
 
 /** A transaction connected to another one (linked purchase, refund or split). */

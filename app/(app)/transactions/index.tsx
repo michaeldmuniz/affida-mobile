@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity, TextInput, ActivityIndicator, Share, Alert } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Swipeable } from 'react-native-gesture-handler'
-import { Search, Flag, SlidersHorizontal, Download, Camera, ReceiptText } from 'lucide-react-native'
+import { Search, Flag, SlidersHorizontal, Download, Camera, ReceiptText, SplitSquareHorizontal } from 'lucide-react-native'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { apiClient } from '@/lib/api-client'
@@ -18,6 +18,7 @@ import type { TransactionFilters } from '@/components/transactions/FilterSheet'
 import { colors } from '@/lib/colors'
 import { PendingBadge } from '@/components/transactions/PendingBadge'
 import { trackAction } from '@/lib/track'
+import { groupSplits, splitFamily, money, type ListRow } from '@/lib/split-group'
 
 const PAGE_SIZE = 50
 
@@ -124,14 +125,16 @@ export default function TransactionsScreen() {
     )
 
     const grouped = useMemo(() =>
-        transactions.reduce<Record<string, Transaction[]>>((acc, tx) => {
-            const key = tx.date.slice(0, 10)
+        groupSplits(transactions).reduce<Record<string, ListRow[]>>((acc, row) => {
+            // A split's parts stay under their original, whatever their own date
+            const key = (row.header ?? row.tx).date.slice(0, 10)
             if (!acc[key]) acc[key] = []
-            acc[key].push(tx)
+            acc[key].push(row)
             return acc
         }, {}),
         [transactions]
     )
+    const family = useMemo(() => splitFamily(transactions, editing), [transactions, editing])
 
     const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a))
 
@@ -259,9 +262,28 @@ export default function TransactionsScreen() {
                                         })}
                                     </Text>
                                     <Card className="overflow-hidden p-0">
-                                        {grouped[date].map((tx, i) => (
+                                        {grouped[date].map((row, i) => {
+                                          const tx = row.tx
+                                          const isHeader = row.kind === 'header'
+                                          if (row.kind === 'part') return (
+                                            <TouchableOpacity
+                                                key={row.key}
+                                                className="flex-row items-center pl-8 pr-4 py-2 bg-brand-accent/10"
+                                                style={{ borderLeftWidth: 3, borderLeftColor: colors.accent }}
+                                                activeOpacity={0.7}
+                                                accessibilityLabel={`Split ${row.partNo} of ${row.partCount}, ${tx.categoryName ?? 'Uncategorized'}, edit`}
+                                                onPress={() => setEditing(tx)}
+                                            >
+                                                <Text className="text-brand-accent text-sm mr-2">{'\u2514'}</Text>
+                                                <Text className="flex-1 text-brand-muted text-sm" numberOfLines={1}>
+                                                    Split {row.partNo} of {row.partCount} · {tx.categoryName ?? 'Uncategorized'}
+                                                </Text>
+                                                <Text className="text-brand-muted text-xs">{money(tx.amount)}</Text>
+                                            </TouchableOpacity>
+                                          )
+                                          return (
                                             <Swipeable
-                                                key={tx.id}
+                                                key={row.key}
                                                 ref={(r) => { swipeRefs.current[tx.id] = r }}
                                                 overshootRight={false}
                                                 rightThreshold={40}
@@ -283,7 +305,8 @@ export default function TransactionsScreen() {
                                                 )}
                                             >
                                             <TouchableOpacity
-                                                className={`flex-row items-center px-4 py-3.5 bg-brand-surface ${i > 0 ? 'border-t border-brand-border' : ''}`}
+                                                className={`flex-row items-center px-4 py-3.5 ${isHeader ? 'bg-brand-accent/10' : 'bg-brand-surface'} ${i > 0 ? 'border-t border-brand-border' : ''}`}
+                                                style={isHeader ? { borderLeftWidth: 3, borderLeftColor: colors.accent } : undefined}
                                                 activeOpacity={0.7}
                                                 onPress={() => setEditing(tx)}
                                             >
@@ -299,15 +322,22 @@ export default function TransactionsScreen() {
                                                         {tx.receiptId && (
                                                             <ReceiptText size={11} color={colors.accent} strokeWidth={2} />
                                                         )}
+                                                        {!isHeader && tx.splitFromId && (
+                                                            <SplitSquareHorizontal size={11} color={colors.accent} strokeWidth={2} />
+                                                        )}
                                                     </View>
-                                                    <Text className="text-brand-muted text-xs mt-0.5" numberOfLines={1}>
-                                                        {tx.categoryName ?? 'Uncategorized'} · {tx.accountName}
+                                                    <Text className={`text-xs mt-0.5 ${isHeader ? 'text-brand-accent' : 'text-brand-muted'}`} numberOfLines={1}>
+                                                        {isHeader ? `Split into ${row.partCount} parts` : tx.categoryName ?? 'Uncategorized'} · {tx.accountName}
                                                     </Text>
                                                 </View>
-                                                <AmountText amount={tx.amount} size="sm" showSign />
+                                                <View className="items-end">
+                                                    <AmountText amount={isHeader ? row.total! : tx.amount} size="sm" showSign />
+                                                    {isHeader && <Text className="text-brand-accent text-[10px] font-medium uppercase tracking-wide">Total</Text>}
+                                                </View>
                                             </TouchableOpacity>
                                             </Swipeable>
-                                        ))}
+                                          )
+                                        })}
                                     </Card>
                                 </View>
                             ))}
@@ -340,7 +370,7 @@ export default function TransactionsScreen() {
                 </View>
             </ScrollView>
 
-            <EditSheet transaction={editing} onClose={() => setEditing(null)} />
+            <EditSheet transaction={editing} onClose={() => setEditing(null)} split={family} onSelectPart={setEditing} />
 
             <TransactionAddSheet visible={showAdd} onClose={() => setShowAdd(false)} />
 

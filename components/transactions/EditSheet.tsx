@@ -17,6 +17,7 @@ import { haptics } from '@/lib/haptics'
 import { shortDay } from '@/lib/format'
 import { DatePickerSheet } from '@/components/family/DatePickerSheet'
 import { TransactionDetails, SyncedSummary } from './TransactionDetails'
+import { money } from '@/lib/split-group'
 import { TransactionPicker } from './TransactionPicker'
 import { SplitSheet } from './SplitSheet'
 import { ReceiptDetailSheet } from '@/components/receipts/ReceiptDetailSheet'
@@ -36,9 +37,13 @@ interface EditState {
 interface Props {
     transaction: Transaction | null
     onClose: () => void
+    /** The split this transaction belongs to (whole amount + every part), when it is one. */
+    split?: { total: number; parts: Transaction[] } | null
+    /** Open another part of the same split. */
+    onSelectPart?: (tx: Transaction) => void
 }
 
-export function EditSheet({ transaction, onClose }: Props) {
+export function EditSheet({ transaction, onClose, split, onSelectPart }: Props) {
     const queryClient = useQueryClient()
     const [form, setForm] = useState<EditState | null>(null)
     const [showCategoryPicker, setShowCategoryPicker] = useState(false)
@@ -274,6 +279,38 @@ export function EditSheet({ transaction, onClose }: Props) {
                         <ScrollView className="flex-1" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                             {/* View-only account: look, but nothing in here can be pressed (the server would refuse every change) */}
                             <View pointerEvents={viewOnly ? 'none' : 'auto'} style={viewOnly ? { opacity: 0.55 } : undefined}>
+
+                            {/* A split purchase: the whole charge and every part, so any piece opens onto the original */}
+                            {split && (
+                                <View className="mx-4 mt-4 rounded-xl border border-brand-accent/40 bg-brand-accent/10 px-4 py-3" accessibilityLabel="Split summary">
+                                    <View className="flex-row items-center justify-between">
+                                        <View className="flex-row items-center gap-x-1.5">
+                                            <SplitSquareHorizontal size={14} color={colors.accent} />
+                                            <Text className="text-brand-accent text-xs font-medium">Original purchase · Total</Text>
+                                        </View>
+                                        <Text className="text-brand-text text-lg font-semibold">{money(split.total)}</Text>
+                                    </View>
+                                    <View className="mt-2 pt-2 border-t border-brand-accent/30">
+                                        {split.parts.map((p, i) => {
+                                            const here = p.id === transaction.id
+                                            return (
+                                                <TouchableOpacity
+                                                    key={p.id}
+                                                    disabled={here || !onSelectPart}
+                                                    onPress={() => onSelectPart?.(p)}
+                                                    className={`flex-row items-center justify-between rounded-lg px-2 py-1.5 ${here ? 'bg-brand-accent/20' : ''}`}
+                                                    activeOpacity={0.7}
+                                                >
+                                                    <Text className={`text-sm ${here ? 'text-brand-text font-medium' : 'text-brand-muted'}`}>
+                                                        {'\u2514'}  Split {i + 1} of {split.parts.length} · {p.categoryName ?? 'Uncategorized'}{here ? ' (editing)' : ''}
+                                                    </Text>
+                                                    <Text className="text-brand-muted text-xs">{money(p.amount)}</Text>
+                                                </TouchableOpacity>
+                                            )
+                                        })}
+                                    </View>
+                                </View>
+                            )}
 
                             {/* Synced from the bank: amount, date, account */}
                             {!transaction.isManual && detail && <SyncedSummary detail={detail} />}
