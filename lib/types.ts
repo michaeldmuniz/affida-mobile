@@ -38,6 +38,8 @@ export interface Account {
     id: string
     name: string
     type: string
+    /** For things you own (type OTHER): 'real estate' | 'vehicle' | 'other asset'; sent by newer servers */
+    subtype?: string | null
     institutionName: string
     balance: number
     creditLimit: number | null

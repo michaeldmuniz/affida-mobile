@@ -12,8 +12,9 @@ import { ScopeSheet, useScope, scopeSummary } from '@/components/accounts/ScopeS
 import { BankLimitBanner } from '@/components/accounts/BankLimitBanner'
 import { PairingReviewBanner } from '@/components/accounts/PairingReviewBanner'
 import { AccountMergeBanner } from '@/components/accounts/AccountMergeBanner'
+import { AssetPromptCard } from '@/components/accounts/AssetPromptCard'
 import { getPaymentUrl } from '@/lib/payment-links'
-import { DEBT_TYPES, computeNetWorth, amountOwed } from '@/lib/account-types'
+import { DEBT_TYPES, computeNetWorth, amountOwed, isOwnedAsset } from '@/lib/account-types'
 import { formatAccountType } from '@/lib/format'
 import type { Account } from '@/lib/types'
 import { colors } from '@/lib/colors'
@@ -33,6 +34,7 @@ const GROUPS: Group[] = [
     { key: 'invest', title: 'Investments', debt: false, test: (a) => /INVEST|BROKER|RETIRE|401|IRA|CRYPTO|HSA/.test(a.type) },
     { key: 'cards', title: 'Credit Cards', debt: true, test: (a) => a.type === 'CREDIT_CARD' || a.type === 'LINE_OF_CREDIT' },
     { key: 'loans', title: 'Loans', debt: true, test: (a) => DEBT_TYPES.has(a.type) },
+    { key: 'own', title: 'Property & Things You Own', debt: false, test: (a) => isOwnedAsset(a) },
     { key: 'other', title: 'Other', debt: false, test: () => true },
 ]
 
@@ -117,6 +119,7 @@ export default function AccountsScreen() {
                     <BankLimitBanner />
                     <PairingReviewBanner />
                     <AccountMergeBanner />
+                    <AssetPromptCard />
                     {/* Summary */}
                     <Card className="p-5">
                         <Text className="text-brand-muted text-xs uppercase tracking-widest mb-3">Net Worth</Text>

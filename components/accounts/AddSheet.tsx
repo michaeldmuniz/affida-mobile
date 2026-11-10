@@ -8,23 +8,24 @@ import { X, ChevronRight, Layers, Building2, PenLine } from 'lucide-react-native
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { OptionPicker } from '@/components/OptionPicker'
-import { DEBT_TYPES } from '@/lib/account-types'
+import { DEBT_TYPES, ASSET_CHOICES, isAssetChoice } from '@/lib/account-types'
 import { deviceTimeZone } from '@/lib/format'
 import { PlaidLinkButton } from './PlaidLinkButton'
 import { colors } from '@/lib/colors'
 
 const ACCOUNT_TYPE_OPTIONS = [
-    { label: 'Checking', value: 'CHECKING' },
+    { label: 'Checking', value: 'CHECKING', section: 'Money you have' },
     { label: 'Savings', value: 'SAVINGS' },
-    { label: 'Credit Card', value: 'CREDIT_CARD' },
-    { label: 'Line of Credit', value: 'LINE_OF_CREDIT' },
     { label: 'Investment', value: 'INVESTMENT' },
+    { label: 'Other (cash, a wallet)', value: 'OTHER' },
+    { label: 'Credit Card', value: 'CREDIT_CARD', section: 'Money you owe' },
+    { label: 'Line of Credit', value: 'LINE_OF_CREDIT' },
     { label: 'Mortgage', value: 'MORTGAGE' },
     { label: 'Auto Loan', value: 'AUTO_LOAN' },
     { label: 'Student Loan', value: 'STUDENT_LOAN' },
     { label: 'Personal Loan', value: 'PERSONAL_LOAN' },
     { label: 'Loan', value: 'LOAN' },
-    { label: 'Other', value: 'OTHER' },
+    ...Object.entries(ASSET_CHOICES).map(([value, k], i) => ({ label: k.label, value, ...(i === 0 ? { section: 'Things you own' } : {}) })),
 ]
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = Object.fromEntries(
@@ -34,23 +35,27 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = Object.fromEntries(
 interface Props {
     visible: boolean
     onClose: () => void
+    /** Open straight on the manual form with something you own chosen (from the "your home is missing" card) */
+    initialType?: string
 }
 
-export function AddAccountSheet({ visible, onClose }: Props) {
+export function AddAccountSheet({ visible, onClose, initialType }: Props) {
     const queryClient = useQueryClient()
-    const [mode, setMode] = useState<'choose' | 'manual'>('choose')
-    const [name, setName] = useState('')
-    const [type, setType] = useState<string | null>(null)
+    const start = isAssetChoice(initialType ?? null) ? initialType! : null
+    const [mode, setMode] = useState<'choose' | 'manual'>(start ? 'manual' : 'choose')
+    const [name, setName] = useState<string>(start ? ASSET_CHOICES[start as keyof typeof ASSET_CHOICES].defaultName : '')
+    const [type, setType] = useState<string | null>(start)
     const [balance, setBalance] = useState('')
     const [excludeFromNetWorth, setExcludeFromNetWorth] = useState(false)
     const [showTypePicker, setShowTypePicker] = useState(false)
 
     const isDebt = type ? DEBT_TYPES.has(type) : false
+    const asset = isAssetChoice(type) ? ASSET_CHOICES[type] : null
 
     const reset = () => {
-        setMode('choose')
-        setName('')
-        setType(null)
+        setMode(start ? 'manual' : 'choose')
+        setName(start ? ASSET_CHOICES[start as keyof typeof ASSET_CHOICES].defaultName : '')
+        setType(start)
         setBalance('')
         setExcludeFromNetWorth(false)
     }
@@ -64,7 +69,8 @@ export function AddAccountSheet({ visible, onClose }: Props) {
             const finalBalance = isDebt ? -Math.abs(rawBalance) : rawBalance
             await apiClient.post('/accounts', {
                 name: name.trim(),
-                type,
+                type: asset ? 'OTHER' : type,
+                ...(asset ? { subtype: asset.subtype } : {}),
                 balance: finalBalance,
                 excludeFromNetWorth,
                 timeZone: deviceTimeZone(),
@@ -73,6 +79,7 @@ export function AddAccountSheet({ visible, onClose }: Props) {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['accounts'] })
             queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+            queryClient.invalidateQueries({ queryKey: ['asset-prompt'] })
             reset()
             onClose()
         },
@@ -148,7 +155,7 @@ export function AddAccountSheet({ visible, onClose }: Props) {
                                         value={name}
                                         maxLength={100}
                                         onChangeText={setName}
-                                        placeholder="e.g. Chase Checking"
+                                        placeholder={asset?.placeholder ?? 'e.g. Chase Checking'}
                                         placeholderTextColor={colors.muted}
                                         autoCorrect={false}
                                     />
@@ -174,7 +181,7 @@ export function AddAccountSheet({ visible, onClose }: Props) {
                             {/* Balance */}
                             <View>
                                 <Text className="text-brand-muted text-xs font-semibold uppercase tracking-widest mb-2">
-                                    {isDebt ? 'Amount Owed' : 'Current Balance'}
+                                    {isDebt ? 'Amount Owed' : asset ? 'What It Is Worth' : 'Current Balance'}
                                 </Text>
                                 <View className="flex-row items-center bg-brand-surface border border-brand-border rounded-xl px-4 h-12">
                                     <Text className="text-brand-muted text-base mr-1">$</Text>
@@ -188,6 +195,9 @@ export function AddAccountSheet({ visible, onClose }: Props) {
                                         selectTextOnFocus
                                     />
                                 </View>
+                                {asset && (
+                                    <Text className="text-brand-muted text-xs mt-1.5 px-1">A best guess is fine. It counts toward your net worth.</Text>
+                                )}
                                 {isDebt && (
                                     <Text className="text-brand-muted text-xs mt-1.5 px-1">
                                         Enter the amount you owe — it will be recorded as a liability.

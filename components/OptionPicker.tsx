@@ -6,6 +6,8 @@ import { colors } from '@/lib/colors'
 interface Option {
     label: string
     value: string
+    /** A heading shown above this option (the first of a group) */
+    section?: string
 }
 
 interface Props {
@@ -37,14 +39,18 @@ export function OptionPicker({ visible, title, options, selectedValue, onSelect,
                         {selectedValue === null && <Check size={16} color={colors.accent} />}
                     </TouchableOpacity>
                     {options.map((opt, i) => (
-                        <TouchableOpacity
-                            key={opt.value}
-                            className={`flex-row items-center px-4 py-3.5 ${i < options.length - 1 ? 'border-b border-brand-border' : ''}`}
-                            onPress={() => { onSelect(opt.value); onClose() }}
-                        >
-                            <Text className="flex-1 text-brand-text text-sm">{opt.label}</Text>
-                            {selectedValue === opt.value && <Check size={16} color={colors.accent} />}
-                        </TouchableOpacity>
+                        <View key={opt.value}>
+                            {opt.section && (
+                                <Text className="px-4 pt-4 pb-1.5 text-brand-muted text-xs font-semibold uppercase tracking-widest">{opt.section}</Text>
+                            )}
+                            <TouchableOpacity
+                                className={`flex-row items-center px-4 py-3.5 ${i < options.length - 1 ? 'border-b border-brand-border' : ''}`}
+                                onPress={() => { onSelect(opt.value); onClose() }}
+                            >
+                                <Text className="flex-1 text-brand-text text-sm">{opt.label}</Text>
+                                {selectedValue === opt.value && <Check size={16} color={colors.accent} />}
+                            </TouchableOpacity>
+                        </View>
                     ))}
                     <View className="h-8" />
                 </ScrollView>
